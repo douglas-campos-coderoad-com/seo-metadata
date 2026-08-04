@@ -1,0 +1,42 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.claude/skills/*
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# Dependencies (root level, if any)
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
+dist/
+build/
+
+# Misc
+.specify/
+specs/  # TODO: Remove after MVP
+
+# IDEs specific
+*.iml
+*.sublime-workspace
+
+# Specification artifacts (keep these)
+# specs/ is the source of truth and should be committed
