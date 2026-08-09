@@ -368,6 +368,50 @@
 
 ---
 
+## Phase 9: Agnostic URL Ingestion (Priority: P1)
+
+**Input**: Design documents from `specs/002-url-ingestion/` (spec.md, plan.md, data-model.md, contracts/api.md)
+
+**Goal**: Implement el endpoint `POST /api/v1/ingest/url` que recibe una URL de cualquier plataforma (Shopify, Magento, InCollect, etc.), realiza scraping agnóstico para extraer el HTML, y lo almacena en la base de datos para análisis posterior (geo, fuera de alcance de esta fase).
+
+**Independent Test**: Enviar una URL real (Shopify/Magento) al endpoint, verificar que el HTML se almacena en `ingested_urls` y que la respuesta incluye el resumen correcto. Valida SCI-001 a SCI-005 de la spec 002.
+
+### Database & Models for URL Ingestion
+
+- [ ] T165 Create IngestedUrl model in `backend/src/models/ingested_url.py` (id, url [unique, indexed], html, status, http_status, content_type, error, timestamps)
+- [ ] T166 Create Alembic migration for ingested_urls table in `backend/migrations/versions/002_ingested_urls.py` (url unique index, html text, status default 'success')
+
+### Schemas for URL Ingestion
+
+- [ ] T167 Create IngestUrlRequest schema in `backend/src/schemas/ingest.py` (url field with http/https validation)
+- [ ] T168 Create IngestUrlResponse schema in `backend/src/schemas/ingest.py` (id, url, status, html_size_bytes, http_status, content_type, created_at)
+
+### Services for URL Ingestion
+
+- [ ] T169 Create IngestService in `backend/src/services/ingest_service.py` (ingest_url with URL validation, scraping, persistence)
+- [ ] T170 Implement base scraping with httpx in IngestService (GET with user-agent, timeout, follow_redirects)
+- [ ] T171 Implement HTML cleaning with BeautifulSoup4 in IngestService (remove scripts/styles, basic normalization)
+- [ ] T172 Implement Playwright fallback in IngestService (used when base scraping returns no useful content, configurable)
+
+### API Endpoints for URL Ingestion
+
+- [ ] T173 Implement ingestion endpoint in `backend/src/api/ingest.py` (POST /api/v1/ingest/url, validates URL, calls service, returns summary) - map to contracts/api.md
+- [ ] T174 Register ingest router in `backend/src/main.py`
+
+### Dependencies for URL Ingestion
+
+- [ ] T175 Add `beautifulsoup4` to `backend/requirements.txt` (httpx already present; playwright optional)
+
+### Tests for URL Ingestion
+
+- [ ] T176 [P] Contract test for POST /ingest/url in `backend/tests/contract/test_ingest_url.py` (valid URL, invalid URL format, inaccessible URL, response schema)
+- [ ] T177 [P] Integration test for ingestion flow in `backend/tests/integration/test_ingest_flow.py` (ingest real/test URL, verify record in DB, verify HTML stored)
+- [ ] T178 [P] Unit test for URL validation in `backend/tests/unit/test_ingest_validation.py` (valid/invalid URL formats)
+
+**Checkpoint**: URL Ingestion feature complete. Endpoint almacena HTML de cualquier plataforma en la BD. Base para análisis de contenido/geo (fase futura).
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

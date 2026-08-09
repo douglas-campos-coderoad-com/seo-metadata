@@ -12,6 +12,8 @@ InCollect is a **commission-free marketplace** that connects visitors with curat
 
 - **Browse**: Discover items across categories (Furniture, Art, Antiques, etc.) and periods (18th-21st century)
 - **Filter**: Search by category, period, or browse all available items
+- **Ingest**: Scrape and store HTML from any e-commerce URL (Shopify, Magento, InCollect, etc.)
+- **Analyze**: AI-powered SEO/GEO/AEO analysis with LangGraph + Gemini
 - **Inquire**: Sign in and send inquiries to dealers about items you're interested in
 - **Admin**: Manage items, dealers, categories, and periods (coming in Phase 6)
 
@@ -20,6 +22,8 @@ InCollect is a **commission-free marketplace** that connects visitors with curat
 ✅ Responsive design (mobile, tablet, desktop)  
 ✅ RESTful API with PostgreSQL database  
 ✅ JWT authentication infrastructure  
+✅ URL ingestion with agnostic web scraping (httpx + Playwright fallback)  
+✅ AI-powered SEO/GEO/AEO analysis with LangGraph + Gemini  
 🔄 User registration & login (Phase 4)  
 🔄 Dealer inquiry system (Phase 5)  
 
@@ -40,6 +44,8 @@ InCollect is a **commission-free marketplace** that connects visitors with curat
 | **ORM** | SQLAlchemy | 2.x async |
 | **Migrations** | Alembic | 1.12+ |
 | **Auth** | JWT (python-jose) | Stateless |
+| **AI/LLM** | LangGraph + LangChain + Gemini | Latest |
+| **Web Scraping** | httpx + BeautifulSoup4 + Playwright | Latest |
 | **Testing** | pytest (backend), Vitest (frontend) | Latest |
 | **Containerization** | Docker & Docker Compose | Latest |
 
@@ -64,6 +70,11 @@ InCollect is a **commission-free marketplace** that connects visitors with curat
 │  │ - GET /api/v1/items/{id} (detail)                 │   │
 │  │ - GET /api/v1/categories (filter options)         │   │
 │  │ - GET /api/v1/periods (filter options)            │   │
+│  │ - POST /api/v1/ingest/url (scrape + store HTML)   │   │
+│  │ - GET /api/v1/ingest/url/{id} (retrieve HTML)     │   │
+│  │ - GET /api/v1/ingest/urls (list ingested URLs)    │   │
+│  │ - POST /api/v1/analyze/{id} (SEO/GEO analysis)    │   │
+│  │ - GET /api/v1/analyze/{id} (get analysis)         │   │
 │  │ - POST /api/v1/auth/register (Phase 4)            │   │
 │  │ - POST /api/v1/auth/login (Phase 4)               │   │
 │  │ - POST /api/v1/inquiries (Phase 5)                │   │
@@ -89,6 +100,8 @@ InCollect is a **commission-free marketplace** that connects visitors with curat
 │  │ - periods (4 sample records)                        │   │
 │  │ - dealers (3 sample records)                        │   │
 │  │ - items (10 sample records)                         │   │
+│  │ - ingested_urls (scraped HTML)                      │   │
+│  │ - url_analyses (SEO/GEO analysis results)           │   │
 │  │ - users (Phase 4)                                   │   │
 │  │ - inquiries (Phase 5)                               │   │
 │  └──────────────────────────────────────────────────────┘   │
@@ -113,6 +126,14 @@ Items (10)
 ├─ FK: category_id → categories
 ├─ FK: period_id → periods
 └─ FK: dealer_id → dealers
+
+IngestedUrls (N)
+├─ id, url (unique), html, status, http_status, content_type, error, timestamps
+
+UrlAnalyses (N)
+├─ id, ingested_url_id (FK), seo_score, geo_score, overall_score
+├─ analysis (JSONB), json_ld (JSONB), status, error, timestamps
+└─ FK: ingested_url_id → ingested_urls (CASCADE DELETE)
 ```
 
 ---
@@ -137,7 +158,9 @@ cd /path/to/seo-metadata
 2. **Install backend dependencies**
 
 ```bash
-pip install -r backend/requirements.txt
+cd backend
+pip install -r requirements.txt
+cd ..
 ```
 
 3. **Install frontend dependencies**
@@ -146,6 +169,13 @@ pip install -r backend/requirements.txt
 cd frontend
 npm install
 cd ..
+```
+
+4. **Configure environment variables**
+
+```bash
+cp .env.example .env
+# Edit .env and add your GEMINI_API_KEY if you want to use the analysis feature
 ```
 
 ### Running the Application
@@ -162,11 +192,17 @@ Access:
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000
 - API Docs: http://localhost:8000/docs
-- Database: localhost:5432 (postgres/postgres)
+- Database: localhost:5432 (incollect/incollect)
+- MailHog: http://localhost:8025
 
 To stop:
 ```bash
 docker-compose down
+```
+
+To stop and remove volumes (clean slate):
+```bash
+docker-compose down -v
 ```
 
 #### Option B: Local Development (Manual Setup)
@@ -174,7 +210,7 @@ docker-compose down
 **1. Start PostgreSQL**
 
 ```bash
-docker-compose up -d postgres mailhog
+docker-compose up -d postgres
 ```
 
 **2. Setup database**
@@ -182,7 +218,6 @@ docker-compose up -d postgres mailhog
 ```bash
 cd backend
 alembic upgrade head  # Run migrations
-python -m src.db.seed_data  # Load sample data
 cd ..
 ```
 
@@ -236,131 +271,6 @@ make gen-client      # Generate TypeScript client from OpenAPI
 
 ---
 
-## 📁 Project Structure
-
-```
-seo-metadata/
-├── backend/                          # FastAPI Python backend
-│   ├── src/
-│   │   ├── main.py                   # FastAPI app factory
-│   │   ├── models/                   # SQLAlchemy ORM models
-│   │   │   ├── category.py
-│   │   │   ├── period.py
-│   │   │   ├── dealer.py
-│   │   │   └── item.py
-│   │   ├── schemas/                  # Pydantic request/response models
-│   │   │   ├── categories.py
-│   │   │   ├── periods.py
-│   │   │   ├── items.py
-│   │   │   └── users.py              # (Phase 4)
-│   │   ├── api/                      # API route handlers
-│   │   │   ├── health.py
-│   │   │   ├── items.py
-│   │   │   ├── categories.py
-│   │   │   ├── periods.py
-│   │   │   ├── auth.py               # (Phase 4)
-│   │   │   └── inquiries.py           # (Phase 5)
-│   │   ├── services/                 # Business logic
-│   │   │   ├── item_service.py
-│   │   │   ├── category_service.py
-│   │   │   ├── period_service.py
-│   │   │   ├── auth_service.py        # (Phase 4)
-│   │   │   └── user_service.py        # (Phase 4)
-│   │   ├── middleware/               # ASGI middleware
-│   │   │   ├── auth.py               # JWT token validation
-│   │   │   ├── errors.py             # Exception handling
-│   │   │   └── logging.py            # Request logging
-│   │   └── db/                       # Database layer
-│   │       ├── session.py            # SQLAlchemy async session
-│   │       ├── init_db.py            # DB initialization
-│   │       └── seed_data.py          # Sample data
-│   ├── migrations/                   # Alembic migrations
-│   │   ├── env.py
-│   │   ├── script.py.mako
-│   │   └── versions/
-│   │       └── 001_initial_schema.py # Initial tables
-│   ├── tests/                        # pytest test suite
-│   │   ├── contract/                 # API contract tests
-│   │   ├── integration/              # Integration tests
-│   │   └── unit/                     # Unit tests
-│   ├── requirements.txt              # Python dependencies
-│   ├── pyproject.toml               # mypy, ruff, black, pytest config
-│   ├── alembic.ini                  # Alembic configuration
-│   ├── Dockerfile                   # Container image
-│   └── .gitignore
-│
-├── frontend/                         # Next.js React frontend
-│   ├── src/
-│   │   ├── app/                      # Next.js App Router pages
-│   │   │   ├── layout.tsx            # Root layout
-│   │   │   ├── page.tsx              # Home page (/)
-│   │   │   ├── browse/
-│   │   │   │   ├── page.tsx          # Browse page (/browse)
-│   │   │   │   └── [itemId]/
-│   │   │   │       └── page.tsx      # Item detail (/browse/:id)
-│   │   │   └── auth/                 # Auth pages (Phase 4)
-│   │   │       ├── register/page.tsx
-│   │   │       └── login/page.tsx
-│   │   ├── components/               # React components
-│   │   │   ├── ItemCard.tsx
-│   │   │   ├── ItemFilters.tsx
-│   │   │   ├── BrowseGallery.tsx
-│   │   │   ├── ItemDetail.tsx
-│   │   │   └── AuthForm.tsx          # (Phase 4)
-│   │   ├── lib/                      # Utilities & hooks
-│   │   │   ├── auth.ts               # useAuth hook
-│   │   │   ├── api-client.ts         # API client
-│   │   │   └── hooks/
-│   │   │       ├── useItems.ts
-│   │   │       ├── useCategories.ts
-│   │   │       └── usePeriods.ts
-│   │   ├── styles/
-│   │   │   └── globals.css           # Tailwind + custom styles
-│   │   └── types/                    # TypeScript types
-│   ├── tests/                        # Vitest + Playwright tests
-│   │   ├── unit/
-│   │   ├── integration/
-│   │   └── e2e/
-│   ├── package.json                 # Node.js dependencies
-│   ├── tsconfig.json                # TypeScript config (strict mode)
-│   ├── next.config.js               # Next.js configuration
-│   ├── tailwind.config.js           # Tailwind CSS config
-│   ├── postcss.config.js
-│   ├── Dockerfile                   # Container image
-│   └── .gitignore
-│
-├── infra/                           # Infrastructure configuration
-│   ├── postgres/
-│   │   └── init.sql                 # PostgreSQL init script
-│   └── env/
-│
-├── packages/                        # Shared packages
-│   └── api-client/                  # (Phase 7) Auto-generated TypeScript client
-│
-├── specs/001-catalog-discovery/     # Feature specification & planning
-│   ├── spec.md                      # Feature requirements
-│   ├── plan.md                      # Technical architecture
-│   ├── data-model.md                # Entity definitions
-│   ├── research.md                  # Technology decisions
-│   ├── contracts/
-│   │   └── api.md                   # API specification
-│   ├── checklists/
-│   │   └── requirements.md          # Quality checklist
-│   ├── quickstart.md                # Validation scenarios
-│   └── tasks.md                     # Breakdown of 164 tasks
-│
-├── docker-compose.yml               # Docker Compose configuration
-├── Makefile                         # Development commands
-├── alembic.ini                      # Alembic configuration (root)
-├── .env.example                     # Environment variables template
-├── .gitignore                       # Git ignore patterns
-├── IMPLEMENTATION_STATUS.md         # Implementation progress
-├── CLAUDE.md                        # Agent context & instructions
-└── README.md                        # This file
-```
-
----
-
 ## 🔌 API Endpoints
 
 ### Browse (Public - No Auth Required)
@@ -380,6 +290,50 @@ GET /api/v1/periods
 
 # Health check
 GET /api/v1/health
+```
+
+### URL Ingestion (Public)
+
+```bash
+# Ingest a URL (scrape and store HTML)
+POST /api/v1/ingest/url
+{
+  "url": "https://example.com/product"
+}
+
+# Get ingested URL details (including HTML)
+GET /api/v1/ingest/url/{id}
+
+# List all ingested URLs
+GET /api/v1/ingest/urls?skip=0&limit=100
+```
+
+### SEO/GEO Analysis (Public)
+
+```bash
+# Run AI analysis on ingested URL
+POST /api/v1/analyze/{ingested_url_id}
+
+# Get latest analysis results
+GET /api/v1/analyze/{ingested_url_id}
+```
+
+**Response example:**
+```json
+{
+  "id": 1,
+  "ingested_url_id": 2,
+  "seo_score": 55,
+  "geo_score": 30,
+  "overall_score": 42,
+  "analysis": {
+    "findings": ["Falta de marcado JSON-LD", "14 imágenes sin alt text"],
+    "recommendations": ["Implementar Schema.org", "Completar alt text"],
+    "geo_visibility": "La visibilidad para motores de IA generativa es baja..."
+  },
+  "json_ld": { "@context": "https://schema.org", "@type": "Product", ... },
+  "status": "completed"
+}
 ```
 
 ### Authentication (Coming Phase 4)
@@ -515,6 +469,8 @@ Key variables:
 - `JWT_SECRET` - Secret key for JWT tokens (change in production!)
 - `FRONTEND_URL` - Frontend URL for CORS
 - `NEXT_PUBLIC_API_BASE_URL` - Backend API URL (public)
+- `GEMINI_API_KEY` - Google Gemini API key for SEO/GEO analysis
+- `GEMINI_MODEL` - Gemini model to use (default: gemini-3.5-flash-lite)
 - `SMTP_*` - Email configuration (Phase 5)
 
 ---
@@ -525,6 +481,8 @@ Key variables:
 - [x] Phase 1: Project Setup
 - [x] Phase 2: Foundational Infrastructure
 - [x] Phase 3: Browse Feature (MVP)
+- [x] Phase 2.5: URL Ingestion (agnostic web scraping)
+- [x] Phase 2.6: SEO/GEO/AEO Analysis with LangGraph + Gemini
 
 ### In Progress 🔄
 - [ ] Phase 4: User Authentication
@@ -548,7 +506,7 @@ cd backend
 pytest
 
 # Run specific test file
-pytest tests/contract/test_items_list.py
+pytest tests/test_ingest_service.py
 
 # Run with coverage
 pytest --cov=src
@@ -581,6 +539,18 @@ npm run test:ui
 - **[Data Model](specs/001-catalog-discovery/data-model.md)** - Entity definitions and relationships
 - **[API Contracts](specs/001-catalog-discovery/contracts/api.md)** - Detailed endpoint specifications
 - **[Task Breakdown](specs/001-catalog-discovery/tasks.md)** - 164 tasks across 8 phases
+
+### URL Ingestion Feature
+- **[Spec](specs/002-url-ingestion/spec.md)** - URL ingestion requirements
+- **[Plan](specs/002-url-ingestion/plan.md)** - Technical architecture
+- **[Data Model](specs/002-url-ingestion/data-model.md)** - IngestedUrl entity
+- **[API Contract](specs/002-url-ingestion/contracts/api.md)** - Endpoint specifications
+
+### SEO/GEO Analysis Feature
+- **[Spec](specs/003-seo-analyzer/spec.md)** - Analysis requirements
+- **[Plan](specs/003-seo-analyzer/plan.md)** - LangGraph architecture
+- **[Data Model](specs/003-seo-analyzer/data-model.md)** - UrlAnalysis entity
+- **[API Contract](specs/003-seo-analyzer/contracts/api.md)** - Endpoint specifications
 
 ---
 

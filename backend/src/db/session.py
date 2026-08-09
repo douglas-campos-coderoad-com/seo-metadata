@@ -2,10 +2,13 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import NullPool
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 DATABASE_URL = os.getenv(
     'DATABASE_URL',
-    'postgresql+asyncpg://postgres:postgres@localhost:5432/incollect'
+    'postgresql+asyncpg://incollect:incollect@localhost:5432/incollect_dev'
 )
 
 engine = create_async_engine(

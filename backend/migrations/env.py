@@ -11,9 +11,18 @@ if config.config_file_name is not None:
 
 target_metadata = None
 
+
+def _get_sync_url() -> str:
+    """Convert async DATABASE_URL to sync URL for Alembic."""
+    url = os.getenv('DATABASE_URL', '')
+    if url.startswith('postgresql+asyncpg://'):
+        return url.replace('postgresql+asyncpg://', 'postgresql+psycopg2://', 1)
+    return url
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
-    url = os.getenv('DATABASE_URL')
+    url = _get_sync_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -28,7 +37,7 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = os.getenv('DATABASE_URL')
+    configuration["sqlalchemy.url"] = _get_sync_url()
 
     connectable = engine_from_config(
         configuration,

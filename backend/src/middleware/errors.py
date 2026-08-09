@@ -32,12 +32,31 @@ async def app_exception_handler(request: Request, exc: AppException):
     )
 
 
+def _sanitize_errors(errors: list) -> list:
+    """Sanitize validation errors to be JSON serializable."""
+    sanitized = []
+    for error in errors:
+        item = dict(error)
+        # Replace non-serializable ctx values (e.g. ValueError objects)
+        if 'ctx' in item and item['ctx']:
+            ctx = {}
+            for key, value in item['ctx'].items():
+                if isinstance(value, Exception):
+                    ctx[key] = str(value)
+                else:
+                    ctx[key] = value
+            item['ctx'] = ctx
+        sanitized.append(item)
+    return sanitized
+
+
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = _sanitize_errors(exc.errors())
     logger.warning(
         'Validation error',
         extra={
             'path': request.url.path,
-            'errors': exc.errors(),
+            'errors': errors,
         }
     )
     return JSONResponse(
@@ -45,7 +64,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={
             'error': 'validation_error',
             'detail': 'Invalid request',
-            'errors': exc.errors(),
+            'errors': errors,
         },
     )
 

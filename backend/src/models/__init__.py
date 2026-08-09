@@ -19,4 +19,7 @@ class TimestampMixin:
     )
 
 
-__all__ = ['Base', 'TimestampMixin']
+from src.models.ingested_url import IngestedUrl  # noqa: E402
+from src.models.url_analysis import UrlAnalysis  # noqa: E402
+
+__all__ = ['Base', 'TimestampMixin', 'IngestedUrl', 'UrlAnalysis']

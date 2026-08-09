@@ -3,7 +3,7 @@ import logging.config
 import os
 from pythonjsonlogger import jsonlogger
 from fastapi import Request
-from fastapi.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 import uuid
 import time
 

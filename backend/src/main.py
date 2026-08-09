@@ -1,12 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from src.middleware import setup_logging, RequestIDMiddleware, register_exception_handlers
 from src.api.health import router as health_router
 from src.api.items import router as items_router
 from src.api.categories import router as categories_router
 from src.api.periods import router as periods_router
+from src.api.ingest import router as ingest_router
+from src.api.analysis import router as analysis_router
 
 
 def create_app() -> FastAPI:
@@ -40,6 +45,8 @@ def create_app() -> FastAPI:
     app.include_router(items_router)
     app.include_router(categories_router)
     app.include_router(periods_router)
+    app.include_router(ingest_router)
+    app.include_router(analysis_router)
 
     return app
 

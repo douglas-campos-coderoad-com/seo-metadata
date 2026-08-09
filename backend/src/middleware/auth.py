@@ -1,6 +1,6 @@
 from typing import Optional
 from fastapi import HTTPException, status, Depends
-from fastapi.security import HTTPBearer, HTTPAuthCredentials
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import os
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
@@ -30,7 +30,9 @@ def create_access_token(user_id: int, email: str) -> str:
     return encoded_jwt
 
 
-async def verify_token(credentials: HTTPAuthCredentials = Depends(security)) -> TokenData:
+async def verify_token(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> TokenData:
     token = credentials.credentials
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
