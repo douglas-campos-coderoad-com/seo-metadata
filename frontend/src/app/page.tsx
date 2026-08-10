@@ -1,68 +1,59 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Hero } from '@/features/landing/components/Hero';
+import { FeatureHighlights } from '@/features/landing/components/FeatureHighlights';
+import { UrlSubmitForm } from '@/features/analysis/components/UrlSubmitForm';
+import { LiveStatusTracker } from '@/features/analysis/components/LiveStatusTracker';
+import { useProjects } from '@/features/projects/hooks/useProjects';
 
-export default function Home() {
+export default function LandingPage() {
+  const { projects } = useProjects();
+  const [runId, setRunId] = useState<string | null>(null);
+  const router = useRouter();
+
   return (
-    <div className='min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white'>
-      {/* Header */}
-      <header className='border-b border-gray-700'>
-        <div className='max-w-7xl mx-auto px-4 py-6 flex justify-between items-center'>
-          <h1 className='text-2xl font-bold'>InCollect</h1>
-          <nav className='space-x-6'>
-            <Link href='/browse' className='hover:text-gray-300 transition-colors'>
-              Browse
+    <div className="flex flex-col gap-12">
+      <Hero>
+        <div className="flex flex-col gap-4">
+          <UrlSubmitForm onStarted={({ runId: newRunId }) => setRunId(newRunId)} />
+          {runId && (
+            <div className="rounded-xl border border-border bg-background p-4 text-left">
+              <LiveStatusTracker runId={runId} onComplete={(id) => router.push(`/runs/${id}`)} />
+            </div>
+          )}
+        </div>
+      </Hero>
+
+      <FeatureHighlights />
+
+      {projects.length > 0 && (
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Your projects</h2>
+            <Link href="/projects" className="text-sm underline-offset-4 hover:underline">
+              View all
             </Link>
-            <Link href='/auth/login' className='hover:text-gray-300 transition-colors'>
-              Sign In
-            </Link>
-          </nav>
-        </div>
-      </header>
-
-      {/* Hero */}
-      <div className='max-w-7xl mx-auto px-4 py-24'>
-        <div className='text-center space-y-6 mb-12'>
-          <h2 className='text-5xl font-bold'>Curated Marketplace for Fine Objects</h2>
-          <p className='text-xl text-gray-300'>
-            Discover rare furniture, art, antiques, and jewelry from curated dealers worldwide.
-          </p>
-          <p className='text-lg text-gray-400'>
-            Commission-free introductions to dealers and collectors.
-          </p>
-        </div>
-
-        <div className='text-center'>
-          <Link
-            href='/browse'
-            className='inline-block px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors'
-          >
-            Start Browsing
-          </Link>
-        </div>
-      </div>
-
-      {/* Features */}
-      <div className='max-w-7xl mx-auto px-4 py-16'>
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
-          <div className='bg-gray-700 p-6 rounded-lg'>
-            <h3 className='text-lg font-bold mb-2'>Curated Selection</h3>
-            <p className='text-gray-300'>
-              Browse carefully selected items from established dealers.
-            </p>
           </div>
-          <div className='bg-gray-700 p-6 rounded-lg'>
-            <h3 className='text-lg font-bold mb-2'>Expert Dealers</h3>
-            <p className='text-gray-300'>
-              Connect directly with trusted collectors and specialists.
-            </p>
-          </div>
-          <div className='bg-gray-700 p-6 rounded-lg'>
-            <h3 className='text-lg font-bold mb-2'>Commission-Free</h3>
-            <p className='text-gray-300'>
-              No platform fees or commissions on any transaction.
-            </p>
-          </div>
-        </div>
-      </div>
+          <ul className="flex flex-col gap-2">
+            {projects.slice(0, 3).map((project) => (
+              <li key={project.id}>
+                <Link
+                  href={`/projects/${project.id}`}
+                  className="block rounded-xl border border-border bg-card p-4 hover:border-primary"
+                >
+                  <p className="font-semibold">{project.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {project.targetIds.length} URL{project.targetIds.length === 1 ? '' : 's'}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
