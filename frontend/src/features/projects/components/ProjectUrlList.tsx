@@ -1,13 +1,9 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { useAppStore } from '@/shared/store/useAppStore';
-import { SeverityBadge } from '@/shared/components/SeverityBadge';
-import { Badge } from '@/shared/components/ui/badge';
 import { Input } from '@/shared/components/ui/input';
 import { Button } from '@/shared/components/ui/button';
-import { Spinner } from '@/shared/components/Spinner';
-import { scoreToSeverity } from '@/shared/lib/severity';
+import { TargetStatusBadge } from '@/shared/components/TargetStatusBadge';
 import type { AnalysisTarget } from '@/shared/types';
 
 interface ProjectUrlListProps {
@@ -15,24 +11,6 @@ interface ProjectUrlListProps {
   onAddUrl: (url: string) => void;
   onRemoveTarget: (targetId: string) => void;
   onAnalyzeTarget: (target: AnalysisTarget) => void;
-}
-
-function TargetStatus({ target }: { target: AnalysisTarget }) {
-  const run = useAppStore((state) => (target.latestRunId ? state.runs[target.latestRunId] : undefined));
-
-  if (!run) return <Badge variant="outline">Not analyzed yet</Badge>;
-  if (run.status === 'complete' && run.score !== null) {
-    return <SeverityBadge severity={scoreToSeverity(run.score)} />;
-  }
-  if (run.status === 'failed') {
-    return <Badge variant="destructive">Failed</Badge>;
-  }
-  return (
-    <Badge variant="secondary" className="gap-1">
-      <Spinner className="h-3 w-3" />
-      {run.status}
-    </Badge>
-  );
 }
 
 export function ProjectUrlList({ targets, onAddUrl, onRemoveTarget, onAnalyzeTarget }: ProjectUrlListProps) {
@@ -70,9 +48,11 @@ export function ProjectUrlList({ targets, onAddUrl, onRemoveTarget, onAnalyzeTar
               key={target.id}
               className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
             >
-              <span className="truncate text-sm">{target.displayUrl}</span>
+              <div className="flex gap-2">
+                <TargetStatusBadge target={target} />
+                <span className="truncate text-sm">{target.displayUrl}</span>
+              </div>
               <div className="flex items-center gap-2">
-                <TargetStatus target={target} />
                 <Button type="button" size="sm" onClick={() => onAnalyzeTarget(target)}>
                   Analyze
                 </Button>

@@ -229,6 +229,20 @@
 
 ---
 
+## Phase 8f: Previously-Analyzed URLs on the Analyze Screen
+
+**Purpose**: New requirement (FR-013a, User Story 1 acceptance scenario 6): the standalone `/analyze` screen should show a list of URLs analyzed earlier in the session, not just a blank submission form each time. Explicitly scoped to reuse the existing per-target status badge logic (already built for `ProjectUrlList`) rather than duplicating it.
+
+- [X] T088 [P] Extract the inline `TargetStatus` component out of `features/projects/components/ProjectUrlList.tsx` into a shared `shared/components/TargetStatusBadge.tsx`; update `ProjectUrlList` to import and use it, with no behavior change
+- [X] T089 [P] Implement `useRecentTargets(limit?)` in `features/history/hooks/useRecentTargets.ts` — all known `AnalysisTarget`s from the store, sorted by most recent activity (latest run's `startedAt`, falling back to `createdAt`) (depends on T088 only insofar as it reads the same store shape; no direct code dependency)
+- [X] T090 Implement `RecentTargetsList` in `features/history/components/RecentTargetsList.tsx`, reusing `TargetStatusBadge`; each entry links to that target's `/targets/[targetId]/history` page; renders nothing when the list is empty (depends on T088, T089)
+- [X] T091 Wire `RecentTargetsList` into `app/analyze/page.tsx`, below the submit form/live tracker (depends on T090)
+- [X] T092 [P] Add an integration test in `tests/integration/submit-analysis.test.tsx` covering a submitted URL appearing under "Previously analyzed" (depends on T091)
+
+**Checkpoint**: Full test suite (36/36) and `type-check` pass; dev-server smoke test shows no compile/runtime errors; `ProjectUrlList` and the new `RecentTargetsList` share one status-badge implementation rather than two.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

@@ -29,6 +29,7 @@ This specification **supersedes** the marketplace/browsing frontend described in
 - Q: The indigo/violet gradient theme was reported as generic and common across other sites — what should replace it? → A: "Dawn Patrol," a fully-specified dark-first ocean palette and type system provided by the user: Abyss `#071A28` (background), Ocean `#0E4C5B` (panels/cards), Glass `#5EC5D1` (links/active/focus), Foam `#EDF6F5` (text), Sunrise `#FF7A5C` (accent — primary CTA + key marker only, used sparingly), Golden `#FFCB6B` (positive deltas/highlights); typography: Clash Display (headings, used sparingly), Hanken Grotesk (body), Space Mono (data/metrics, tabular figures); style principles: soft 8–16px corners, depth from background lifts rather than heavy shadows, generous negative space, horizontal banding over card grids, minimal ambient motion ("a slow swell"), calm neutral error states instead of alarm-red, metrics presented like a surf forecast. This **also redefines the severity system**: no separate light theme was specified (this is the single default theme, not gated behind a `.dark` class); "good" now maps to Golden, "critical/failed" now maps to a muted, desaturated calm-neutral tone (not bright red) rather than the original independent traffic-light green/amber/red.
 - Q: Should the single-URL analyze input be reachable only from `/analyze`, or available directly on the landing page? → A: The landing page now embeds the same URL-submission input and live-status flow directly (not just a CTA link), so a user can interact with the core functionality at first glance without navigating away. `/analyze` remains available as its own route.
 - Q: The dark-first "Dawn Patrol" theme above was reported as not the better choice for users — what should change? → A: Convert the theme to light, keeping the same Dawn Patrol brand hues (Ocean, Glass, Foam, Sunrise, Golden) but restructured for a light background rather than inverted 1:1 (e.g., Foam's hue becomes the pale page background instead of foreground text; Ocean/Glass are deepened where used as text/links for legible contrast on light surfaces). This remains a single theme with no toggle — light now, as dark was before — not a light/dark pair.
+- Q: Should the standalone analyze screen (`/analyze`) show any record of URLs analyzed earlier in the session, or only ever present a blank submission form? → A: It should show a list of previously analyzed URLs with their latest status, reusing existing components (the per-target status badge already built for the project URL list) rather than duplicating that logic, and linking each entry into its existing full-history view.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -47,6 +48,7 @@ A user lands in the app, enters a URL for a static website, and starts an analys
 3. **Given** a finding has a concrete fix, **When** the user views it, **Then** a ready-to-copy code snippet is available with a one-action copy control.
 4. **Given** the user enters an invalid or unreachable URL, **When** they start analysis, **Then** the system shows a clear error and does not enter a "running" state.
 5. **Given** an analysis is running, **When** the underlying connection to status updates drops, **Then** the UI indicates it lost the live connection and offers a way to recover (e.g., reconnect or check status manually), rather than appearing to hang silently.
+6. **Given** the user has analyzed one or more URLs earlier in the session, **When** they view the analyze screen, **Then** they see a list of those previously analyzed URLs with their latest status, and can open any of them to view its full history.
 
 ---
 
@@ -148,6 +150,7 @@ A first-time visitor arrives at the application's landing page, understands what
 - **FR-011**: System MUST report file-size metrics relevant to the analyzed page.
 - **FR-012**: System MUST provide ready-to-copy code snippets for findings that have a concrete code-level fix, with a one-action copy control.
 - **FR-013**: System MUST present all of the above (score, categorized findings, suggestions, snippets) in a single, clearly organized results view per analysis run.
+- **FR-013a**: The standalone analyze screen MUST show a list of previously analyzed URLs (from the current session) with each one's latest status, and MUST let the user open any listed URL's full history rather than only ever starting a new analysis.
 
 **Projects**
 - **FR-014**: System MUST allow a user to create a project and add multiple URLs to it. If an added URL is already known to the system (standalone or in another project), the project MUST reference that URL's existing Analysis Target and shared history rather than creating a duplicate.

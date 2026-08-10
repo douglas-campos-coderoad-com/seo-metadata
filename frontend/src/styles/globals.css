@@ -11,12 +11,13 @@
    *   Glass   #5EC5D1 (hue ~186)  -> deepened for legible text/links/focus (--ring)
    *   Foam    #EDF6F5 (hue ~173)  -> the page background tint, not foreground text
    *   Sunrise #FF7A5C (hue ~11)   -> deepened for contrast as the primary CTA color
-   *   Golden  #FFCB6B (hue ~39)   -> unchanged; used as a small filled chip (success),
-   *                                  self-contained contrast regardless of page bg
-   * Warning/destructive stay the muted, calm-neutral tones from the dark version — they
-   * read as small filled chips/alerts, not full-page surfaces, so their internal
-   * contrast doesn't depend on the page background. No dark variant is maintained
-   * alongside this (no toggle exists) — this is the single theme, same as before.
+   * `success`/`warning`/`destructive` are a calm-but-referential green/amber/red family
+   * (not literal brief colors, and not Golden/muted-Sunrise as in an earlier pass —
+   * those read ambiguously for status). Muted in saturation to match the coastal
+   * aesthetic ("calm neutral error states instead of alarm-red"), but the hue itself
+   * still clearly signals good/warning/critical at a glance, and destructive is shifted
+   * off Sunrise's hue so a critical badge is never mistaken for the primary CTA color.
+   * No dark variant is maintained alongside this (no toggle exists) — single theme.
    */
   :root {
     --background: 173 30% 97%;
@@ -33,11 +34,11 @@
     --muted-foreground: 200 15% 40%;
     --accent: 186 45% 93%;
     --accent-foreground: 200 55% 18%;
-    --destructive: 11 35% 45%;
-    --destructive-foreground: 173 33% 95%;
-    --success: 39 100% 71%;
-    --success-foreground: 205 70% 9%;
-    --warning: 39 45% 55%;
+    --destructive: 0 60% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 158 45% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 75% 48%;
     --warning-foreground: 205 70% 9%;
     --border: 192 20% 88%;
     --input: 192 20% 88%;

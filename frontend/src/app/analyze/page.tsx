@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UrlSubmitForm } from '@/features/analysis/components/UrlSubmitForm';
 import { LiveStatusTracker } from '@/features/analysis/components/LiveStatusTracker';
+import { RecentTargetsList } from '@/features/history/components/RecentTargetsList';
 
 export default function AnalyzePage() {
   const [runId, setRunId] = useState<string | null>(null);
@@ -23,6 +24,8 @@ export default function AnalyzePage() {
           <LiveStatusTracker runId={runId} onComplete={(id) => router.push(`/runs/${id}`)} />
         </div>
       )}
+
+      <RecentTargetsList />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { UrlSubmitForm } from '@/features/analysis/components/UrlSubmitForm';
+import { RecentTargetsList } from '@/features/history/components/RecentTargetsList';
 import { useAppStore } from '@/shared/store/useAppStore';
 
 function resetStore() {
@@ -77,5 +78,23 @@ describe('submit analysis flow (User Story 1)', () => {
     const run = useAppStore.getState().runs[runId];
     expect(run.status).toBe('failed');
     expect(run.failureReason).toBeTruthy();
+  });
+
+  it('lists a submitted URL under "Previously analyzed" without duplicating status logic', async () => {
+    const user = userEvent.setup();
+    render(
+      <div>
+        <UrlSubmitForm onStarted={() => {}} />
+        <RecentTargetsList />
+      </div>,
+    );
+
+    expect(screen.queryByText('Previously analyzed')).not.toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText('https://example.com/page'), 'https://recent-test.example.com');
+    await user.click(screen.getByRole('button', { name: /analyze/i }));
+
+    expect(await screen.findByText('Previously analyzed')).toBeInTheDocument();
+    expect(screen.getByText('https://recent-test.example.com')).toBeInTheDocument();
   });
 });
