@@ -18,7 +18,7 @@ export function ResponsiveNav() {
     <div className="border-b border-border px-4">
       <div className="flex h-14 items-center justify-between">
         <Link href="/" className="flex items-center gap-1.5 font-display text-lg font-bold">
-          <TrendingUp className="h-5 w-5 text-accent" />
+          <TrendingUp className="h-5 w-5 text-ring" />
           <span>SEO Analyzer</span>
         </Link>
 

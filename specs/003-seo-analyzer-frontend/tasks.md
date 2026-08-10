@@ -217,6 +217,18 @@
 
 ---
 
+## Phase 8e: Dark → Light Theme Conversion
+
+**Purpose**: A third design correction: the user asked whether the theme could switch from dark to light, then — after being told there's no toggle and it would mean converting the single theme rather than adding one — asked to convert it outright, "as is better for users." Same Dawn Patrol brand hues, restructured for a light background rather than a naive color inversion.
+
+- [X] T085 Replace all `:root` CSS variable values in `globals.css` with light-mode equivalents: Foam's hue becomes the pale page background (not foreground text); Ocean/Glass deepened in lightness for legible text/link/focus contrast; `success`/`warning`/`destructive` left unchanged (self-contained chip contrast, independent of page background)
+- [X] T086 [P] Fix the `--accent` dual-use conflict surfaced by the conversion: `Button`'s `ghost`/`outline` hover state needs a pale `--accent`, but `ResponsiveNav`'s brand icon and the `Hero` swell decoration need the vivid "Glass" tone to stay visible on a light background — repointed both to `text-ring`/`bg-ring` (the token already carrying the deepened Glass color) instead of `--accent` (depends on T085)
+- [X] T087 Update `spec.md` (Clarifications, second 2026-08-10 entry) and `research.md` §1b for the conversion and its rationale (depends on T085, T086)
+
+**Checkpoint**: Full test suite (35/35) and `type-check` pass; dev-server smoke test across all routes shows no compile/runtime errors; no leftover dark-only assumptions (e.g., light-on-dark text colors) remain in the primitives touched.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

@@ -10,7 +10,7 @@ export function Hero({ children }: HeroProps) {
       {/* A slow, subtle swell — minimal ambient motion, not a gradient background. */}
       <div
         aria-hidden
-        className="animate-swell pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/20 blur-3xl"
+        className="animate-swell pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-ring/10 blur-3xl"
       />
 
       <div className="relative mx-auto flex max-w-xl flex-col items-center gap-6 px-4 text-center">

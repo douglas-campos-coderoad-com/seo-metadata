@@ -4,43 +4,44 @@
 
 @layer base {
   /*
-   * "Dawn Patrol" — dark-first ocean palette (per Clarifications). HSL triplets below
-   * are computed from the brief's hex values so the brand colors are exact:
-   *   Abyss   #071A28 -> 205 70% 9%   (background)
-   *   Ocean   #0E4C5B -> 192 73% 21%  (panels/cards)
-   *   Glass   #5EC5D1 -> 186 56% 59%  (links, active states, focus)
-   *   Foam    #EDF6F5 -> 173 33% 95%  (text)
-   *   Sunrise #FF7A5C -> 11 100% 68%  (accent: primary CTA + key marker only, used sparingly)
-   *   Golden  #FFCB6B -> 39 100% 71%  (positive deltas / small highlights -> success)
-   * Warning and destructive have no direct source color in the brief; both are muted,
-   * desaturated relatives of Sunrise/Golden per "calm neutral error states instead of
-   * alarm-red" rather than a stock traffic-light red/amber. No separate light theme was
-   * specified, so this is a single dark-first theme rather than a light/dark pair.
+   * "Dawn Patrol" — light theme (converted from the original dark-first version per
+   * user feedback that light reads better for users). Same brand hues, restructured
+   * for a light background rather than inverted 1:1:
+   *   Ocean   #0E4C5B (hue ~192)  -> pale surface tints (secondary/muted), not text
+   *   Glass   #5EC5D1 (hue ~186)  -> deepened for legible text/links/focus (--ring)
+   *   Foam    #EDF6F5 (hue ~173)  -> the page background tint, not foreground text
+   *   Sunrise #FF7A5C (hue ~11)   -> deepened for contrast as the primary CTA color
+   *   Golden  #FFCB6B (hue ~39)   -> unchanged; used as a small filled chip (success),
+   *                                  self-contained contrast regardless of page bg
+   * Warning/destructive stay the muted, calm-neutral tones from the dark version — they
+   * read as small filled chips/alerts, not full-page surfaces, so their internal
+   * contrast doesn't depend on the page background. No dark variant is maintained
+   * alongside this (no toggle exists) — this is the single theme, same as before.
    */
   :root {
-    --background: 205 70% 9%;
-    --foreground: 173 33% 95%;
-    --card: 192 73% 21%;
-    --card-foreground: 173 33% 95%;
-    --popover: 192 73% 21%;
-    --popover-foreground: 173 33% 95%;
-    --primary: 11 100% 68%;
-    --primary-foreground: 205 70% 9%;
-    --secondary: 205 45% 15%;
-    --secondary-foreground: 173 33% 95%;
-    --muted: 205 40% 14%;
-    --muted-foreground: 190 15% 65%;
-    --accent: 186 56% 59%;
-    --accent-foreground: 205 70% 9%;
+    --background: 173 30% 97%;
+    --foreground: 205 45% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 205 45% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 205 45% 14%;
+    --primary: 11 90% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 192 30% 94%;
+    --secondary-foreground: 205 45% 16%;
+    --muted: 190 20% 94%;
+    --muted-foreground: 200 15% 40%;
+    --accent: 186 45% 93%;
+    --accent-foreground: 200 55% 18%;
     --destructive: 11 35% 45%;
     --destructive-foreground: 173 33% 95%;
     --success: 39 100% 71%;
     --success-foreground: 205 70% 9%;
     --warning: 39 45% 55%;
     --warning-foreground: 205 70% 9%;
-    --border: 205 40% 18%;
-    --input: 205 40% 18%;
-    --ring: 186 56% 59%;
+    --border: 192 20% 88%;
+    --input: 192 20% 88%;
+    --ring: 186 55% 42%;
     --radius: 0.875rem;
     --font-display: 'Clash Display', var(--font-body), ui-sans-serif, system-ui, sans-serif;
   }

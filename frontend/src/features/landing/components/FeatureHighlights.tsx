@@ -1,7 +1,7 @@
 const FEATURES = [
   {
     title: 'Instant scoring',
-    description: 'Every page gets a 0-100 SEO score with color-coded severity for each finding.',
+    description: 'Every page gets a SEO score with color-coded severity for each finding.',
   },
   {
     title: 'Copy-paste fixes',
