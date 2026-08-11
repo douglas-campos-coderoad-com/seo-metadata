@@ -15,6 +15,7 @@ from src.main import create_app  # noqa: E402
 from src.db import get_session  # noqa: E402
 from src.models.ingested_url import IngestedUrl  # noqa: E402
 from src.models.url_analysis import UrlAnalysis  # noqa: E402
+from src.models.url_optimization import UrlOptimization  # noqa: E402
 from sqlalchemy import MetaData  # noqa: E402
 
 
@@ -31,6 +32,7 @@ async def db_engine():
     metadata = MetaData()
     IngestedUrl.__table__.to_metadata(metadata)
     UrlAnalysis.__table__.to_metadata(metadata)
+    UrlOptimization.__table__.to_metadata(metadata)
 
     async with engine.begin() as conn:
         await conn.run_sync(metadata.create_all)

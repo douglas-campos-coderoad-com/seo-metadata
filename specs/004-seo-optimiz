@@ -1,0 +1,46 @@
+# Data Model: SEO/GEO/AEO Optimizer
+
+## Entity: `UrlOptimization`
+
+Representa el resultado de la optimización de un análisis SEO/GEO/AEO. Almacena el HTML optimizado, JSON-LD enriquecido, contenido reescrito, y los cambios aplicados.
+
+### Table: `url_optimizations`
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | Integer | PK, autoincrement | Identificador único |
+| `analysis_id` | Integer | FK → `url_analyses.id`, NOT NULL | Análisis que se está optimizando |
+| `optimized_html` | Text | nullable | HTML completo optimizado |
+| `optimized_json_ld` | JSONB | nullable | JSON-LD mejorado final |
+| `optimized_content` | JSONB | nullable | Contenido reescrito (title, meta desc, alt texts, descripciones) |
+| `changes` | JSONB | nullable | Lista de cambios aplicados (antes → después) con severidad |
+| `score_before` | JSONB | nullable | Scores SEO/GEO antes de la optimización |
+| `score_after_estimated` | JSONB | nullable | Scores estimados después de la optimización |
+| `status` | String(50) | NOT NULL, default='pending' | Estado: `pending` / `running` / `completed` / `failed` |
+| `error` | Text | nullable | Mensaje de error (si falló) |
+| `created_at` | DateTime(timezone) | NOT NULL, server_default=now() | Fecha de creación |
+| `updated_at` | DateTime(timezone) | NOT NULL, server_default=now() | Fecha de última actualización |
+
+### Indexes
+
+- `ix_url_optimizations_analysis_id` — índice sobre `analysis_id` (búsqueda rápida por análisis)
+
+### SQL DDL
+
+```sql
+CREATE TABLE url_optimizations (
+    id SERIAL PRIMARY KEY,
+    analysis_id INTEGER NOT NULL REFERENCES url_analyses(id) ON DELETE CASCADE,
+    optimized_html TEXT,
+    optimized_json_ld JSONB,
+    optimized_content JSONB,
+    changes JSONB,
+    score_before JSONB,
+    score_after_estimated JSONB,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    error TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX ix_url_optimizations_analysis_id ON url_optimizations (analysis_id);

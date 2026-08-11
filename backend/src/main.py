@@ -12,6 +12,8 @@ from src.api.categories import router as categories_router
 from src.api.periods import router as periods_router
 from src.api.ingest import router as ingest_router
 from src.api.analysis import router as analysis_router
+from src.api.optimization import router as optimization_router
+from src.api.geo import router as geo_router
 
 
 def create_app() -> FastAPI:
@@ -47,6 +49,8 @@ def create_app() -> FastAPI:
     app.include_router(periods_router)
     app.include_router(ingest_router)
     app.include_router(analysis_router)
+    app.include_router(optimization_router)
+    app.include_router(geo_router)
 
     return app
 

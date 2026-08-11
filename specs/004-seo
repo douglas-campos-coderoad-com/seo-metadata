@@ -1,0 +1,138 @@
+# API Contract: SEO/GEO/AEO Optimizer
+
+## Endpoint: `POST /api/v1/optimize/{analysis_id}`
+
+Ejecuta el agente optimizer sobre un análisis SEO/GEO/AEO completado. Genera HTML optimizado, JSON-LD enriquecido, contenido GEO/AEO reescrito, y snippets de código listos para copiar.
+
+### Request
+
+**Method**: `POST`
+**Path**: `/api/v1/optimize/{analysis_id}`
+**Auth**: Ninguna (público)
+
+| Parámetro | Tipo | Requerido | Descripción |
+|-----------|------|-----------|-------------|
+| `analysis_id` | integer | Sí | ID del análisis a optimizar |
+
+### Responses
+
+#### 200 OK
+
+```json
+{
+  "id": 1,
+  "analysis_id": 2,
+  "optimized_html": "<!DOCTYPE html>...",
+  "optimized_json_ld": {
+    "@context": "https://schema.org",
+    "@graph": [...]
+  },
+  "optimized_content": {
+    "title": "Modern Dining Chair in Exotic Argentine Wood | Buy Online",
+    "meta_description": "Beautiful modern dining chair crafted from exotic Argentine wood...",
+    "alt_texts": {
+      "/chair.jpg": "Modern dining chair crafted from exotic Argentine wood"
+    },
+    "geo_content": "¿Buscas una silla de comedor moderna en madera exótica argentina?..."
+  },
+  "changes": [
+    {
+      "element": "title",
+      "action": "updated",
+      "before": "Sax Berlin - Banksy on the Grave Yard Shift",
+      "after": "Sax Berlin – Banksy on the Grave Yard Shift | Original Art | Buy",
+      "severity": "high",
+      "reason": "Title too short and missing primary keyword",
+      "snippet": "<title>Sax Berlin – Banksy on the Grave Yard Shift | Original Art | Buy</title>"
+    }
+  ],
+  "score_before": {
+    "seo": 55,
+    "geo": 30,
+    "overall": 42
+  },
+  "score_after_estimated": {
+    "seo": 82,
+    "geo": 78,
+    "overall": 80
+  },
+  "status": "completed",
+  "error": null,
+  "created_at": "2026-08-11T12:00:00Z",
+  "updated_at": "2026-08-11T12:00:00Z"
+}
+```
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | integer | ID de la optimización |
+| `analysis_id` | integer | ID del análisis optimizado |
+| `optimized_html` | string | HTML completo optimizado |
+| `optimized_json_ld` | object | JSON-LD enriquecido final |
+| `optimized_content` | object | Contenido reescrito (title, meta desc, alt texts, geo_content) |
+| `changes` | array | Lista de cambios aplicados con snippet de código |
+| `score_before` | object | Scores SEO/GEO antes de la optimización |
+| `score_after_estimated` | object | Scores estimados después de la optimización |
+| `status` | string | `pending` / `running` / `completed` / `failed` |
+| `error` | string/null | Mensaje de error si falló |
+| `created_at` | string (ISO8601) | Timestamp de creación |
+| `updated_at` | string (ISO8601) | Timestamp de última actualización |
+
+#### 404 Not Found
+
+```json
+{
+  "detail": "Analysis with id {analysis_id} not found"
+}
+```
+
+#### 422 Unprocessable Entity
+
+El análisis está en estado `failed` o no tiene HTML.
+
+```json
+{
+  "detail": "Cannot optimize analysis with status failed"
+}
+```
+
+---
+
+## Endpoint: `GET /api/v1/optimize/{analysis_id}`
+
+Recupera la última optimización de un análisis.
+
+### Request
+
+**Method**: `GET`
+**Path**: `/api/v1/optimize/{analysis_id}`
+**Auth**: Ninguna (público)
+
+| Parámetro | Tipo | Requerido | Descripción |
+|-----------|------|-----------|-------------|
+| `analysis_id` | integer | Sí | ID del análisis |
+
+### Responses
+
+#### 200 OK
+
+Mismo formato que el response del POST.
+
+#### 404 Not Found
+
+```json
+{
+  "detail": "No optimization found for analysis with id {analysis_id}"
+}
+```
+
+---
+
+### Ejemplos con curl
+
+```bash
+# Optimizar un análisis
+curl -X POST http://localhost:8000/api/v1/optimize/2
+
+# Obtener la optimización de un análisis
+curl http://localhost:8000/api/v1/optimize/2

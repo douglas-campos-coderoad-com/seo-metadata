@@ -1,0 +1,123 @@
+# CLAUDE.md - Project Context & Skills
+
+## Project Overview
+
+**SEO Metadata Platform** - A full-stack application for SEO/GEO/AEO analysis and optimization of web pages.
+
+### Core Pipeline
+
+```
+1. INGEST: POST /api/v1/ingest/url → scrape HTML → store in ingested_urls
+2. ANALYZE: POST /api/v1/analyze/{id} → LangGraph + Gemini → store in url_analyses
+3. OPTIMIZE: POST /api/v1/optimize/{analysis_id} → LangGraph + Gemini + Serper → store in url_optimizations
+```
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | FastAPI + Python 3.12 + Pydantic v2 + SQLAlchemy 2.x async + Alembic |
+| Database | PostgreSQL 16 (asyncpg driver) |
+| AI/LLM | LangGraph + LangChain + Google Gemini (gemini-3.5-flash-lite) |
+| Web Search | Serper API |
+| Web Scraping | httpx + BeautifulSoup4 + Playwright (fallback) |
+| Frontend | Next.js 15 + React + TypeScript + Tailwind CSS |
+| Testing | pytest + httpx (backend), Vitest + Playwright (frontend) |
+
+## Architecture
+
+### Backend Structure
+
+```
+backend/src/
+├── api/          # FastAPI routers (ingest, analysis, optimization, health, items, categories, periods)
+├── models/       # SQLAlchemy models (IngestedUrl, UrlAnalysis, UrlOptimization, Item, Category, Period, Dealer)
+├── schemas/      # Pydantic schemas
+├── services/     # Business logic + LangGraph orchestration
+│   ├── ingest_service.py      # Web scraping (httpx + Playwright fallback)
+│   ├── graph_nodes.py         # Analysis LangGraph nodes (parse_html, analyze_seo_geo, generate_json_ld, compile_report)
+│   ├── analysis_service.py    # Analysis orchestrator
+│   ├── optimizer_nodes.py     # Optimizer LangGraph nodes (read_analysis, search_web, plan_changes, apply_changes, compile_optimization)
+│   └── optimizer_service.py   # Optimizer orchestrator
+├── middleware/   # Auth, logging, error handling
+└── db/           # Session management
+```
+
+### Database Tables
+
+| Table | Purpose |
+|-------|---------|
+| `ingested_urls` | Scraped HTML + metadata (url, html, status, http_status, content_type) |
+| `url_analyses` | SEO/GEO analysis results (seo_score, geo_score, overall_score, analysis JSONB, json_ld JSONB) |
+| `url_optimizations` | Optimization results (optimized_html, optimized_json_ld, optimized_content, changes, scores) |
+| `items`, `categories`, `periods`, `dealers` | Legacy catalog data |
+
+### LangGraph Pipelines
+
+**Analysis Graph (4 nodes):**
+```
+parse_html → analyze_seo_geo → generate_json_ld → compile_report
+```
+
+**Optimizer Graph (5 nodes):**
+```
+read_analysis → search_web → plan_changes → apply_changes → compile_optimization
+```
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/ingest/url` | Scrape URL and store HTML |
+| GET | `/api/v1/ingest/url/{id}` | Get ingested URL with HTML |
+| GET | `/api/v1/ingest/urls` | List ingested URLs |
+| POST | `/api/v1/analyze/{ingested_url_id}` | Run SEO/GEO analysis |
+| GET | `/api/v1/analyze/{ingested_url_id}` | Get latest analysis |
+| POST | `/api/v1/optimize/{analysis_id}` | Run optimization |
+| GET | `/api/v1/optimize/{analysis_id}` | Get latest optimization |
+| GET | `/api/v1/health` | Health check |
+
+## Environment Variables
+
+```bash
+DATABASE_URL=postgresql+asyncpg://incollect:incollect@localhost:5432/incollect_dev
+GEMINI_API_KEY=your-gemini-key
+GEMINI_MODEL=gemini-3.5-flash-lite
+GEMINI_MODEL_FALLBACK=gemini-3.6-flash
+SERPER_API_KEY=your-serper-key
+```
+
+## Development Commands
+
+```bash
+# Backend
+cd backend
+.venv/bin/python -m uvicorn src.main:app --reload  # Start server
+.venv/bin/python -m pytest tests/ -v               # Run tests
+.venv/bin/python -m alembic upgrade head           # Run migrations
+
+# Database
+docker compose up -d postgres                      # Start PostgreSQL
+```
+
+## Testing Patterns
+
+- Tests use SQLite in-memory (aiosqlite) with `StaticPool`
+- `conftest.py` creates only needed tables (Item model uses ARRAY which SQLite can't compile)
+- Mock Gemini calls with `patch('src.services.graph_nodes._call_gemini', return_value=...)`
+- Mock executor with `patch.object(Service, '_run_analysis_in_executor', new=AsyncMock(...))`
+
+## Key Patterns
+
+1. **JSONType for cross-dialect**: `JSON().with_variant(JSONB, 'postgresql')` for SQLite test compatibility
+2. **Thread executor for sync LangGraph**: `loop.run_in_executor(None, self._analyze_sync, ...)` to avoid blocking
+3. **Upsert pattern**: Check existing record by unique field, update or create
+4. **Error handling**: `ValueError` → 404/400, generic `Exception` → 422
+5. **Gemini fallback**: Try primary model, fallback to secondary on failure
+
+## Skills
+
+- [Backend FastAPI Patterns](.claude/skills/backend-fastapi.md)
+- [LangGraph Agent Patterns](.claude/skills/langgraph-agents.md)
+- [SEO/GEO/AEO Optimization](.claude/skills/seo-geo-optimization.md)
+- [Testing Patterns](.claude/skills/testing-patterns.md)
