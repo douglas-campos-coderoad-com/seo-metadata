@@ -21,7 +21,8 @@ def simulator_agent():
     return LLMSimulatorAgent()
 
 
-def test_entity_agent_generate_success(entity_agent):
+@patch('src.agents.entity_agent._call_gemini')
+def test_entity_agent_generate_success(mock_call_gemini, entity_agent):
     page_data = {
         'title': 'Sax Berlin - Banksy On The Grave Yard Shift',
         'meta_description': 'Compra la obra de arte de Sax Berlin en InCollect.',
@@ -29,6 +30,11 @@ def test_entity_agent_generate_success(entity_agent):
         'images': [],
         'links': [],
         'word_count': 500,
+    }
+    mock_call_gemini.return_value = {
+        'json_ld': {'@context': 'https://schema.org', '@graph': []},
+        'entities': [{'type': 'Product', 'name': 'Sax Berlin', 'properties': {}}],
+        'relationships': [{'from': 'Product', 'to': 'Creator', 'relation': 'createdBy'}],
     }
     result = entity_agent.generate(
         url='https://www.incollect.com/listing/873915',
@@ -39,6 +45,7 @@ def test_entity_agent_generate_success(entity_agent):
     assert 'json_ld' in result
     assert 'entities' in result
     assert 'relationships' in result
+    mock_call_gemini.assert_called_once()
 
 
 def test_entity_agent_generate_no_data(entity_agent):

@@ -12,6 +12,11 @@ export interface ApiError {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
 
+type ApiRequestOptions = Omit<RequestInit, 'headers'> & {
+  headers?: Record<string, string>;
+  token?: string;
+};
+
 export class ApiClient {
   private baseUrl: string;
   private defaultHeaders: Record<string, string>;
@@ -25,12 +30,13 @@ export class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit & { token?: string } = {}
+    options: ApiRequestOptions = {}
   ): Promise<T> {
-    const { token, ...fetchOptions } = options;
+    const { token, headers: customHeaders, ...fetchOptions } = options;
+
     const headers: Record<string, string> = {
       ...this.defaultHeaders,
-      ...options.headers,
+      ...customHeaders,
     };
 
     if (token) {

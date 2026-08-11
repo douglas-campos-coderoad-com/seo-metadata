@@ -1,30 +1,28 @@
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
-# Install system dependencies including Playwright browser dependencies
+# Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# Copiar e instalar dependencias de Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers (chromium) for JS-rendered page fallback
+# Instalar Chromium y sus dependencias en Debian Bookworm
 RUN python -m playwright install chromium
 RUN python -m playwright install-deps chromium
 
-# Copy application code
+# Copiar el código de la aplicación
 COPY . .
 
-# Create non-root user
+# Crear usuario no-root
 RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
-# Expose port
 EXPOSE 8000
 
-# Run FastAPI app
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

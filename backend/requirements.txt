@@ -10,8 +10,7 @@ asyncpg==0.29.0
 psycopg2-binary==2.9.9
 
 # Data Validation
-pydantic==2.5.0
-pydantic[email]==2.5.0
+pydantic[email]==2.7.4
 
 # Authentication
 python-jose[cryptography]==3.3.0
@@ -22,7 +21,7 @@ python-dotenv==1.0.0
 
 # Web Scraping
 beautifulsoup4==4.12.3
-httpx==0.25.2
+httpx==0.28.1
 playwright==1.40.0
 
 # AI / LangGraph
