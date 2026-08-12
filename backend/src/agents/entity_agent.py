@@ -1,8 +1,8 @@
 """
 Entity / Knowledge Graph Agent (entity_agent.py)
 
-Convierte la descripción plana de una página en un Knowledge Graph
-en formato JSON-LD con semántica rica (Creator, Material, Dimensions,
+Converts a page's flat description into a Knowledge Graph
+in JSON-LD format with rich semantics (Creator, Material, Dimensions,
 Style, Offers, Brand).
 """
 import json
@@ -18,6 +18,7 @@ GEMINI_MODEL_FALLBACK = os.getenv('GEMINI_MODEL_FALLBACK', 'gemini-3.6-flash')
 
 
 def _call_gemini(prompt: str) -> Any:
+    """Call Gemini and return parsed JSON."""
     from langchain_google_genai import ChatGoogleGenerativeAI
     from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -43,37 +44,37 @@ def _call_gemini(prompt: str) -> Any:
     return json.loads(content)
 
 
-ENTITY_PROMPT = """Eres un experto en datos estructurados schema.org y Knowledge Graphs.
+ENTITY_PROMPT = """You are an expert in schema.org structured data and Knowledge Graphs.
 
-Convierte la información de la página en un Knowledge Graph JSON-LD enriquecido
-con relaciones semánticas entre entidades.
+Convert the page information into an enriched JSON-LD Knowledge Graph
+with semantic relationships between entities.
 
 URL: {url}
-TIPO DE PÁGINA: {page_type}
+PAGE TYPE: {page_type}
 
-DATOS EXTRAÍDOS DEL HTML:
+DATA EXTRACTED FROM HTML:
 {page_data}
 
-JSON-LD EXISTENTE (si lo hay):
+EXISTING JSON-LD (if any):
 {existing_json_ld}
 
-Devuelve EXACTAMENTE este JSON (sin markdown):
+Return EXACTLY this JSON (without markdown):
 {{
   "json_ld": {{
     "@context": "https://schema.org",
     "@graph": [
       {{
         "@type": "<Product | CreativeWork | Article | Organization | Person | Place>",
-        "name": "<nombre del producto/obra>",
-        "description": "<descripción>",
-        "creator": {{ "@type": "Person", "name": "<nombre del creador/artista>" }},
-        "material": "<materiales usados>",
-        "dimensions": {{ "@type": "QuantitativeValue", "value": "<valor>", "unitCode": "CM" }},
-        "style": "<estilo artístico o diseño>",
-        "brand": {{ "@type": "Brand", "name": "<marca>" }},
+        "name": "<product/work name>",
+        "description": "<description>",
+        "creator": {{ "@type": "Person", "name": "<creator/artist name>" }},
+        "material": "<materials used>",
+        "dimensions": {{ "@type": "QuantitativeValue", "value": "<value>", "unitCode": "CM" }},
+        "style": "<artistic style or design>",
+        "brand": {{ "@type": "Brand", "name": "<brand>" }},
         "offers": {{
           "@type": "Offer",
-          "price": "<precio>",
+          "price": "<price>",
           "priceCurrency": "USD",
           "availability": "https://schema.org/InStock"
         }}
@@ -81,17 +82,17 @@ Devuelve EXACTAMENTE este JSON (sin markdown):
     ]
   }},
   "entities": [
-    {{ "type": "<tipo>", "name": "<nombre>", "properties": {{}} }}
+    {{ "type": "<entity type>", "name": "<entity name>", "properties": {{}} }}
   ],
   "relationships": [
-    {{ "from": "<origen>", "to": "<destino>", "relation": "<relación>" }}
+    {{ "from": "<source>", "to": "<target>", "relation": "<relationship>" }}
   ]
 }}
 
-REGLAS:
-- Usa null para campos no disponibles.
-- Incluye solo entidades/relaciones inferibles del contenido.
-- JSON-LD debe ser válido schema.org.
+RULES:
+- Use null for fields not available in the HTML.
+- Include only entities/relationships inferable from the content.
+- The JSON-LD must be valid schema.org.
 """
 
 

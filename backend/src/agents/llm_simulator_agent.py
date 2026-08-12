@@ -1,8 +1,8 @@
 """
 LLM Citation Simulator Agent (llm_simulator_agent.py)
 
-Simula una consulta de usuario contra un LLM (Gemini) usando el contenido
-de la página como contexto, y evalúa si el producto/entidad es citado.
+Simulates a user query against an LLM (Gemini) using the page content
+as context, and evaluates whether the product/entity is cited.
 """
 import json
 import logging
@@ -17,6 +17,7 @@ GEMINI_MODEL_FALLBACK = os.getenv('GEMINI_MODEL_FALLBACK', 'gemini-3.6-flash')
 
 
 def _call_gemini(prompt: str) -> Any:
+    """Call Gemini and return parsed JSON."""
     from langchain_google_genai import ChatGoogleGenerativeAI
     from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -42,29 +43,29 @@ def _call_gemini(prompt: str) -> Any:
     return json.loads(content)
 
 
-SIMULATE_PROMPT = """Eres un evaluador de citas para Generative Engine Optimization (GEO) y Answer Engine Optimization (AEO).
+SIMULATE_PROMPT = """You are a citation evaluator for Generative Engine Optimization (GEO) and Answer Engine Optimization (AEO).
 
-Actúas como un motor de respuestas (p. ej., ChatGPT, Perplexity, SearchGPT, Google AI Overviews).
+You act as an answer engine (e.g., ChatGPT, Perplexity, SearchGPT, Google AI Overviews).
 
-CONSULTA DEL USUARIO:
+USER QUERY:
 {query}
 
-CONTENIDO DISPONIBLE DE LA PÁGINA (por el que un LLM podría citar el producto):
+AVAILABLE PAGE CONTENT (from which an LLM could cite the product):
 {content}
 
-Devuelve EXACTAMENTE este JSON (sin markdown):
+Return EXACTLY this JSON (without markdown):
 {{
   "cited": true/false,
   "confidence": <float 0-1>,
-  "quote": "<fragmento exacto del contenido que citaría, o null>",
-  "response_snippet": "<respuesta generada por el LLM que menciona el producto>",
-  "reason": "<explicación breve de por qué cita o no>"
+  "quote": "<exact content fragment that would be cited, or null>",
+  "response_snippet": "<LLM-generated response mentioning the product>",
+  "reason": "<brief explanation of why it cites or not>"
 }}
 
-REGLAS:
-- "cited" es true solo si el producto/nombre/entidad principal aparece explícitamente en la respuesta.
-- "confidence" indica qué tan probable es que el LLM cite este contenido.
-- Si el contenido es insuficiente, poco estructurado, o carece de datos del producto, "cited" debe ser false.
+RULES:
+- "cited" is true only if the product/name/primary entity appears explicitly in the response.
+- "confidence" indicates how likely the LLM is to cite this content.
+- If the content is insufficient, poorly structured, or lacks product data, "cited" must be false.
 """
 
 
@@ -78,7 +79,7 @@ class LLMSimulatorAgent:
                 'confidence': 0.0,
                 'quote': None,
                 'response_snippet': '',
-                'reason': 'Contenido insuficiente para ser citado por un LLM',
+                'reason': 'Insufficient content to be cited by an LLM',
                 'query': query,
             }
 
@@ -95,6 +96,6 @@ class LLMSimulatorAgent:
                 'confidence': 0.0,
                 'quote': None,
                 'response_snippet': '',
-                'reason': f'Error en simulación: {exc}',
+                'reason': f'Simulation error: {exc}',
                 'query': query,
             }

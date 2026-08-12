@@ -231,59 +231,59 @@ def parse_html(state: dict) -> dict:
 # ── Node 2: analyze_seo_geo ──────────────────────────────────────────────
 
 
-SEO_GEO_PROMPT = """Eres un analizador experto en SEO tradicional y GEO (Generative Engine Optimization) / AEO (Answer Engine Optimization).
+SEO_GEO_PROMPT = """You are an expert in traditional SEO and GEO (Generative Engine Optimization) / AEO (Answer Engine Optimization).
 
-Analiza la siguiente página web y devuelve un JSON con scores, hallazgos y recomendaciones.
+Analyze the following web page and return a JSON with scores, findings and recommendations.
 
-DATOS DE LA PÁGINA:
-- Título: {title}
+PAGE DATA:
+- Title: {title}
 - Meta description: {meta_description}
 - Meta keywords: {meta_keywords}
 - Canonical: {canonical}
 - OpenGraph tags: {og_tags}
 - Twitter tags: {twitter_tags}
 - Headings: {headings}
-- Imágenes totales: {images_total} (con alt: {images_with_alt}, sin alt: {images_without_alt})
+- Total images: {images_total} (with alt: {images_with_alt}, without alt: {images_without_alt})
 - Links: {links}
-- JSON-LD existente: {json_ld}
-- Idioma: {lang}
+- Existing JSON-LD: {json_ld}
+- Language: {lang}
 - Robots meta: {robots}
 - Viewport: {viewport}
-- Tiene favicon: {has_favicon}
-- Longitud del texto visible: {visible_text_length} caracteres
+- Has favicon: {has_favicon}
+- Visible text length: {visible_text_length} characters
 
-PRIMEROS 1000 CARACTERES DEL TEXTO VISIBLE:
+FIRST 1000 CHARACTERS OF VISIBLE TEXT:
 {visible_text_preview}
 
-REGLAS DE EVALUACIÓN:
+EVALUATION RULES:
 
 1. SEO Score (0-100):
-   - Título: debe tener entre 50-60 caracteres, incluir keyword principal (15 pts)
-   - Meta description: debe tener 150-160 caracteres, incluir keyword y call-to-action (15 pts)
-   - Headings: estructura jerárquica correcta (h1 único, h2-h6 jerárquicos) (10 pts)
-   - Imágenes: todas deben tener alt text descriptivo (10 pts)
-   - OpenGraph / Twitter Cards: presentes y completos (10 pts)
-   - JSON-LD structured data: presente (15 pts)
-   - Canonical URL: presente (5 pts)
-   - Robots meta: no debe bloquear indexing (5 pts)
-   - Velocidad percibida: viewport optimizado, favicon presente (5 pts)
-   - Contenido: texto relevante y suficiente (>300 chars) (10 pts)
+   - Title: should be 50-60 characters, include primary keyword (15 pts)
+   - Meta description: should be 150-160 characters, include keyword and call-to-action (15 pts)
+   - Headings: correct hierarchical structure (single h1, hierarchical h2-h6) (10 pts)
+   - Images: all should have descriptive alt text (10 pts)
+   - OpenGraph / Twitter Cards: present and complete (10 pts)
+   - JSON-LD structured data: present (15 pts)
+   - Canonical URL: present (5 pts)
+   - Robots meta: should not block indexing (5 pts)
+   - Perceived speed: optimized viewport, favicon present (5 pts)
+   - Content: relevant and sufficient text (>300 chars) (10 pts)
 
 2. GEO/AEO Score (0-100):
-   - ¿El contenido responde preguntas directas que un usuario haría? (20 pts)
-   - ¿Usa lenguaje natural y conversacional? (15 pts)
-   - ¿Proporciona respuestas completas y accionables? (20 pts)
-   - ¿Tiene datos estructurados JSON-LD que un LLM pueda parsear? (20 pts)
-   - ¿El título y meta description son "citable" por un LLM? (15 pts)
-   - ¿La página está optimizada para featured snippets / AI Overviews? (10 pts)
+   - Does the content answer direct questions a user would ask? (20 pts)
+   - Does it use natural and conversational language? (15 pts)
+   - Does it provide complete and actionable answers? (20 pts)
+   - Does it have structured JSON-LD data that an LLM can parse? (20 pts)
+   - Are the title and meta description "citable" by an LLM? (15 pts)
+   - Is the page optimized for featured snippets / AI Overviews? (10 pts)
 
-Devuelve EXACTAMENTE este JSON (sin markdown):
+Return EXACTLY this JSON (without markdown):
 {{
   "seo_score": <int 0-100>,
   "geo_score": <int 0-100>,
-  "findings": ["<hallazgo 1>", "<hallazgo 2>", ...],
-  "recommendations": ["<recomendación 1>", "<recomendación 2>", ...],
-  "geo_visibility": "<texto explicativo de 2-3 oraciones sobre qué tan visible es el contenido para IA generativa>",
+  "findings": ["<finding 1>", "<finding 2>", ...],
+  "recommendations": ["<recommendation 1>", "<recommendation 2>", ...],
+  "geo_visibility": "<2-3 sentence explanatory text on how visible the content is for generative AI>",
   "seo_breakdown": {{
     "title": <int 0-15>,
     "meta_description": <int 0-15>,
@@ -362,8 +362,8 @@ def analyze_seo_geo(state: dict) -> dict:
             'seo_score': 0,
             'geo_score': 0,
             'findings': [f'Error during analysis: {str(exc)}'],
-            'recommendations': ['Reintentar el análisis más tarde'],
-            'geo_visibility': 'No se pudo completar el análisis',
+            'recommendations': ['Retry the analysis later'],
+            'geo_visibility': 'Could not complete the analysis',
             'seo_breakdown': {},
             'geo_breakdown': {},
             'seo_geo_error': str(exc),
@@ -373,28 +373,28 @@ def analyze_seo_geo(state: dict) -> dict:
 # ── Node 3: generate_json_ld ──────────────────────────────────────────────
 
 
-JSON_LD_PROMPT = """Eres un experto en datos estructurados schema.org y Knowledge Graphs.
+JSON_LD_PROMPT = """You are an expert in schema.org structured data and Knowledge Graphs.
 
-Basado en el siguiente contenido de una página web, genera un JSON-LD Knowledge Graph enriquecido que represente semánticamente el contenido de la página.
+Based on the following web page content, generate a rich JSON-LD Knowledge Graph that semantically represents the page content.
 
-DATOS DE LA PÁGINA:
-- Título: {title}
+PAGE DATA:
+- Title: {title}
 - Meta description: {meta_description}
 - Headings: {headings}
-- JSON-LD existente (si hay): {existing_json_ld}
-- Texto visible: {visible_text}
+- Existing JSON-LD (if any): {existing_json_ld}
+- Visible text: {visible_text}
 
-REGLAS:
-1. Identifica el tipo principal de la página (Product, Article, WebPage, ItemPage, etc.)
-2. Genera relaciones semánticas ricas:
-   - Si es un producto: fabricante/creador, material, dimensiones, color, estilo, SKU, ofertas, reseñas, categoría
-   - Si es un artículo: autor, fecha de publicación, editor, sobre (about)
-   - Siempre incluye: breadcrumb, sitio web, publisher/organization
-3. Usa URIs de schema.org estándar
-4. El JSON-LD debe ser válido y completo
-5. Si no hay suficiente información para un campo, usa null
+RULES:
+1. Identify the main page type (Product, Article, WebPage, ItemPage, etc.)
+2. Generate rich semantic relationships:
+   - If it is a product: manufacturer/creator, material, dimensions, color, style, SKU, offers, reviews, category
+   - If it is an article: author, publication date, publisher, about
+   - Always include: breadcrumb, website, publisher/organization
+3. Use standard schema.org URIs
+4. The JSON-LD must be valid and complete
+5. If there is not enough information for a field, use null
 
-Devuelve EXACTAMENTE este JSON (sin markdown, sin decoración):
+Return EXACTLY this JSON (without markdown, without decoration):
 {{
   "@context": "https://schema.org",
   "@graph": [
@@ -406,7 +406,7 @@ Devuelve EXACTAMENTE este JSON (sin markdown, sin decoración):
   ]
 }}
 
-Genera el JSON-LD más completo posible basado en la información disponible.
+Generate the most complete JSON-LD possible based on the available information.
 """
 
 

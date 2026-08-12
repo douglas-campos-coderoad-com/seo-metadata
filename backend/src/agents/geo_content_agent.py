@@ -1,11 +1,11 @@
 """
 GEO Content Optimizer Agent (geo_content_agent.py)
 
-Reescribe contenido usando principios de GEO (Generative Engine Optimization)
-y AEO (Answer Engine Optimization):
-- Alta densidad de hechos (Fact-Density)
-- Respuestas en formato Pregunta/Respuesta directa para asistentes
-- Terminología autoritativa de la industria
+Rewrites content using GEO (Generative Engine Optimization)
+and AEO (Answer Engine Optimization) principles:
+- High Fact-Density
+- Direct Question/Answer responses for assistants
+- Authoritative industry terminology
 """
 import json
 import logging
@@ -20,6 +20,7 @@ GEMINI_MODEL_FALLBACK = os.getenv('GEMINI_MODEL_FALLBACK', 'gemini-3.6-flash')
 
 
 def _call_gemini(prompt: str) -> Any:
+    """Call Gemini and return parsed JSON."""
     from langchain_google_genai import ChatGoogleGenerativeAI
     from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -45,57 +46,57 @@ def _call_gemini(prompt: str) -> Any:
     return json.loads(content)
 
 
-GEO_CONTENT_PROMPT = """Eres un experto en GEO (Generative Engine Optimization) y AEO (Answer Engine Optimization).
+GEO_CONTENT_PROMPT = """You are an expert in GEO (Generative Engine Optimization) and AEO (Answer Engine Optimization).
 
-Tu tarea es reescribir el contenido de una página web para maximizar su citabilidad por LLMs
+Your task is to rewrite a web page's content to maximize its citability by LLMs
 (ChatGPT, Perplexity, SearchGPT, Google AI Overviews).
 
-PRINCIPIOS DE GEO/AEO:
-1. Fact-Density: Alta densidad de hechos verificables (dimensiones, materiales, precios, disponibilidad, historia, técnica).
-2. AEO (Pregunta/Respuesta): Incluir respuestas directas a preguntas que un usuario haría sobre el producto.
-3. Terminología autoritativa: Usar vocabulario preciso de la industria.
-4. Estructura citables: Título y descripción que un LLM pueda citar directamente.
+GEO/AEO PRINCIPLES:
+1. Fact-Density: High density of verifiable facts (dimensions, materials, prices, availability, history, technique).
+2. AEO (Question/Answer): Include direct answers to questions a user would ask about the product.
+3. Authoritative terminology: Use precise industry vocabulary.
+4. Citable structure: Title and description that an LLM can cite directly.
 
 URL: {url}
-TIPO DE PÁGINA: {page_type}
+PAGE TYPE: {page_type}
 
-ANÁLISIS PREVIO (scores, findings, recomendaciones):
+PREVIOUS ANALYSIS (scores, findings, recommendations):
 {analysis_context}
 
-HTML ORIGINAL (truncado):
+ORIGINAL HTML (truncated):
 {html_preview}
 
-CONTEXTO DE BÚSQUEDA WEB:
+WEB SEARCH CONTEXT:
 {search_context}
 
-Devuelve EXACTAMENTE este JSON (sin markdown):
+Return EXACTLY this JSON (without markdown):
 {{
-  "optimized_title": "<título optimizado, citables, con keyword principal>",
-  "optimized_meta_description": "<meta description optimizada, responde una pregunta, con hechos>",
-  "geo_content": "<contenido reescrito con alta fact-density, formato Q&A, terminología autoritativa>",
-  "alt_texts": {{ "<image_src>": "<alt text técnico y descriptivo>" }},
+  "optimized_title": "<optimized citable title with primary keyword>",
+  "optimized_meta_description": "<optimized meta description answering a question with facts>",
+  "geo_content": "<content rewritten with high fact-density, Q&A format, authoritative terminology>",
+  "alt_texts": {{ "<image_src>": "<technical and descriptive alt text>" }},
   "qa_pairs": [
-    {{ "question": "<pregunta que haría un usuario>", "answer": "<respuesta directa y completa>" }}
+    {{ "question": "<question a user would ask>", "answer": "<direct and complete answer>" }}
   ],
   "fact_density_score": <int 0-100>,
   "changes": [
     {{
-      "element": "<elemento>",
+      "element": "<element>",
       "action": "<updated | added | rewritten>",
-      "before": "<valor anterior>",
-      "after": "<nuevo valor>",
+      "before": "<previous value>",
+      "after": "<new value>",
       "severity": "high | medium | low",
-      "reason": "<razón GEO/AEO>",
-      "snippet": "<código listo para copiar>"
+      "reason": "<GEO/AEO reason>",
+      "snippet": "<code ready to copy>"
     }}
   ]
 }}
 
-REGLAS:
-- NO inventar información que no esté en el HTML original.
-- Si falta información, usa null o indica "información no disponible".
-- Genera al menos 3 Q&A pairs relevantes.
-- El geo_content debe ser una reescritura completa, no solo un resumen.
+RULES:
+- Do NOT invent information that is not in the original HTML.
+- If information is missing, use null or indicate "information not available".
+- Generate at least 3 relevant Q&A pairs.
+- The geo_content must be a complete rewrite, not just a summary.
 """
 
 

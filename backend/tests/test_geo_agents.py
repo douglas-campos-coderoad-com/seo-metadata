@@ -105,4 +105,4 @@ def test_llm_simulator_agent_simulate_short_content(simulator_agent):
     result = simulator_agent.simulate(query='test', content='short')
     assert result['cited'] is False
     assert result['confidence'] == 0.0
-    assert 'insuficiente' in result['reason'].lower()
+    assert 'insufficient' in result['reason'].lower()

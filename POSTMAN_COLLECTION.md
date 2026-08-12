@@ -150,7 +150,84 @@ Sin body.
 }
 ```
 
-### 5.2 GEO Simulate (Simulador de Citas LLM)
+### 5.2 GEO Score (Calculadora de GEO Citation Score)
+
+**POST** `/api/v1/geo/score/{analysis_id}`
+
+Sin body.
+
+**Respuesta 200:**
+```json
+{
+  "total_score": 46,
+  "dimensions": {
+    "fact_density": {"score": 0, "weight": 0.25, "facts_found": 0},
+    "aeo_structure": {"score": 25, "weight": 0.25, "qa_pairs": 0},
+    "entity_coverage": {"score": 60, "weight": 0.25, "entities": 1},
+    "json_ld_validity": {"score": 100, "weight": 0.25}
+  },
+  "summary": {
+    "fact_density": 0,
+    "aeo_structure": 25,
+    "entity_coverage": 60,
+    "json_ld_validity": 100
+  },
+  "has_optimization": true
+}
+```
+
+### 5.3 GEO ROI (Calculadora de Impacto Financiero en IA)
+
+**POST** `/api/v1/geo/roi`
+
+**Body (JSON):**
+```json
+{
+  "monthly_organic_traffic": 10000,
+  "generative_search_share": 0.10,
+  "current_geo_score": 30,
+  "improved_geo_score": 80,
+  "products_count": 100,
+  "cost_per_product": 0.03,
+  "conversion_rate": 0.02,
+  "avg_order_value": 500.0
+}
+```
+
+**Respuesta 200:**
+```json
+{
+  "inputs": {
+    "monthly_organic_traffic": 10000,
+    "generative_search_share": 0.1,
+    "current_geo_score": 30,
+    "improved_geo_score": 80,
+    "products_count": 100,
+    "cost_per_product": 0.03,
+    "conversion_rate": 0.02,
+    "avg_order_value": 500.0
+  },
+  "ai_traffic": {
+    "current": 300,
+    "improved": 800,
+    "incremental": 500
+  },
+  "revenue": {
+    "current": 3000.0,
+    "improved": 8000.0,
+    "incremental": 5000.0
+  },
+  "costs": {
+    "ai_api_cost": 3.0
+  },
+  "roi": {
+    "net_savings": 4997.0,
+    "roi_percentage": 166566.7
+  }
+}
+```
+
+### 5.4 GEO Simulate (Simulador de Citas LLM)
 
 **POST** `/api/v1/geo/simulate/{analysis_id}`
 
@@ -181,7 +258,9 @@ Sin body.
 2. **Analizar**: `POST /api/v1/analyze/{id}` → obtén `analysis_id`
 3. **Optimizar**: `POST /api/v1/optimize/{analysis_id}` → obtén HTML optimizado
 4. **GEO Optimize**: `POST /api/v1/geo/optimize/{analysis_id}` → obtén contenido GEO/AEO
-5. **Simular**: `POST /api/v1/geo/simulate/{analysis_id}` → evalúa citabilidad LLM
+5. **GEO Score**: `POST /api/v1/geo/score/{analysis_id}` → obtén el GEO Citation Score (0-100)
+6. **ROI**: `POST /api/v1/geo/roi` → estima el impacto financiero en IA
+7. **Simular**: `POST /api/v1/geo/simulate/{analysis_id}` → evalúa citabilidad LLM
 
 ---
 

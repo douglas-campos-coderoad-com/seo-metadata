@@ -161,6 +161,7 @@ def search_web_node(state: dict) -> dict:
             'structured data, meta tags, heading hierarchy, alt texts, '
             'conversational content, question-answering format.'
         )
+        return {'search_context': search_context, 'search_error': 'SERPER_API_KEY not configured'}
     else:
         search_context = json.dumps(search_results, ensure_ascii=False, indent=2)
 
@@ -173,41 +174,41 @@ def search_web_node(state: dict) -> dict:
 # ── Node 3: plan_changes ──────────────────────────────────────────────────
 
 
-PLAN_CHANGES_PROMPT = """Eres un experto en SEO tradicional y GEO (Generative Engine Optimization) / AEO (Answer Engine Optimization).
+PLAN_CHANGES_PROMPT = """You are an expert in traditional SEO and GEO (Generative Engine Optimization) / AEO (Answer Engine Optimization).
 
-Analiza la siguiente página web y genera un PLAN de cambios priorizados para mejorar su SEO, GEO y AEO.
+Analyze the following web page and generate a PLAN of prioritized changes to improve its SEO, GEO and AEO.
 
 URL: {url}
-TIPO DE PÁGINA: {page_type}
+PAGE TYPE: {page_type}
 
-ANÁLISIS PREVIO:
+PREVIOUS ANALYSIS:
 {scores_and_findings}
 
-HTML ORIGINAL (truncado):
+ORIGINAL HTML (truncated):
 {html_preview}
 
-CONTEXTO DE BÚSQUEDA WEB (mejores prácticas):
+WEB SEARCH CONTEXT (best practices):
 {search_context}
 
-Devuelve EXACTAMENTE este JSON (sin markdown):
+Return EXACTLY this JSON (without markdown):
 {{
   "plan": [
     {{
-      "element": "<elemento a cambiar: title, meta_description, og_tags, twitter_tags, headings, images_alt, json_ld, content, canonical, lang>",
+      "element": "<element to change: title, meta_description, og_tags, twitter_tags, headings, images_alt, json_ld, content, canonical, lang>",
       "action": "<updated | added | removed | rewritten>",
       "priority": "high | medium | low",
-      "reason": "<por qué este cambio mejora SEO/GEO/AEO>",
-      "snippet_hint": "<sugerencia del código a usar>"
+      "reason": "<why this change improves SEO/GEO/AEO>",
+      "snippet_hint": "<code suggestion to use>"
     }}
   ],
   "estimated_scores": {{
-    "seo": <int 0-100 estimado después>,
-    "geo": <int 0-100 estimado después>,
-    "overall": <int 0-100 estimado después>
+    "seo": <int 0-100 estimated after>,
+    "geo": <int 0-100 estimated after>,
+    "overall": <int 0-100 estimated after>
   }}
 }}
 
-Genera un plan completo y priorizado (5-10 cambios). Sé específico y accionable.
+Generate a complete and prioritized plan (5-10 changes). Be specific and actionable.
 """
 
 
@@ -268,59 +269,59 @@ def plan_changes(state: dict) -> dict:
 # ── Node 4: apply_changes ─────────────────────────────────────────────────
 
 
-APPLY_CHANGES_PROMPT = """Eres un experto en SEO, GEO/AEO y datos estructurados schema.org.
+APPLY_CHANGES_PROMPT = """You are an expert in SEO, GEO/AEO and schema.org structured data.
 
-Basado en el plan de cambios y el HTML original, genera el HTML optimizado completo, el JSON-LD enriquecido, y el contenido reescrito.
+Based on the change plan and the original HTML, generate the complete optimized HTML, the enriched JSON-LD, and the rewritten content.
 
 URL: {url}
-TIPO DE PÁGINA: {page_type}
+PAGE TYPE: {page_type}
 
-PLAN DE CAMBIOS:
+CHANGE PLAN:
 {plan}
 
-HTML ORIGINAL (truncado):
+ORIGINAL HTML (truncated):
 {html_preview}
 
-ANÁLISIS PREVIO (incluye JSON-LD existente):
+PREVIOUS ANALYSIS (including existing JSON-LD):
 {analysis_json}
 
-CONTEXTO DE BÚSQUEDA WEB:
+WEB SEARCH CONTEXT:
 {search_context}
 
-Devuelve EXACTAMENTE este JSON (sin markdown):
+Return EXACTLY this JSON (without markdown):
 {{
-  "optimized_html": "<HTML completo optimizado>",
+  "optimized_html": "<complete optimized HTML>",
   "optimized_json_ld": {{
     "@context": "https://schema.org",
     "@graph": [...]
   }},
   "optimized_content": {{
-    "title": "<título optimizado>",
-    "meta_description": "<meta description optimizada>",
+    "title": "<optimized title>",
+    "meta_description": "<optimized meta description>",
     "alt_texts": {{
-      "<image_src>": "<alt text optimizado>"
+      "<image_src>": "<optimized alt text>"
     }},
-    "geo_content": "<contenido reescrito para GEO/AEO, respondiendo preguntas conversacionales>"
+    "geo_content": "<content rewritten for GEO/AEO, answering conversational questions>"
   }},
   "changes_applied": [
     {{
-      "element": "<elemento>",
+      "element": "<element>",
       "action": "<updated | added | removed | rewritten>",
-      "before": "<valor anterior>",
-      "after": "<nuevo valor>",
+      "before": "<previous value>",
+      "after": "<new value>",
       "severity": "high | medium | low",
-      "reason": "<razón del cambio>",
-      "snippet": "<fragmento de código listo para copiar>"
+      "reason": "<reason for the change>",
+      "snippet": "<code fragment ready to copy>"
     }}
   ]
 }}
 
-REGLAS:
-1. El HTML optimizado debe ser el HTML completo con todos los cambios aplicados.
-2. El JSON-LD debe ser válido y enriquecido semánticamente (Creator, Material, Dimensions, Offers, Brand si aplica).
-3. El contenido GEO/AEO debe responder preguntas conversacionales de usuarios.
-4. Cada cambio debe incluir un snippet de código listo para copiar/pegar.
-5. NO inventes información que no esté en el HTML original. Usa null si falta info.
+RULES:
+1. The optimized HTML must be the complete HTML with all changes applied.
+2. The JSON-LD must be valid and semantically enriched (Creator, Material, Dimensions, Offers, Brand if applicable).
+3. The GEO/AEO content must answer conversational user questions.
+4. Each change must include a code snippet ready to copy/paste.
+5. Do NOT invent information that is not in the original HTML. Use null if info is missing.
 """
 
 
