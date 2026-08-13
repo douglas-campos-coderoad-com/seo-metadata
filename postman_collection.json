@@ -1,0 +1,256 @@
+{
+  "info": {
+    "name": "SEO Metadata Platform (InCollect)",
+    "_postman_id": "9b1f6c2e-7d4a-4f9b-8c1e-aa55c0d4e012",
+    "description": "Colección de endpoints de la plataforma SEO/GEO/AEO. Base URL: http://localhost:8000",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Ingest",
+      "item": [
+        {
+          "name": "Ingest URL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://www.incollect.com/listing/873915\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ingest/url",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "ingest", "url"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Ingested URL",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ingest/url/{{url_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "ingest", "url", "{{url_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Ingested URLs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ingest/urls?skip=0&limit=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "ingest", "urls"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Analysis",
+      "item": [
+        {
+          "name": "Analyze URL",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analyze/{{ingested_url_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analyze", "{{ingested_url_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Analysis",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analyze/{{ingested_url_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analyze", "{{ingested_url_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Optimization",
+      "item": [
+        {
+          "name": "Optimize Analysis",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/optimize/{{analysis_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "optimize", "{{analysis_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Optimization",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/optimize/{{analysis_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "optimize", "{{analysis_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "GEO/AEO Motor",
+      "item": [
+        {
+          "name": "GEO Optimize",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/geo/optimize/{{analysis_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "geo", "optimize", "{{analysis_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GEO Score",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/geo/score/{{analysis_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "geo", "score", "{{analysis_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GEO ROI",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monthly_organic_traffic\": 10000,\n  \"generative_search_share\": 0.10,\n  \"current_geo_score\": 30,\n  \"improved_geo_score\": 80,\n  \"products_count\": 100,\n  \"cost_per_product\": 0.03,\n  \"conversion_rate\": 0.02,\n  \"avg_order_value\": 500.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/geo/roi",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "geo", "roi"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GEO AEO Live Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"Recommend a premium dining chair for my living room.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/geo/aeo-test/{{analysis_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "geo", "aeo-test", "{{analysis_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GEO Simulate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"Recomiéndame obras de arte contemporáneo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/geo/simulate/{{analysis_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "geo", "simulate", "{{analysis_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
