@@ -52,13 +52,14 @@ services:
       dockerfile: Dockerfile
     container_name: incollect_web
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://api:8000/api/v1
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
     ports:
       - "3000:3000"
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/tests:/app/tests
       - /app/node_modules
+      - /app/.next
     command: npm run dev
     depends_on:
       api:
@@ -72,7 +73,6 @@ services:
       - "8025:8025"  # Web UI
     environment:
       MH_STORAGE: memory
-      MH_OUTGOING_SMTP: "false"
 
 volumes:
   postgres_data:

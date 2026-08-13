@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { mockAnalysisService } from '@/shared/realtime/MockAnalysisService';
+import { analysisApiService } from '@/shared/realtime/AnalysisApiService';
 import type { RunStatus } from '@/shared/types';
 
 interface RunStatusSnapshot {
@@ -25,7 +25,7 @@ export function useRunStatus(runId: string | null) {
 
   const refresh = useCallback(() => {
     if (!runId) return;
-    const run = mockAnalysisService.getRun(runId);
+    const run = analysisApiService.getRun(runId);
     setSnapshot({
       status: run?.status ?? 'queued',
       score: run?.score ?? null,
@@ -39,7 +39,7 @@ export function useRunStatus(runId: string | null) {
     if (!runId) return;
     refresh();
 
-    const unsubscribe = mockAnalysisService.subscribeToRun(runId, (event) => {
+    const unsubscribe = analysisApiService.subscribeToRun(runId, (event) => {
       if (event.type === 'connection-lost') {
         setSnapshot((prev) => ({ ...prev, connectionLost: true }));
         return;

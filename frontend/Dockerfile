@@ -20,21 +20,22 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install only production dependencies
+# Instalar dependencias para desarrollo/ejecución
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy built app from builder
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 && \
+    chown -R nextjs:nodejs /app
 USER nextjs
 
 # Expose port
 EXPOSE 3000
 
 # Run Next.js app
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev"]

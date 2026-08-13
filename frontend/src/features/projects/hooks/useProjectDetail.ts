@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/shared/store/useAppStore';
-import { mockAnalysisService } from '@/shared/realtime/MockAnalysisService';
+import { analysisApiService } from '@/shared/realtime/AnalysisApiService';
 import type { AnalysisTarget } from '@/shared/types';
 
 export function useProjectDetail(projectId: string) {
@@ -12,12 +12,12 @@ export function useProjectDetail(projectId: string) {
       .filter((target): target is AnalysisTarget => Boolean(target)),
   );
   // Re-derives on every store change so it stays current as runs/findings complete (FR-016).
-  const sharedIssues = useAppStore(() => mockAnalysisService.listSharedIssues(projectId));
+  const sharedIssues = useAppStore(() => analysisApiService.listSharedIssues(projectId));
 
-  const addUrl = (url: string) => mockAnalysisService.addTargetToProject(projectId, url);
-  const removeTarget = (targetId: string) => mockAnalysisService.removeTargetFromProject(projectId, targetId);
-  const analyzeTarget = (url: string) => mockAnalysisService.startAnalysis({ url, projectId });
-  const analyzeAll = () => targets.map((target) => mockAnalysisService.startAnalysis({ url: target.displayUrl, projectId }));
+  const addUrl = (url: string) => analysisApiService.addTargetToProject(projectId, url);
+  const removeTarget = (targetId: string) => analysisApiService.removeTargetFromProject(projectId, targetId);
+  const analyzeTarget = (url: string) => analysisApiService.startAnalysis({ url, projectId });
+  const analyzeAll = () => targets.map((target) => analysisApiService.startAnalysis({ url: target.displayUrl, projectId }));
 
   return { project, targets, sharedIssues, addUrl, removeTarget, analyzeTarget, analyzeAll };
 }

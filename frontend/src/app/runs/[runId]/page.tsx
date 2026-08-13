@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useAppStore } from '@/shared/store/useAppStore';
 import { ScoreSummary } from '@/features/analysis/components/ScoreSummary';
 import { FindingsList } from '@/features/analysis/components/FindingsList';
+import { BeforeAfterViewer } from '@/features/analysis/components/BeforeAfterViewer';
 import { Alert } from '@/shared/components/ui/alert';
 import type { Finding } from '@/shared/types';
 
@@ -26,6 +27,25 @@ export default function RunResultsPage() {
     return <p className="text-muted-foreground">This analysis is still in progress.</p>;
   }
 
+  // If the run came from the real backend, show the Before/After optimization dashboard.
+  if (run.backendAnalysisId) {
+    return (
+      <div className="flex flex-col gap-8">
+        <div>
+          <h1 className="text-2xl font-bold">Analysis Results</h1>
+          <p className="text-sm text-muted-foreground">URL: {run.targetId}</p>
+        </div>
+        <BeforeAfterViewer
+          analysisId={run.backendAnalysisId}
+          originalUrl={run.targetId}
+          initialScore={run.score}
+          findings={findings}
+        />
+      </div>
+    );
+  }
+
+  // Fallback: legacy / mock-only view.
   return (
     <div className="flex flex-col gap-8">
       <ScoreSummary score={run.score} />

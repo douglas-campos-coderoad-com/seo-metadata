@@ -69,6 +69,29 @@ RULES:
 """
 
 
+LIVE_SIMULATE_PROMPT = """You are a helpful, conversational AI assistant (like ChatGPT) answering a user's question.
+
+USER QUERY:
+{query}
+
+AVAILABLE PAGE CONTENT (context you may use to answer):
+{content}
+
+You must answer as a natural language chat assistant. IMPORTANT:
+- Only mention / recommend the specific product or brand if it is clearly described in the available content with sufficient detail (name, facts).
+- If the content is generic, vague, or lacks product specifics, answer generically WITHOUT naming any brand or product.
+- If you do mention the product, include the most relevant exact quote from the content as your "quote".
+
+Return EXACTLY this JSON (without markdown):
+{{
+  "response": "<your conversational answer to the user query>",
+  "cited": true/false,
+  "quote": "<exact quote from content that supports the recommendation, or null if not mentioned>",
+  "reason": "<brief explanation of why you cited or did not cite the product>"
+}}
+"""
+
+
 class LLMSimulatorAgent:
     """Agent that simulates a user query against an LLM to check page citability."""
 
@@ -96,6 +119,33 @@ class LLMSimulatorAgent:
                 'confidence': 0.0,
                 'quote': None,
                 'response_snippet': '',
+                'reason': f'Simulation error: {exc}',
+                'query': query,
+            }
+
+    def simulate_live(self, query: str, content: str) -> dict:
+        """Generate a conversational (ChatGPT-style) response and whether it cites the product."""
+        if not content or len(content.strip()) < 50:
+            return {
+                'response': 'I do not have enough information about this product to answer specifically.',
+                'cited': False,
+                'quote': None,
+                'reason': 'Insufficient content to cite the product',
+                'query': query,
+            }
+
+        try:
+            result = _call_gemini(
+                LIVE_SIMULATE_PROMPT.format(query=query, content=content[:6000])
+            )
+            result['query'] = query
+            return result
+        except Exception as exc:
+            logger.error(f'Live simulator failed: {exc}')
+            return {
+                'response': 'I could not generate a response at this time.',
+                'cited': False,
+                'quote': None,
                 'reason': f'Simulation error: {exc}',
                 'query': query,
             }

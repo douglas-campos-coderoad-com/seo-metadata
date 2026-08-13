@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { mockAnalysisService } from '@/shared/realtime/MockAnalysisService';
+import { analysisApiService } from '@/shared/realtime/AnalysisApiService';
 
 interface StartAnalysisInput {
   url: string;
@@ -16,7 +16,7 @@ export function useStartAnalysis() {
     setIsSubmitting(true);
     setError(null);
     try {
-      return await mockAnalysisService.startAnalysis(input);
+      return await analysisApiService.startAnalysis(input);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start analysis.');
       return null;

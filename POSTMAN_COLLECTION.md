@@ -227,7 +227,40 @@ Sin body.
 }
 ```
 
-### 5.4 GEO Simulate (Simulador de Citas LLM)
+### 5.4 GEO AEO Live Test (Simulador de Recomendación de IA)
+
+**POST** `/api/v1/geo/aeo-test/{analysis_id}`
+
+**Body (JSON):**
+```json
+{
+  "query": "Recommend a premium dining chair for my living room."
+}
+```
+
+**Respuesta 200:**
+```json
+{
+  "query": "Recommend a premium dining chair for my living room.",
+  "has_optimization": true,
+  "before": {
+    "response": "Here are some general options for dining chairs...",
+    "cited": false,
+    "quote": null,
+    "reason": "The original content lacks product specifics.",
+    "query": "Recommend a premium dining chair for my living room."
+  },
+  "after": {
+    "response": "I recommend the 'Sax Berlin - Banksy On The Grave Yard Shift' walnut chair, 45x45x80 cm, priced at $1,200 USD.",
+    "cited": true,
+    "quote": "A premium walnut dining chair measuring 45x45x80 cm...",
+    "reason": "The optimized content provides fact-dense, structured product details.",
+    "query": "Recommend a premium dining chair for my living room."
+  }
+}
+```
+
+### 5.5 GEO Simulate (Simulador de Citas LLM)
 
 **POST** `/api/v1/geo/simulate/{analysis_id}`
 

@@ -44,6 +44,10 @@ export interface AnalysisRun {
   httpStatus: number | null;
   contentType: string | null;
   contentSizeBytes: number | null;
+  /** Backend analysis record id (from POST /analyze/{ingested_id}). Optional; only set when the real API produced it. */
+  backendAnalysisId?: number;
+  /** Backend optimization record id (from POST /optimize/{analysis_id}). Optional. */
+  backendOptimizationId?: number;
 }
 
 export interface Finding {

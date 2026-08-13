@@ -1,14 +1,14 @@
 'use client';
 
 import { useAppStore } from '@/shared/store/useAppStore';
-import { mockAnalysisService } from '@/shared/realtime/MockAnalysisService';
+import { analysisApiService } from '@/shared/realtime/AnalysisApiService';
 
 export function useProjects() {
   const projects = useAppStore((state) =>
     Object.values(state.projects).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
   );
 
-  const createProject = (name: string) => mockAnalysisService.createProject({ name });
+  const createProject = (name: string) => analysisApiService.createProject({ name });
 
   return { projects, createProject };
 }
