@@ -1,41 +1,23 @@
-# Builder stage
-FROM node:20-alpine AS builder
-
+FROM node:22-alpine
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
 # Install dependencies
+COPY package*.json ./
 RUN npm ci
 
 # Copy source code
 COPY . .
 
-# Build Next.js app
-RUN npm run build
-
-# Runtime stage
-FROM node:20-alpine
-
-WORKDIR /app
-
-# Instalar dependencias para desarrollo/ejecución
-COPY package*.json ./
-RUN npm ci
-
-# Copy built app from builder
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-
-# Create non-root user
+# Create non-root user, then hand it ownership of /app.
+# .next must exist before the chown so the anonymous volume compose mounts
+# there inherits nextjs ownership instead of root's.
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001 && \
+    mkdir -p /app/.next && \
     chown -R nextjs:nodejs /app
 USER nextjs
 
-# Expose port
 EXPOSE 3000
 
-# Run Next.js app
 CMD ["npm", "run", "dev"]
