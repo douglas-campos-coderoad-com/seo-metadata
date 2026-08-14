@@ -11,6 +11,7 @@ import type { Finding } from '@/shared/types';
 export default function RunResultsPage() {
   const { runId } = useParams<{ runId: string }>();
   const run = useAppStore((state) => state.runs[runId]);
+  const url = useAppStore((state) => state.targets[run.targetId]?.displayUrl ?? '');
   const findings = useAppStore((state) =>
     run ? run.findingIds.map((id) => state.findings[id]).filter((f): f is Finding => Boolean(f)) : [],
   );
@@ -33,11 +34,11 @@ export default function RunResultsPage() {
       <div className="flex flex-col gap-8">
         <div>
           <h1 className="text-2xl font-bold">Analysis Results</h1>
-          <p className="text-sm text-muted-foreground">URL: {run.targetId}</p>
+          <p className="text-sm text-muted-foreground">URL: {url}</p>
         </div>
         <BeforeAfterViewer
           analysisId={run.backendAnalysisId}
-          originalUrl={run.targetId}
+          originalUrl={url}
           initialScore={run.score}
           findings={findings}
         />

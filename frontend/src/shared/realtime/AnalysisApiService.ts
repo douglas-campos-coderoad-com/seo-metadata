@@ -260,7 +260,7 @@ export class AnalysisApiService implements AnalysisService {
         category: 'content',
         severity,
         title: raw.message || raw.type || 'Finding',
-        description: raw.message || '',
+        description: raw || '',
         metricValue: null,
         isMissing: false,
         suggestion: '',
