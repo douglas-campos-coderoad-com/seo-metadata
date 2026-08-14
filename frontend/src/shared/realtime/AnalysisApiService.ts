@@ -29,7 +29,7 @@ interface AnalysisResponse {
   overall_score: number | null;
   status: string;
   analysis: {
-    findings?: Array<{ severity?: string; message?: string; type?: string }>;
+    findings?: Array<{ severity?: string; detail?: string; type?: string, title?: string }>;
     recommendations?: string[];
     geo_visibility?: string;
     seo_breakdown?: Record<string, number>;
@@ -259,8 +259,8 @@ export class AnalysisApiService implements AnalysisService {
         runId,
         category: 'content',
         severity,
-        title: raw.message || raw.type || 'Finding',
-        description: raw || '',
+        title: raw.title || raw.type || 'Finding',
+        description: raw.detail || '',
         metricValue: null,
         isMissing: false,
         suggestion: '',

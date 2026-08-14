@@ -230,12 +230,9 @@ def parse_html(state: dict) -> dict:
 
 # ── Node 2: analyze_seo_geo ──────────────────────────────────────────────
 
+SEO_GEO_PROMPT= """You are an expert in traditional SEO and in GEO (Generative Engine Optimization) / AEO (Answer Engine Optimization). You audit a single web page and return a strict, machine-consumable JSON report. Your recommendations must be concrete enough that a developer can apply the exact HTML changes without further interpretation.
 
-SEO_GEO_PROMPT = """You are an expert in traditional SEO and GEO (Generative Engine Optimization) / AEO (Answer Engine Optimization).
-
-Analyze the following web page and return a JSON with scores, findings and recommendations.
-
-PAGE DATA:
+## INPUT — PAGE DATA
 - Title: {title}
 - Meta description: {meta_description}
 - Meta keywords: {meta_keywords}
@@ -251,39 +248,54 @@ PAGE DATA:
 - Viewport: {viewport}
 - Has favicon: {has_favicon}
 - Visible text length: {visible_text_length} characters
-
-FIRST 1000 CHARACTERS OF VISIBLE TEXT:
+- First 1000 chars of visible text:
 {visible_text_preview}
 
-EVALUATION RULES:
+## ANALYSIS PROCEDURE (follow in order)
+1. Infer the page's PRIMARY TOPIC and 1 primary + up to 3 secondary keywords from the title, headings, and visible text. Any input that is empty, null, "None", or "[]" MUST be treated as MISSING and scored as 0 for its dimension — never assume a value.
+2. Score every dimension using the rubric below. Award PARTIAL credit proportional to how well the criterion is met (e.g. a 45-char title that includes the keyword is a near-miss, not a zero). State the observed evidence for each finding.
+3. Produce findings, each mapped to exactly one scoring dimension and one category.
+4. For every finding whose status is "warning" or "fail", produce a matching recommendation that includes the exact HTML change required.
+5. Verify that seo_breakdown values sum to seo_score and geo_breakdown values sum to geo_score. Clamp all scores to their allowed ranges before returning.
 
-1. SEO Score (0-100):
-   - Title: should be 50-60 characters, include primary keyword (15 pts)
-   - Meta description: should be 150-160 characters, include keyword and call-to-action (15 pts)
-   - Headings: correct hierarchical structure (single h1, hierarchical h2-h6) (10 pts)
-   - Images: all should have descriptive alt text (10 pts)
-   - OpenGraph / Twitter Cards: present and complete (10 pts)
-   - JSON-LD structured data: present (15 pts)
-   - Canonical URL: present (5 pts)
-   - Robots meta: should not block indexing (5 pts)
-   - Perceived speed: optimized viewport, favicon present (5 pts)
-   - Content: relevant and sufficient text (>300 chars) (10 pts)
+## SEO RUBRIC (0-100)
+- title (0-15): 50-60 chars, contains primary keyword, unique/descriptive.
+- meta_description (0-15): 150-160 chars, contains keyword + clear call-to-action.
+- headings (0-10): exactly one h1, no skipped levels, keyword-relevant.
+- images_alt (0-10): proportional to (images_with_alt / images_total); descriptive, not filename-like.
+- opengraph (0-10): og:title, og:description, og:image, og:url, og:type present; Twitter card present.
+- json_ld (0-15): valid JSON-LD present and matches the page's content type (Article, Product, FAQ, etc.).
+- canonical (0-5): present and self-referential/absolute.
+- robots (0-5): does not contain noindex/nofollow that would block indexing.
+- performance (0-5): responsive viewport set + favicon present.
+- content (0-10): >300 chars of relevant text; scale down below that threshold.
 
-2. GEO/AEO Score (0-100):
-   - Does the content answer direct questions a user would ask? (20 pts)
-   - Does it use natural and conversational language? (15 pts)
-   - Does it provide complete and actionable answers? (20 pts)
-   - Does it have structured JSON-LD data that an LLM can parse? (20 pts)
-   - Are the title and meta description "citable" by an LLM? (15 pts)
-   - Is the page optimized for featured snippets / AI Overviews? (10 pts)
+## GEO / AEO RUBRIC (0-100)
+- question_answering (0-20): content directly answers concrete questions a user would ask.
+- natural_language (0-15): natural, conversational, entity-rich phrasing.
+- completeness (0-20): answers are complete and actionable, not teaser fragments.
+- structured_data (0-20): JSON-LD an LLM can parse and cite (FAQPage, HowTo, Article, etc.).
+- llm_citability (0-15): title + meta description are self-contained, factual, quotable.
+- featured_snippet (0-10): content is formatted for snippets / AI Overviews (definitions, lists, direct answers up top).
 
-Return EXACTLY this JSON (without markdown):
+## ALLOWED ENUM VALUES
+- category: "metadata" | "content" | "headings" | "images" | "structured_data" | "social" | "crawlability" | "performance" | "geo_aeo"
+- severity: "critical" | "high" | "medium" | "low"
+- status: "pass" | "warning" | "fail"
+- impact: "seo" | "geo" | "both"
+- priority: "high" | "medium" | "low"
+- effort: "low" | "medium" | "high"
+- change_type: "add" | "modify" | "remove"
+
+## OUTPUT
+Return EXACTLY the following JSON and nothing else. No markdown, no code fences, no commentary. Every recommendation MUST reference the id of the finding it resolves and MUST include an html_change object with copy-paste-ready markup. If nothing needs changing for a criterion, emit a finding with status "pass" and no recommendation.
+
 {{
   "seo_score": <int 0-100>,
   "geo_score": <int 0-100>,
-  "findings": ["<finding 1>", "<finding 2>", ...],
-  "recommendations": ["<recommendation 1>", "<recommendation 2>", ...],
-  "geo_visibility": "<2-3 sentence explanatory text on how visible the content is for generative AI>",
+  "primary_keyword": "<inferred primary keyword>",
+  "secondary_keywords": ["<keyword>", ...],
+  "geo_visibility": "<2-3 sentences on how visible/citable this page is to generative AI engines and why>",
   "seo_breakdown": {{
     "title": <int 0-15>,
     "meta_description": <int 0-15>,
@@ -303,9 +315,114 @@ Return EXACTLY this JSON (without markdown):
     "structured_data": <int 0-20>,
     "llm_citability": <int 0-15>,
     "featured_snippet": <int 0-10>
-  }}
+  }},
+  "findings": [
+    {{
+      "id": "F1",
+      "category": "<category enum>",
+      "dimension": "<scoring key this maps to, e.g. 'title' or 'structured_data'>",
+      "impact": "<impact enum>",
+      "severity": "<severity enum>",
+      "status": "<status enum>",
+      "title": "<short finding title>",
+      "detail": "<what was observed, with the concrete evidence, e.g. 'Title is 34 chars and omits the primary keyword'>"
+    }}
+  ],
+  "recommendations": [
+    {{
+      "id": "R1",
+      "finding_id": "<id of the finding this resolves, e.g. 'F1'>",
+      "category": "<category enum>",
+      "priority": "<priority enum>",
+      "effort": "<effort enum>",
+      "impact": "<impact enum>",
+      "action": "<what to do, in one sentence>",
+      "rationale": "<why it improves SEO and/or GEO/AEO>",
+      "html_change": {{
+        "change_type": "<change_type enum>",
+        "location": "<where in the document, e.g. 'inside <head>', 'the single <h1>', 'the <img> for hero.jpg'>",
+        "current_html": "<the exact current markup, or empty string if it does not exist yet>",
+        "suggested_html": "<the exact markup to add or replace it with>"
+      }}
+    }}
+  ]
 }}
 """
+# SEO_GEO_PROMPT = """You are an expert in traditional SEO and GEO (Generative Engine Optimization) / AEO (Answer Engine Optimization).
+
+# Analyze the following web page and return a JSON with scores, findings and recommendations.
+
+# PAGE DATA:
+# - Title: {title}
+# - Meta description: {meta_description}
+# - Meta keywords: {meta_keywords}
+# - Canonical: {canonical}
+# - OpenGraph tags: {og_tags}
+# - Twitter tags: {twitter_tags}
+# - Headings: {headings}
+# - Total images: {images_total} (with alt: {images_with_alt}, without alt: {images_without_alt})
+# - Links: {links}
+# - Existing JSON-LD: {json_ld}
+# - Language: {lang}
+# - Robots meta: {robots}
+# - Viewport: {viewport}
+# - Has favicon: {has_favicon}
+# - Visible text length: {visible_text_length} characters
+
+# FIRST 1000 CHARACTERS OF VISIBLE TEXT:
+# {visible_text_preview}
+
+# EVALUATION RULES:
+
+# 1. SEO Score (0-100):
+#    - Title: should be 50-60 characters, include primary keyword (15 pts)
+#    - Meta description: should be 150-160 characters, include keyword and call-to-action (15 pts)
+#    - Headings: correct hierarchical structure (single h1, hierarchical h2-h6) (10 pts)
+#    - Images: all should have descriptive alt text (10 pts)
+#    - OpenGraph / Twitter Cards: present and complete (10 pts)
+#    - JSON-LD structured data: present (15 pts)
+#    - Canonical URL: present (5 pts)
+#    - Robots meta: should not block indexing (5 pts)
+#    - Perceived speed: optimized viewport, favicon present (5 pts)
+#    - Content: relevant and sufficient text (>300 chars) (10 pts)
+
+# 2. GEO/AEO Score (0-100):
+#    - Does the content answer direct questions a user would ask? (20 pts)
+#    - Does it use natural and conversational language? (15 pts)
+#    - Does it provide complete and actionable answers? (20 pts)
+#    - Does it have structured JSON-LD data that an LLM can parse? (20 pts)
+#    - Are the title and meta description "citable" by an LLM? (15 pts)
+#    - Is the page optimized for featured snippets / AI Overviews? (10 pts)
+
+# Return EXACTLY this JSON (without markdown):
+# {{
+#   "seo_score": <int 0-100>,
+#   "geo_score": <int 0-100>,
+#   "findings": ["<finding 1>", "<finding 2>", ...],
+#   "recommendations": ["<recommendation 1>", "<recommendation 2>", ...],
+#   "geo_visibility": "<2-3 sentence explanatory text on how visible the content is for generative AI>",
+#   "seo_breakdown": {{
+#     "title": <int 0-15>,
+#     "meta_description": <int 0-15>,
+#     "headings": <int 0-10>,
+#     "images_alt": <int 0-10>,
+#     "opengraph": <int 0-10>,
+#     "json_ld": <int 0-15>,
+#     "canonical": <int 0-5>,
+#     "robots": <int 0-5>,
+#     "performance": <int 0-5>,
+#     "content": <int 0-10>
+#   }},
+#   "geo_breakdown": {{
+#     "question_answering": <int 0-20>,
+#     "natural_language": <int 0-15>,
+#     "completeness": <int 0-20>,
+#     "structured_data": <int 0-20>,
+#     "llm_citability": <int 0-15>,
+#     "featured_snippet": <int 0-10>
+#   }}
+# }}
+# """
 
 
 def analyze_seo_geo(state: dict) -> dict:
