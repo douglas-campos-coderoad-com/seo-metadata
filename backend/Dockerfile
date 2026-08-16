@@ -6,6 +6,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     curl \
+    fonts-noto-core \
+    fonts-noto-color-emoji \
+    fontconfig \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar e instalar dependencias de Python

@@ -1,0 +1,381 @@
+/*
+ * Print stylesheet for the exported report.
+ *
+ * Inlined into the document at render time — no external stylesheet, no remote
+ * font (FR-020, and the render context blocks outbound requests anyway).
+ *
+ * The load-bearing rules here are the code-block wrapping ones: FR-019 requires
+ * long unbroken markup to stay inside the printable area rather than being
+ * clipped off the edge of the page.
+ */
+
+@page {
+  size: A4;
+}
+
+:root {
+  --ink: #111827;
+  --muted: #6b7280;
+  --rule: #e5e7eb;
+  --surface: #f9fafb;
+  --accent: #1f2937;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: #ffffff;
+  /* Noto families are installed in the image so non-Latin scripts and emoji
+     render as glyphs rather than tofu. */
+  font-family: 'Noto Sans', 'Liberation Sans', 'DejaVu Sans', sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.5;
+}
+
+h2 {
+  font-size: 15pt;
+  margin: 0 0 10px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid var(--accent);
+  break-after: avoid;
+}
+
+h3 {
+  font-size: 12pt;
+  margin: 18px 0 8px;
+  break-after: avoid;
+}
+
+section {
+  margin-bottom: 22px;
+}
+
+/* ---------- Cover page (FR-011) ---------- */
+
+.cover {
+  height: 245mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.cover-kicker {
+  margin: 0 0 6px;
+  font-size: 10pt;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cover-url {
+  font-size: 20pt;
+  margin: 0 0 6px;
+  /* A long URL must wrap on the cover rather than run off the page. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.cover-date {
+  margin: 0 0 32px;
+  color: var(--muted);
+}
+
+.cover-score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+}
+
+/* Scores shown proportionally rather than as bare numbers (FR-014). */
+.ring {
+  width: 116px;
+  height: 116px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background:
+    conic-gradient(var(--accent) calc(var(--ring-pct) * 1%), var(--rule) 0);
+}
+
+.ring-value {
+  font-size: 26pt;
+  font-weight: 700;
+  line-height: 1;
+  background: #ffffff;
+  border-radius: 50%;
+  width: 86px;
+  height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring-label {
+  position: relative;
+  top: -14px;
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.cover-subscores {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.subscore {
+  min-width: 92px;
+  padding: 8px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.subscore-value {
+  display: block;
+  font-size: 16pt;
+  font-weight: 700;
+}
+
+.subscore-label {
+  display: block;
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.cover-summary {
+  margin-top: 30px;
+  color: var(--muted);
+}
+
+.page-break {
+  break-after: page;
+}
+
+/* ---------- Score breakdowns (FR-004, FR-014) ---------- */
+
+.breakdown {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.breakdown td {
+  padding: 3px 0;
+  vertical-align: middle;
+}
+
+.dim-label {
+  width: 38%;
+  padding-right: 10px;
+}
+
+.dim-bar {
+  width: 46%;
+}
+
+.dim-score {
+  width: 16%;
+  text-align: right;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.bar {
+  display: block;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--rule);
+  overflow: hidden;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.scores-compare {
+  border-collapse: collapse;
+}
+
+.scores-compare th,
+.scores-compare td {
+  padding: 4px 14px 4px 0;
+  text-align: left;
+}
+
+/* ---------- Findings (FR-006, FR-012, FR-013) ---------- */
+
+.group-heading {
+  margin-top: 20px;
+  padding: 5px 9px;
+  background: var(--surface);
+  border-left: 3px solid var(--accent);
+}
+
+.finding {
+  margin: 0 0 14px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--rule);
+  /* Keep a finding and its fix on one page where it fits. */
+  break-inside: avoid;
+}
+
+.finding-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.finding-title {
+  font-size: 11pt;
+  margin: 0;
+}
+
+/* Severity colours come from report_mappings.SEVERITY_COLORS via inline style,
+   so the PDF and the app can never disagree (FR-013). Nothing here hard-codes a
+   severity colour — doing so would silently break the parity test's guarantee. */
+.severity {
+  flex: 0 0 auto;
+  padding: 1px 7px;
+  border-radius: 9px;
+  font-size: 7.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.finding-detail {
+  margin: 5px 0 0;
+}
+
+.narrative {
+  margin: 0;
+}
+
+.empty-state {
+  padding: 12px;
+  background: var(--surface);
+  border-radius: 6px;
+  color: var(--muted);
+}
+
+/* ---------- Recommendations (FR-007, FR-008) ---------- */
+
+.recommendation {
+  margin-top: 9px;
+  padding-left: 11px;
+  border-left: 2px solid var(--rule);
+}
+
+.rec-action {
+  margin: 0;
+  font-weight: 600;
+}
+
+.rec-ref {
+  display: inline-block;
+  margin-right: 5px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 8pt;
+  font-weight: 700;
+}
+
+.rec-rationale {
+  margin: 3px 0 0;
+  color: var(--muted);
+}
+
+.rec-meta {
+  margin: 6px 0 0;
+}
+
+.chip {
+  display: inline-block;
+  margin-right: 5px;
+  padding: 1px 7px;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  font-size: 8pt;
+  color: var(--muted);
+}
+
+.change-location {
+  margin: 9px 0 4px;
+}
+
+.code-label {
+  margin: 7px 0 3px;
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.absent-note {
+  margin: 5px 0;
+  padding: 6px 9px;
+  background: var(--surface);
+  border-radius: 5px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ---------- Code blocks (FR-019) ----------
+ * The wrapping rules below are what keep a 5,000-character unbroken token
+ * inside the page margin. Without them Chromium prints it straight off the
+ * edge of the paper and the recommendation becomes unusable.
+ */
+
+.code {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  font-family: 'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace;
+  font-size: 8.5pt;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  /* A long block may split across pages, but must never be clipped. */
+  break-inside: auto;
+}
+
+.code code {
+  font: inherit;
+  white-space: inherit;
+  overflow-wrap: inherit;
+  word-break: inherit;
+}
+
+.code-suggested {
+  border-left: 3px solid hsl(158 45% 38%);
+}
+
+.code-current {
+  border-left: 3px solid hsl(0 60% 48%);
+}
+
+.truncation-note {
+  margin: 3px 0 0;
+  font-size: 8pt;
+  font-style: italic;
+  color: var(--muted);
+}
