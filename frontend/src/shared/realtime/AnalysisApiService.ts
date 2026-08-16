@@ -20,6 +20,39 @@ interface IngestResponse {
   created_at: string;
 }
 
+// The analyzer prompt returns structured findings/recommendations, but older stored
+// analyses (and the backend's own error path) still emit plain strings — both shapes
+// have to survive this mapper.
+interface BackendFinding {
+  id?: string;
+  category?: string;
+  dimension?: string;
+  impact?: string;
+  severity?: string;
+  status?: string;
+  title?: string;
+  detail?: string;
+  /** Legacy field name for `title`. */
+  type?: string;
+}
+
+interface BackendRecommendation {
+  id?: string;
+  finding_id?: string;
+  category?: string;
+  priority?: string;
+  effort?: string;
+  impact?: string;
+  action?: string;
+  rationale?: string;
+  html_change?: {
+    change_type?: string;
+    location?: string;
+    current_html?: string;
+    suggested_html?: string;
+  };
+}
+
 interface AnalysisResponse {
   id: number;
   ingested_url_id: number;
@@ -29,8 +62,8 @@ interface AnalysisResponse {
   overall_score: number | null;
   status: string;
   analysis: {
-    findings?: Array<{ severity?: string; detail?: string; type?: string, title?: string }>;
-    recommendations?: string[];
+    findings?: Array<BackendFinding | string>;
+    recommendations?: Array<BackendRecommendation | string>;
     geo_visibility?: string;
     seo_breakdown?: Record<string, number>;
     geo_breakdown?: Record<string, number>;
@@ -250,38 +283,57 @@ export class AnalysisApiService implements AnalysisService {
     const findings: Finding[] = [];
     const analysisData = analysis.analysis || {};
 
-    // Map backend findings to frontend Finding shape
+    // Each recommendation points back at the finding it resolves, so fold it into
+    // that finding's suggestion/snippet instead of listing it as its own card.
+    const rawRecommendations = analysisData.recommendations || [];
+    const recsByFindingId = new Map<string, BackendRecommendation>();
+    const orphanRecs: BackendRecommendation[] = [];
+    for (const raw of rawRecommendations) {
+      const rec: BackendRecommendation = typeof raw === 'string' ? { action: raw } : raw;
+      if (rec.finding_id) {
+        recsByFindingId.set(rec.finding_id, rec);
+      } else {
+        orphanRecs.push(rec);
+      }
+    }
+
     const rawFindings = analysisData.findings || [];
     for (const raw of rawFindings) {
-      const severity = this.mapSeverity(raw.severity);
+      const finding: BackendFinding = typeof raw === 'string' ? { detail: raw } : raw;
+      const rec = finding.id ? recsByFindingId.get(finding.id) : undefined;
+      if (finding.id) recsByFindingId.delete(finding.id);
+
       findings.push({
         id: crypto.randomUUID(),
         runId,
-        category: 'content',
-        severity,
-        title: raw.title || raw.type || 'Finding',
-        description: raw.detail || '',
+        category: this.mapCategory(finding.category),
+        severity: this.mapSeverity(finding.severity),
+        title: finding.title || finding.type || finding.detail || 'Finding',
+        description: finding.detail || '',
         metricValue: null,
-        isMissing: false,
-        suggestion: '',
-        codeSnippet: null,
+        // "add" + no current markup is the backend's way of saying the element is absent;
+        // a plain "fail" status can still mean the element exists but scores badly.
+        isMissing: rec?.html_change?.change_type === 'add' && !rec.html_change.current_html,
+        suggestion: this.recommendationText(rec),
+        codeSnippet: rec?.html_change?.suggested_html || null,
       });
     }
 
-    // Map recommendations to findings
-    const recommendations = analysisData.recommendations || [];
-    for (const rec of recommendations) {
+    // Recommendations that reference no finding (or an unknown one) still get shown.
+    for (const rec of [...orphanRecs, ...recsByFindingId.values()]) {
+      const action = rec.action || rec.rationale || '';
+      if (!action) continue;
       findings.push({
         id: crypto.randomUUID(),
         runId,
-        category: 'content',
-        severity: 'warning',
-        title: rec,
-        description: rec,
+        category: this.mapCategory(rec.category),
+        severity: this.mapPriority(rec.priority),
+        title: action,
+        description: rec.rationale || '',
         metricValue: null,
         isMissing: false,
-        suggestion: rec,
-        codeSnippet: null,
+        suggestion: this.recommendationText(rec),
+        codeSnippet: rec.html_change?.suggested_html || null,
       });
     }
 
@@ -304,16 +356,60 @@ export class AnalysisApiService implements AnalysisService {
     return findings;
   }
 
-  private mapSeverity(severity?: string): Finding['severity'] {
-    switch (severity) {
+  /** Flatten a recommendation object into the single suggestion line the UI renders. */
+  private recommendationText(rec?: BackendRecommendation): string {
+    if (!rec) return '';
+    const location = rec.html_change?.location;
+    return [rec.action, rec.rationale, location && `Where: ${location}`].filter(Boolean).join(' ');
+  }
+
+  // The backend prompt emits 9 categories; the UI groups findings into 4.
+  private mapCategory(category?: string): Finding['category'] {
+    switch (category?.toLowerCase()) {
+      case 'metadata':
+      case 'social':
+      case 'crawlability':
+        return 'meta-tags';
+      case 'headings':
+      case 'images':
+      case 'structured_data':
+        return 'html-structure';
+      case 'performance':
+        return 'file-size';
+      default:
+        return 'content';
+    }
+  }
+
+  /** Recommendations carry a priority rather than a severity — reuse the same badge scale. */
+  private mapPriority(priority?: string): Finding['severity'] {
+    switch (priority?.toLowerCase()) {
       case 'high':
-      case 'critical':
         return 'critical';
       case 'medium':
-      case 'warning':
-        return 'warning';
+        return 'medium';
       default:
+        return 'warning';
+    }
+  }
+
+  // The backend prompt emits severity as "critical" | "high" | "medium" | "low";
+  // the UI only knows good/warning/critical/medium, so collapse here at the boundary.
+  private mapSeverity(severity?: string): Finding['severity'] {
+    switch (severity?.toLowerCase()) {
+      case 'critical':
+      case 'high':
+        return 'critical';
+      case 'medium':
+        return 'medium';
+      case 'warning':
+      case 'low':
+        return 'warning';
+      case 'good':
+      case 'pass':
         return 'good';
+      default:
+        return 'warning';
     }
   }
 

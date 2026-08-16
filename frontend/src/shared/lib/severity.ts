@@ -6,17 +6,19 @@ import type { FindingSeverity } from '@/shared/types';
 
 export const SEVERITY_CLASSES: Record<
   FindingSeverity,
-  { badge: 'success' | 'warning' | 'destructive'; text: string; stroke: string }
+  { badge: 'success' | 'warning' | 'destructive' | 'medium'; text: string; stroke: string }
 > = {
   good: { badge: 'success', text: 'text-success', stroke: 'stroke-success' },
   warning: { badge: 'warning', text: 'text-warning', stroke: 'stroke-warning' },
   critical: { badge: 'destructive', text: 'text-destructive', stroke: 'stroke-destructive' },
+  medium: { badge: 'medium', text: 'text-medium', stroke: 'stroke-medium' },
 };
 
 const SEVERITY_LABELS: Record<FindingSeverity, string> = {
   good: 'Good',
   warning: 'Needs improvement',
   critical: 'Critical',
+  medium: 'Medium',
 };
 
 export function severityLabel(severity: FindingSeverity): string {
@@ -30,7 +32,7 @@ export function scoreToSeverity(score: number): FindingSeverity {
   return 'critical';
 }
 
-const SEVERITY_RANK: Record<FindingSeverity, number> = { good: 0, warning: 1, critical: 2 };
+const SEVERITY_RANK: Record<FindingSeverity, number> = { good: 0, warning: 1, medium: 2, critical: 3 };
 
 /** Worst (highest-rank) severity among a set — used e.g. for a Shared Issue's aggregate severity. */
 export function highestSeverity(severities: FindingSeverity[]): FindingSeverity {

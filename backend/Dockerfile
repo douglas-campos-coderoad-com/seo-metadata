@@ -13,8 +13,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Instalar Chromium y sus dependencias en Debian Bookworm
-RUN python -m playwright install chromium
-RUN python -m playwright install-deps chromium
+# Ruta compartida: se instala como root pero el contenedor corre como appuser
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN python -m playwright install-deps chromium \
+    && python -m playwright install chromium \
+    && chmod -R a+rX /ms-playwright
 
 # Copiar el código de la aplicación
 COPY . .
