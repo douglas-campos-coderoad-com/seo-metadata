@@ -4,80 +4,38 @@ LangGraph nodes for the SEO/GEO/AEO Optimizer.
 Nodes:
   1. read_analysis - Load analysis + original HTML
   2. search_web - Serper API web search for best practices
-  3. plan_changes - Gemini plans prioritized changes
-  4. apply_changes - Gemini applies changes (HTML, JSON-LD, content)
+  3. plan_changes - The configured LLM plans prioritized changes
+  4. apply_changes - The configured LLM applies changes (HTML, JSON-LD, content)
   5. compile_optimization - Consolidate final report
+
+The LLM is reached through the src.llm repository, so the provider (Gemini,
+Anthropic, ...) is a configuration choice and these nodes see the same output
+whichever model answers.
 """
 import json
 import logging
 import os
-import httpx
 from typing import Any
+
+import httpx
+
+from src.llm import get_llm_repository
 
 logger = logging.getLogger(__name__)
 
-# ── Gemini setup ──────────────────────────────────────────────────────────
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
-GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-3.5-flash-lite')
-GEMINI_MODEL_FALLBACK = os.getenv('GEMINI_MODEL_FALLBACK', 'gemini-3.6-flash')
+SYSTEM_PROMPT = 'You are a precise SEO/GEO/AEO optimizer. Always respond with valid JSON.'
 
 # ── Serper setup ──────────────────────────────────────────────────────────
 SERPER_API_KEY = os.getenv('SERPER_API_KEY', '')
 SERPER_ENDPOINT = 'https://google.serper.dev/search'
 
 
-def _call_gemini(prompt: str, response_format: str = 'json') -> Any:
-    """Call Gemini with the given prompt and return parsed JSON response."""
-    try:
-        from langchain_google_genai import ChatGoogleGenerativeAI
-        from langchain_core.messages import HumanMessage, SystemMessage
-
-        llm = ChatGoogleGenerativeAI(
-            model=GEMINI_MODEL,
-            google_api_key=GEMINI_API_KEY,
-            temperature=0.2,
-            max_retries=2,
-        )
-        messages = [
-            SystemMessage(
-                content='You are a precise SEO/GEO/AEO optimizer. Always respond with valid JSON.'
-            ),
-            HumanMessage(content=prompt),
-        ]
-        response = llm.invoke(messages)
-        content = response.content.strip()
-        if content.startswith('```'):
-            content = content.split('\n', 1)[1]
-            content = content.rsplit('```', 1)[0]
-        return json.loads(content)
-    except Exception as exc:
-        logger.warning(f'Gemini call failed with {GEMINI_MODEL}: {exc}')
-        # Fallback to second model
-        try:
-            from langchain_google_genai import ChatGoogleGenerativeAI
-            from langchain_core.messages import HumanMessage, SystemMessage
-
-            llm = ChatGoogleGenerativeAI(
-                model=GEMINI_MODEL_FALLBACK,
-                google_api_key=GEMINI_API_KEY,
-                temperature=0.2,
-                max_retries=2,
-            )
-            messages = [
-                SystemMessage(
-                    content='You are a precise SEO/GEO/AEO optimizer. Always respond with valid JSON.'
-                ),
-                HumanMessage(content=prompt),
-            ]
-            response = llm.invoke(messages)
-            content = response.content.strip()
-            if content.startswith('```'):
-                content = content.split('\n', 1)[1]
-                content = content.rsplit('```', 1)[0]
-            return json.loads(content)
-        except Exception as fallback_exc:
-            logger.error(f'Gemini fallback also failed: {fallback_exc}')
-            raise
+def _call_llm(prompt: str, response_format: str = 'json') -> Any:
+    """Call the configured LLM and return the parsed JSON response."""
+    repository = get_llm_repository()
+    if response_format == 'json':
+        return repository.complete_json(prompt, system_prompt=SYSTEM_PROMPT)
+    return repository.complete_text(prompt)
 
 
 def search_web(query: str) -> dict:
@@ -252,7 +210,7 @@ def plan_changes(state: dict) -> dict:
     )
 
     try:
-        result = _call_gemini(prompt, response_format='json')
+        result = _call_llm(prompt, response_format='json')
         return {
             'plan': result.get('plan', []),
             'estimated_scores': result.get('estimated_scores', {'seo': 0, 'geo': 0, 'overall': 0}),
@@ -359,7 +317,7 @@ def apply_changes(state: dict) -> dict:
     )
 
     try:
-        result = _call_gemini(prompt, response_format='json')
+        result = _call_llm(prompt, response_format='json')
         return {
             'optimized_html': result.get('optimized_html', ''),
             'optimized_json_ld': result.get('optimized_json_ld', None),

@@ -469,9 +469,42 @@ Key variables:
 - `JWT_SECRET` - Secret key for JWT tokens (change in production!)
 - `FRONTEND_URL` - Frontend URL for CORS
 - `NEXT_PUBLIC_API_BASE_URL` - Backend API URL (public)
+- `LLM_PROVIDER` - Which LLM answers every analysis/optimization call: `gemini` (default) or `anthropic`
 - `GEMINI_API_KEY` - Google Gemini API key for SEO/GEO analysis
 - `GEMINI_MODEL` - Gemini model to use (default: gemini-3.5-flash-lite)
+- `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` - Used when `LLM_PROVIDER=anthropic`
 - `SMTP_*` - Email configuration (Phase 5)
+
+### Swapping the LLM provider
+
+Every LLM call goes through the repository in [`backend/src/llm/`](backend/src/llm/), which
+normalises the response the same way for every provider (code-fence stripping, JSON parsing,
+primary-model-then-fallback-model retry). Switching providers is therefore configuration only —
+the nodes and agents keep receiving the same output:
+
+```bash
+# Gemini (default)
+LLM_PROVIDER=gemini GEMINI_API_KEY=... make dev
+
+# Anthropic
+LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=... make dev
+```
+
+Adding a third provider means one subclass plus one `register_provider()` call — no call site changes:
+
+```python
+from src.llm import LLMRepository, register_provider
+
+class MyProviderRepository(LLMRepository):
+    provider = 'my-provider'
+
+    def _generate(self, model, messages) -> str:
+        ...  # return the assistant's raw text
+
+register_provider('my-provider', lambda settings: MyProviderRepository(
+    model=settings.model, fallback_model=settings.fallback_model, api_key=settings.api_key,
+))
+```
 
 ---
 

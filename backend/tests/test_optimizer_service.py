@@ -115,7 +115,7 @@ def test_plan_changes_success():
         'estimated_scores': {'seo': 80, 'geo': 70, 'overall': 75},
     }
 
-    with patch('src.services.optimizer_nodes._call_gemini', return_value=mock_result):
+    with patch('src.services.optimizer_nodes._call_llm', return_value=mock_result):
         result = plan_changes(state)
 
     assert result['plan_error'] is None
@@ -131,7 +131,7 @@ def test_plan_changes_error():
         'search_context': '',
     }
 
-    with patch('src.services.optimizer_nodes._call_gemini', side_effect=Exception('API error')):
+    with patch('src.services.optimizer_nodes._call_llm', side_effect=Exception('API error')):
         result = plan_changes(state)
 
     assert result['plan_error'] is not None
@@ -175,7 +175,7 @@ def test_apply_changes_success():
         ],
     }
 
-    with patch('src.services.optimizer_nodes._call_gemini', return_value=mock_result):
+    with patch('src.services.optimizer_nodes._call_llm', return_value=mock_result):
         result = apply_changes(state)
 
     assert result['apply_error'] is None
@@ -193,7 +193,7 @@ def test_apply_changes_error():
         'search_context': '',
     }
 
-    with patch('src.services.optimizer_nodes._call_gemini', side_effect=Exception('API error')):
+    with patch('src.services.optimizer_nodes._call_llm', side_effect=Exception('API error')):
         result = apply_changes(state)
 
     assert result['apply_error'] is not None

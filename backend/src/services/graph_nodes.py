@@ -3,89 +3,33 @@ LangGraph nodes for the SEO/GEO/AEO Analyzer.
 
 Nodes:
   1. parse_html  - Extract structured data from HTML (no LLM)
-  2. analyze_seo_geo - Evaluate SEO + GEO scores via Gemini
-  3. generate_json_ld - Generate JSON-LD Knowledge Graph via Gemini
+  2. analyze_seo_geo - Evaluate SEO + GEO scores via the configured LLM
+  3. generate_json_ld - Generate JSON-LD Knowledge Graph via the configured LLM
   4. compile_report - Consolidate results into final report
+
+The LLM is reached through the src.llm repository, so the provider (Gemini,
+Anthropic, ...) is a configuration choice and these nodes see the same output
+whichever model answers.
 """
 import json
 import logging
-import os
-from typing import Any, Optional
+from typing import Any
 
 from bs4 import BeautifulSoup
 
+from src.llm import get_llm_repository
+
 logger = logging.getLogger(__name__)
 
-# ── Gemini setup ──────────────────────────────────────────────────────────
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
-GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-3.5-flash-lite')
-GEMINI_MODEL_FALLBACK = os.getenv('GEMINI_MODEL_FALLBACK', 'gemini-3.6-flash')
+SYSTEM_PROMPT = 'You are a precise SEO/GEO analyst. Always respond with valid JSON.'
 
 
-def _get_llm():
-    """Return a configured ChatGoogleGenerativeAI instance."""
-    from langchain_google_genai import ChatGoogleGenerativeAI
-
-    return ChatGoogleGenerativeAI(
-        model=GEMINI_MODEL,
-        google_api_key=GEMINI_API_KEY,
-        temperature=0.2,
-        max_retries=2,
-    )
-
-
-def _call_gemini(prompt: str, response_format: str = 'json') -> Any:
-    """Call Gemini with the given prompt and return parsed JSON response."""
-    try:
-        llm = _get_llm()
-        if response_format == 'json':
-            from langchain_core.messages import HumanMessage, SystemMessage
-
-            messages = [
-                SystemMessage(
-                    content='You are a precise SEO/GEO analyst. Always respond with valid JSON.'
-                ),
-                HumanMessage(content=prompt),
-            ]
-            response = llm.invoke(messages)
-            content = response.content.strip()
-            # Strip markdown code fences if present
-            if content.startswith('```'):
-                content = content.split('\n', 1)[1]
-                content = content.rsplit('```', 1)[0]
-            return json.loads(content)
-        else:
-            response = llm.invoke(prompt)
-            return response.content
-    except Exception as exc:
-        logger.warning(f'Gemini call failed with {GEMINI_MODEL}: {exc}')
-        # Fallback to second model
-        try:
-            from langchain_google_genai import ChatGoogleGenerativeAI
-
-            llm = ChatGoogleGenerativeAI(
-                model=GEMINI_MODEL_FALLBACK,
-                google_api_key=GEMINI_API_KEY,
-                temperature=0.2,
-                max_retries=2,
-            )
-            from langchain_core.messages import HumanMessage, SystemMessage
-
-            messages = [
-                SystemMessage(
-                    content='You are a precise SEO/GEO analyst. Always respond with valid JSON.'
-                ),
-                HumanMessage(content=prompt),
-            ]
-            response = llm.invoke(messages)
-            content = response.content.strip()
-            if content.startswith('```'):
-                content = content.split('\n', 1)[1]
-                content = content.rsplit('```', 1)[0]
-            return json.loads(content)
-        except Exception as fallback_exc:
-            logger.error(f'Gemini fallback also failed: {fallback_exc}')
-            raise
+def _call_llm(prompt: str, response_format: str = 'json') -> Any:
+    """Call the configured LLM and return the parsed JSON response."""
+    repository = get_llm_repository()
+    if response_format == 'json':
+        return repository.complete_json(prompt, system_prompt=SYSTEM_PROMPT)
+    return repository.complete_text(prompt)
 
 
 # ── Node 1: parse_html ────────────────────────────────────────────────────
@@ -455,7 +399,7 @@ def analyze_seo_geo(state: dict) -> dict:
     )
 
     try:
-        result = _call_gemini(prompt, response_format='json')
+        result = _call_llm(prompt, response_format='json')
         seo_score = result.get('seo_score', 0)
         geo_score = result.get('geo_score', 0)
 
@@ -564,7 +508,7 @@ def generate_json_ld(state: dict) -> dict:
     )
 
     try:
-        result = _call_gemini(prompt, response_format='json')
+        result = _call_llm(prompt, response_format='json')
         return {'json_ld': result, 'json_ld_error': None}
     except Exception as exc:
         logger.error(f'generate_json_ld failed: {exc}')

@@ -159,7 +159,7 @@ def test_analyze_seo_geo_success():
         'geo_breakdown': {'question_answering': 15},
     }
 
-    with patch('src.services.graph_nodes._call_gemini', return_value=mock_result):
+    with patch('src.services.graph_nodes._call_llm', return_value=mock_result):
         result = analyze_seo_geo({'page_data': page_data})
 
     assert result['seo_score'] == 75
@@ -194,7 +194,7 @@ def test_analyze_seo_geo_passes_through_raw_findings():
 def test_analyze_seo_geo_error():
     page_data = {'title': 'Test'}
 
-    with patch('src.services.graph_nodes._call_gemini', side_effect=Exception('API error')):
+    with patch('src.services.graph_nodes._call_llm', side_effect=Exception('API error')):
         result = analyze_seo_geo({'page_data': page_data})
 
     assert result['seo_score'] == 0
@@ -230,7 +230,7 @@ def test_generate_json_ld_success():
         ],
     }
 
-    with patch('src.services.graph_nodes._call_gemini', return_value=mock_json_ld):
+    with patch('src.services.graph_nodes._call_llm', return_value=mock_json_ld):
         result = generate_json_ld({'page_data': page_data})
 
     assert result['json_ld'] is not None
@@ -241,7 +241,7 @@ def test_generate_json_ld_success():
 def test_generate_json_ld_error():
     page_data = {'title': 'Test'}
 
-    with patch('src.services.graph_nodes._call_gemini', side_effect=Exception('API error')):
+    with patch('src.services.graph_nodes._call_llm', side_effect=Exception('API error')):
         result = generate_json_ld({'page_data': page_data})
 
     assert result['json_ld'] is None
