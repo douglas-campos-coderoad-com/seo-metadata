@@ -19,7 +19,7 @@ export function ResponsiveNav() {
       <div className="flex h-14 items-center justify-between">
         <Link href="/" className="flex items-center gap-1.5 font-display text-lg font-bold">
           <TrendingUp className="h-5 w-5 text-ring" />
-          <span>SEO Analyzer</span>
+          <span>Visora Analyzer</span>
         </Link>
 
         <ul className="hidden items-center gap-1 sm:flex">

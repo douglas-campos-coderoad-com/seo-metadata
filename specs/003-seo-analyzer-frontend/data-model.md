@@ -1,4 +1,4 @@
-# Phase 1 Data Model: SEO Analyzer Application
+# Phase 1 Data Model: Visora Analyzer Application
 
 Entities mirror `spec.md`'s Key Entities section, refined with concrete fields for the mocked in-memory store (`shared/store`). All identifiers are client-generated strings (e.g., `crypto.randomUUID()`); nothing here persists beyond the browser session (see spec Clarifications/Assumptions).
 

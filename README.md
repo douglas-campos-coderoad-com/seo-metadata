@@ -508,6 +508,36 @@ register_provider('my-provider', lambda settings: MyProviderRepository(
 
 ---
 
+## 🚢 Deployment (CI/CD)
+
+Pushing to `main` runs the tests, builds the Docker images, pushes them to
+Artifact Registry (`REGION-docker.pkg.dev/PROJECT/REPO/{api,web}`), and rolls the
+stack forward on a single GCP VM.
+
+| Workflow | Trigger | What it does |
+| --- | --- | --- |
+| [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | pull requests, `main` | `pytest` (backend) and lint / type-check / vitest / `next build` (frontend) |
+| [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) | push to `main`, manual | Builds and pushes the selected images, migrates, restarts the VM stack |
+
+**Deploy one side or both.** Actions → *Deploy to GCP VM* → *Run workflow* → pick
+`both` (the default, and what a push to `main` does), `backend`, or `frontend`.
+Each component carries its own image tag, so deploying one leaves the other on
+the image it is already running; migrations only run when the backend ships.
+
+GitHub authenticates to GCP with Workload Identity Federation (no service-account
+key) and reaches the VM through an IAP tunnel (no SSH key secret). The VM runs
+[`docker-compose.prod.yml`](docker-compose.prod.yml), which only pulls images —
+it never builds.
+
+Full setup — APIs, the Artifact Registry repository, service accounts, WIF pool,
+VM, firewall, and the exact list of GitHub secrets and variables — is in
+**[`infra/gcp/README.md`](infra/gcp/README.md)**.
+
+To roll back, run the **Deploy to GCP VM** workflow manually with an earlier
+commit SHA as `image_tag`.
+
+---
+
 ## 📊 Implementation Progress
 
 ### Completed ✅

@@ -1,4 +1,4 @@
-# Quickstart: SEO Analyzer Application
+# Quickstart: Visora Analyzer Application
 
 Validation guide for this feature once implemented. Assumes `frontend/` dependencies are installed (`npm install`, run in `frontend/`) and daisyUI/Zustand have been added per `plan.md`.
 

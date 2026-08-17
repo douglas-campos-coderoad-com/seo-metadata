@@ -60,6 +60,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      # The Dockerfile is multi-stage: `dev` is the hot-reload server used here,
+      # `runner` is the compiled image CI pushes to Artifact Registry.
+      target: dev
     container_name: incollect_web
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1

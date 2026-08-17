@@ -1,4 +1,4 @@
-# Tasks: SEO Analyzer Application
+# Tasks: Visora Analyzer Application
 
 **Input**: Design documents from `specs/003-seo-analyzer-frontend/`
 
@@ -24,7 +24,7 @@
 - [X] T002 [P] Configure daisyUI as a Tailwind plugin and extend content globs to include `src/features/**` in `frontend/tailwind.config.js` (depends on T001)
 - [X] T003 [P] Remove the superseded marketplace frontend code per `plan.md`'s Structure Decision: `frontend/src/app/browse/`, `frontend/src/components/BrowseGallery.tsx`, `ItemCard.tsx`, `ItemDetail.tsx`, `ItemFilters.tsx`, `frontend/src/lib/hooks/useItems.ts`, `useCategories.ts`, `usePeriods.ts`
 - [X] T004 [P] Create the feature-based directory skeleton: `frontend/src/features/{analysis,projects,history,automations,landing}/{components,hooks}` and `frontend/src/shared/{components,realtime,store,lib,types}` per `plan.md` Project Structure
-- [X] T005 Update root layout in `frontend/src/app/layout.tsx`: replace InCollect marketplace metadata/title with the SEO Analyzer app shell, apply daisyUI theme root (depends on T002, T004)
+- [X] T005 Update root layout in `frontend/src/app/layout.tsx`: replace InCollect marketplace metadata/title with the Visora Analyzer app shell, apply daisyUI theme root (depends on T002, T004)
 
 ---
 
