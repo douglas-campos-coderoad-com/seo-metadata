@@ -40,6 +40,10 @@
     --success-foreground: 0 0% 100%;
     --warning: 38 75% 48%;
     --warning-foreground: 205 70% 9%;
+    /* `medium` sits between warning and destructive for the backend's 4-level
+       severity scale (critical/high/medium/low) — amber shifted toward red. */
+    --medium: 22 78% 50%;
+    --medium-foreground: 0 0% 100%;
     --border: 192 20% 88%;
     --input: 192 20% 88%;
     --ring: 186 55% 42%;

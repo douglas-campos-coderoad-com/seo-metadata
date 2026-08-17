@@ -7,7 +7,7 @@ export type RunTrigger = 'manual' | 'automation';
 
 export type FindingCategory = 'meta-tags' | 'content' | 'html-structure' | 'file-size';
 
-export type FindingSeverity = 'good' | 'warning' | 'critical';
+export type FindingSeverity = 'good' | 'warning' | 'critical' | 'medium';
 
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly';
 
