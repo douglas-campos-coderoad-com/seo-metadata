@@ -32,6 +32,8 @@ langgraph==0.2.60
 langchain==0.3.11
 langchain-google-genai==2.0.3
 google-genai==1.4.0
+# Alternative LLM provider — selected with LLM_PROVIDER=anthropic (see src/llm/)
+langchain-anthropic==0.3.0
 
 # Testing
 pypdf==4.3.1

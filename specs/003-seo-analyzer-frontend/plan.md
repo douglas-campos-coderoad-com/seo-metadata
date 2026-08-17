@@ -1,4 +1,4 @@
-# Implementation Plan: SEO Analyzer Application
+# Implementation Plan: Visora Analyzer Application
 
 **Branch**: `003-seo-analyzer-frontend` | **Date**: 2026-08-09 | **Spec**: [spec.md](spec.md)
 
@@ -6,7 +6,7 @@
 
 ## Summary
 
-Replace the InCollect marketplace frontend with a new SEO Analyzer application: users submit a static-page URL, watch a live-updating analysis run, and get a 0–100 score with categorized, color-coded findings (meta tags, content, HTML structure, file size) and copy-paste code fixes. URLs can be grouped into Projects to surface issues shared across pages, every target keeps a historical timeline of runs, and Projects/URLs can carry recurring "automation" schedules. Since no real backend exists yet, this phase builds the full UI against a mocked, backend-agnostic service layer (TypeScript fixture data + a simulated real-time status channel) so a real backend can be swapped in later without UI changes. Built with a feature-based frontend architecture on the existing Next.js + TypeScript + Tailwind stack, adding daisyUI for the component layer.
+Replace the InCollect marketplace frontend with a new Visora Analyzer application: users submit a static-page URL, watch a live-updating analysis run, and get a 0–100 score with categorized, color-coded findings (meta tags, content, HTML structure, file size) and copy-paste code fixes. URLs can be grouped into Projects to surface issues shared across pages, every target keeps a historical timeline of runs, and Projects/URLs can carry recurring "automation" schedules. Since no real backend exists yet, this phase builds the full UI against a mocked, backend-agnostic service layer (TypeScript fixture data + a simulated real-time status channel) so a real backend can be swapped in later without UI changes. Built with a feature-based frontend architecture on the existing Next.js + TypeScript + Tailwind stack, adding daisyUI for the component layer.
 
 ## Technical Context
 

@@ -1,4 +1,4 @@
-# Phase 0 Research: SEO Analyzer Application
+# Phase 0 Research: Visora Analyzer Application
 
 No `[NEEDS CLARIFICATION]` markers remain in `spec.md` (resolved via `/speckit-clarify`). The research below covers the technical/implementation decisions needed to fill `plan.md`'s Technical Context — these are choices the spec deliberately left to planning (see spec.md Assumptions: "UI visual design system, component library, and frontend code organization... are implementation decisions to be finalized in the implementation plan").
 

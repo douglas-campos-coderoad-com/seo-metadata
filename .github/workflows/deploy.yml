@@ -1,0 +1,222 @@
+name: Deploy to GCP VM
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'What to deploy'
+        required: true
+        default: both
+        type: choice
+        options: [both, backend, frontend]
+      image_tag:
+        description: 'Existing image tag to roll out (a commit SHA). Leave empty to build the current commit.'
+        required: false
+        type: string
+
+# Two concurrent deploys would fight over the same VM and the same database
+# migration, so they queue instead of cancelling — never abandon a half-applied
+# rollout.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # required for Workload Identity Federation
+
+env:
+  IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
+  COMPONENT: ${{ inputs.component || 'both' }}
+  REGISTRY_HOST: ${{ vars.GCP_REGION }}-docker.pkg.dev
+  IMAGE_REPO: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.AR_REPOSITORY }}
+
+jobs:
+  # ── Work out what this run ships ───────────────────────────────────────
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      deploy_api: ${{ steps.plan.outputs.deploy_api }}
+      deploy_web: ${{ steps.plan.outputs.deploy_web }}
+    steps:
+      - id: plan
+        env:
+          API_ENTRY: '{"name":"api","context":"./backend","target":""}'
+          WEB_ENTRY: '{"name":"web","context":"./frontend","target":"runner"}'
+        run: |
+          case "${COMPONENT}" in
+            backend)
+              MATRIX="{\"include\":[${API_ENTRY}]}"; API=true;  WEB=false ;;
+            frontend)
+              MATRIX="{\"include\":[${WEB_ENTRY}]}"; API=false; WEB=true  ;;
+            both)
+              MATRIX="{\"include\":[${API_ENTRY},${WEB_ENTRY}]}"; API=true; WEB=true ;;
+            *)
+              echo "Unknown component: ${COMPONENT}" >&2; exit 1 ;;
+          esac
+          {
+            echo "matrix=${MATRIX}"
+            echo "deploy_api=${API}"
+            echo "deploy_web=${WEB}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Deploying: ${COMPONENT}"
+
+  # ── Gate: the same checks that run on pull requests, scoped to what ships ─
+  test:
+    # Skipped when rolling out an already-built tag: that image passed CI when
+    # it was built, and re-testing today's main would test the wrong commit.
+    if: ${{ !inputs.image_tag }}
+    uses: ./.github/workflows/ci.yml
+    with:
+      components: ${{ inputs.component || 'both' }}
+
+  # ── Build the selected images and push them to the registry ────────────
+  build:
+    needs: [plan, test]
+    if: ${{ !inputs.image_tag }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for ${{ env.REGISTRY_HOST }}
+        run: gcloud auth configure-docker ${{ env.REGISTRY_HOST }} --quiet
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push ${{ matrix.name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          target: ${{ matrix.target }}
+          push: true
+          tags: |
+            ${{ env.IMAGE_REPO }}/${{ matrix.name }}:${{ env.IMAGE_TAG }}
+            ${{ env.IMAGE_REPO }}/${{ matrix.name }}:latest
+          # NEXT_PUBLIC_* is inlined into the client bundle at build time, so the
+          # frontend image is tied to the API URL it was built with. The api
+          # image simply ignores this arg.
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  # ── Roll the VM forward ────────────────────────────────────────────────
+  deploy:
+    needs: [plan, test, build]
+    # Runs when the gates passed *or* were skipped (the workflow_dispatch path
+    # that rolls out an already-built tag), but never when one of them failed.
+    if: ${{ !cancelled() && !failure() }}
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.FRONTEND_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Render the production .env
+        # Written to the runner's workspace, uploaded over the IAP tunnel, then
+        # installed root-only (0600) on the VM by deploy-remote.sh. GitHub masks
+        # these values in logs; nothing here echoes them.
+        #
+        # __KEEP__ tells deploy-remote.sh to leave that component on the tag the
+        # VM is already running — that is what makes a one-sided deploy safe.
+        env:
+          API_TAG: ${{ needs.plan.outputs.deploy_api == 'true' && env.IMAGE_TAG || '__KEEP__' }}
+          WEB_TAG: ${{ needs.plan.outputs.deploy_web == 'true' && env.IMAGE_TAG || '__KEEP__' }}
+        run: |
+          umask 077
+          cat > .env.deploy <<EOF
+          IMAGE_REPO=${{ env.IMAGE_REPO }}
+          API_IMAGE_TAG=${API_TAG}
+          WEB_IMAGE_TAG=${WEB_TAG}
+          POSTGRES_USER=${{ vars.POSTGRES_USER || 'incollect' }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB=${{ vars.POSTGRES_DB || 'incollect' }}
+          FRONTEND_URL=${{ vars.FRONTEND_URL }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          LLM_PROVIDER=${{ vars.LLM_PROVIDER || 'gemini' }}
+          LLM_MODEL=${{ vars.LLM_MODEL }}
+          LLM_MODEL_FALLBACK=${{ vars.LLM_MODEL_FALLBACK }}
+          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          SERPER_API_KEY=${{ secrets.SERPER_API_KEY }}
+          REPORT_RENDER_CONCURRENCY=${{ vars.REPORT_RENDER_CONCURRENCY || '2' }}
+          REPORT_MAX_CODE_CHARS=${{ vars.REPORT_MAX_CODE_CHARS || '20000' }}
+          API_MEMORY_LIMIT=${{ vars.API_MEMORY_LIMIT || '2g' }}
+          EOF
+
+      - name: Upload the release to the VM
+        # --tunnel-through-iap means the VM needs no public IP and this job needs
+        # no SSH key secret; gcloud mints an ephemeral key for the run.
+        run: |
+          gcloud compute ssh "${{ vars.GCE_INSTANCE }}" \
+            --zone "${{ vars.GCP_ZONE }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --tunnel-through-iap --quiet \
+            --command 'mkdir -p ~/seo-metadata-staging'
+
+          gcloud compute scp \
+            docker-compose.prod.yml infra/gcp/deploy-remote.sh .env.deploy \
+            "${{ vars.GCE_INSTANCE }}:~/seo-metadata-staging/" \
+            --zone "${{ vars.GCP_ZONE }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --tunnel-through-iap --quiet
+
+      - name: Migrate and roll out
+        run: |
+          REMOTE_CMD="cd ~/seo-metadata-staging \
+            && mv -f .env.deploy .env \
+            && chmod +x deploy-remote.sh \
+            && ./deploy-remote.sh ${REGISTRY_HOST} ${COMPONENT}"
+
+          gcloud compute ssh "${{ vars.GCE_INSTANCE }}" \
+            --zone "${{ vars.GCP_ZONE }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --tunnel-through-iap --quiet \
+            --command "$REMOTE_CMD"
+
+      - name: Clean up the local .env
+        if: always()
+        run: rm -f .env.deploy
+
+      - name: Summarise the release
+        run: |
+          {
+            echo "### Deployed \`${COMPONENT}\` at \`${IMAGE_TAG}\`"
+            echo
+            if [ "${{ needs.plan.outputs.deploy_api }}" = 'true' ]; then
+              echo "- API image: \`${IMAGE_REPO}/api:${IMAGE_TAG}\`"
+            else
+              echo "- API: unchanged"
+            fi
+            if [ "${{ needs.plan.outputs.deploy_web }}" = 'true' ]; then
+              echo "- Web image: \`${IMAGE_REPO}/web:${IMAGE_TAG}\`"
+            else
+              echo "- Web: unchanged"
+            fi
+            echo "- VM: \`${{ vars.GCE_INSTANCE }}\` (${{ vars.GCP_ZONE }})"
+            echo "- URL: ${{ vars.FRONTEND_URL }}"
+          } >> "$GITHUB_STEP_SUMMARY"

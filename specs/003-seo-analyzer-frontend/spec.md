@@ -1,4 +1,4 @@
-# Feature Specification: SEO Analyzer Application
+# Feature Specification: Visora Analyzer Application
 
 **Feature Branch**: `003-seo-analyzer-frontend`
 

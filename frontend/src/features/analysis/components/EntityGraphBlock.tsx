@@ -1,9 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { cn } from '@/shared/lib/cn';
-import { EntityGraph, type EntityGraphProps } from './EntityGraph';
+import { type EntityGraphProps } from './EntityGraph';
 import { CodeSnippetCard } from './CodeSnippetCard';
+
+// react-force-graph-2d reaches for `window` at module scope, which throws during
+// server rendering and 500s the whole route in a production build. Loading it
+// client-side only keeps the page renderable on the server.
+const EntityGraph = dynamic(() => import('./EntityGraph').then((m) => m.EntityGraph), {
+  ssr: false,
+  loading: () => <div className="h-[560px] animate-pulse bg-muted/40" />,
+});
 
 type ViewMode = 'visualizer' | 'code';
 

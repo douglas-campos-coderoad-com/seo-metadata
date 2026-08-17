@@ -469,9 +469,72 @@ Key variables:
 - `JWT_SECRET` - Secret key for JWT tokens (change in production!)
 - `FRONTEND_URL` - Frontend URL for CORS
 - `NEXT_PUBLIC_API_BASE_URL` - Backend API URL (public)
+- `LLM_PROVIDER` - Which LLM answers every analysis/optimization call: `gemini` (default) or `anthropic`
 - `GEMINI_API_KEY` - Google Gemini API key for SEO/GEO analysis
 - `GEMINI_MODEL` - Gemini model to use (default: gemini-3.5-flash-lite)
+- `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` - Used when `LLM_PROVIDER=anthropic`
 - `SMTP_*` - Email configuration (Phase 5)
+
+### Swapping the LLM provider
+
+Every LLM call goes through the repository in [`backend/src/llm/`](backend/src/llm/), which
+normalises the response the same way for every provider (code-fence stripping, JSON parsing,
+primary-model-then-fallback-model retry). Switching providers is therefore configuration only —
+the nodes and agents keep receiving the same output:
+
+```bash
+# Gemini (default)
+LLM_PROVIDER=gemini GEMINI_API_KEY=... make dev
+
+# Anthropic
+LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=... make dev
+```
+
+Adding a third provider means one subclass plus one `register_provider()` call — no call site changes:
+
+```python
+from src.llm import LLMRepository, register_provider
+
+class MyProviderRepository(LLMRepository):
+    provider = 'my-provider'
+
+    def _generate(self, model, messages) -> str:
+        ...  # return the assistant's raw text
+
+register_provider('my-provider', lambda settings: MyProviderRepository(
+    model=settings.model, fallback_model=settings.fallback_model, api_key=settings.api_key,
+))
+```
+
+---
+
+## 🚢 Deployment (CI/CD)
+
+Pushing to `main` runs the tests, builds the Docker images, pushes them to
+Artifact Registry (`REGION-docker.pkg.dev/PROJECT/REPO/{api,web}`), and rolls the
+stack forward on a single GCP VM.
+
+| Workflow | Trigger | What it does |
+| --- | --- | --- |
+| [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | pull requests, `main` | `pytest` (backend) and lint / type-check / vitest / `next build` (frontend) |
+| [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) | push to `main`, manual | Builds and pushes the selected images, migrates, restarts the VM stack |
+
+**Deploy one side or both.** Actions → *Deploy to GCP VM* → *Run workflow* → pick
+`both` (the default, and what a push to `main` does), `backend`, or `frontend`.
+Each component carries its own image tag, so deploying one leaves the other on
+the image it is already running; migrations only run when the backend ships.
+
+GitHub authenticates to GCP with Workload Identity Federation (no service-account
+key) and reaches the VM through an IAP tunnel (no SSH key secret). The VM runs
+[`docker-compose.prod.yml`](docker-compose.prod.yml), which only pulls images —
+it never builds.
+
+Full setup — APIs, the Artifact Registry repository, service accounts, WIF pool,
+VM, firewall, and the exact list of GitHub secrets and variables — is in
+**[`infra/gcp/README.md`](infra/gcp/README.md)**.
+
+To roll back, run the **Deploy to GCP VM** workflow manually with an earlier
+commit SHA as `image_tag`.
 
 ---
 

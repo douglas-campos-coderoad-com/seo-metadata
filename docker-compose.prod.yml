@@ -1,0 +1,81 @@
+# Production stack for the GCP VM.
+#
+# Unlike docker-compose.yml (which builds from source and bind-mounts it for
+# hot reload), this file only *pulls* images that CI already built and pushed to
+# Artifact Registry. Everything it needs comes from the .env file the deploy job
+# writes next to it — see .env.prod.example.
+name: seo-metadata
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: seo_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Deliberately no published port: the database is reachable only from the
+    # compose network, never from the internet.
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    # Per-component tags: deploying only the backend must leave the frontend on
+    # the image it is already running, and vice versa.
+    image: ${IMAGE_REPO}/api:${API_IMAGE_TAG}
+    container_name: seo_api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DEBUG: 'False'
+      BACKEND_PORT: 8000
+      FRONTEND_URL: ${FRONTEND_URL}
+      LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_MODEL_FALLBACK: ${LLM_MODEL_FALLBACK:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+      GEMINI_MODEL_FALLBACK: ${GEMINI_MODEL_FALLBACK:-gemini-3.6-flash}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5}
+      ANTHROPIC_MODEL_FALLBACK: ${ANTHROPIC_MODEL_FALLBACK:-claude-haiku-4-5-20251001}
+      SERPER_API_KEY: ${SERPER_API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET}
+      REPORT_RENDER_CONCURRENCY: ${REPORT_RENDER_CONCURRENCY:-2}
+      REPORT_MAX_CODE_CHARS: ${REPORT_MAX_CODE_CHARS:-20000}
+    ports:
+      - '8000:8000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/api/v1/health']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    # Chromium (PDF export) is memory-hungry; without a cap a burst of renders
+    # can OOM the whole VM instead of just failing the render.
+    deploy:
+      resources:
+        limits:
+          memory: ${API_MEMORY_LIMIT:-2g}
+
+  web:
+    image: ${IMAGE_REPO}/web:${WEB_IMAGE_TAG}
+    container_name: seo_web
+    restart: unless-stopped
+    ports:
+      - '80:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

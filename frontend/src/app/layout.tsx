@@ -10,7 +10,7 @@ const hankenGrotesk = Hanken_Grotesk({ subsets: ['latin'], variable: '--font-bod
 const spaceMono = Space_Mono({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-data' });
 
 export const metadata: Metadata = {
-  title: 'SEO Analyzer',
+  title: 'Visora Analyzer',
   description: 'Analyze any URL for SEO issues, get a 0-100 score, and copy-paste ready fixes.',
 };
 

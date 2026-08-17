@@ -12,7 +12,10 @@ import type { Finding } from '@/shared/types';
 export default function RunResultsPage() {
   const { runId } = useParams<{ runId: string }>();
   const run = useAppStore((state) => state.runs[runId]);
-  const url = useAppStore((state) => state.targets[run.targetId]?.displayUrl ?? '');
+  // Optional chaining on `run`: this selector runs before the !run guard below,
+  // so an unknown runId (shared link, refresh, server render) would otherwise
+  // throw instead of reaching the "could not be found" message.
+  const url = useAppStore((state) => (run ? state.targets[run.targetId]?.displayUrl ?? '' : ''));
   const findings = useAppStore((state) =>
     run ? run.findingIds.map((id) => state.findings[id]).filter((f): f is Finding => Boolean(f)) : [],
   );

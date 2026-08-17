@@ -1,4 +1,4 @@
-# Specification Quality Checklist: SEO Analyzer Application
+# Specification Quality Checklist: Visora Analyzer Application
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-08-09
