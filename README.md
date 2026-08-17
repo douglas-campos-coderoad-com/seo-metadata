@@ -1,324 +1,208 @@
-# InCollect - Curated Catalog Discovery & Dealer Inquiry
+# Visora — AI Search Visibility
 
-A full-stack marketplace platform for discovering and inquiring about curated high-end items (furniture, fine art, antiques, decorative objects, and jewelry) from trusted dealers worldwide.
+Paste a product listing URL. Visora scrapes it, scores it for both classic search
+engines and generative AI engines, tells you exactly what is costing you visibility,
+generates the fixed markup for you, proves the fix works by re-asking an LLM the same
+question — and exports the whole thing as a client-ready PDF.
 
-**Status**: MVP Complete ✅ - Browse functionality fully implemented and ready to test
+- **SEO** — Search Engine Optimization: metadata, headings, images, crawlability.
+- **GEO** — Generative Engine Optimization: will an LLM surface this page?
+- **AEO** — Answer Engine Optimization: is the content citable as an answer?
 
 ---
 
-## 📋 Project Overview
+## 📋 What it does
 
-InCollect is a **commission-free marketplace** that connects visitors with curated dealers:
+| Step | Feature | Result |
+| --- | --- | --- |
+| 1. Ingest | Provider-agnostic scraping (`httpx`, with a Playwright fallback for JS-rendered pages) | Raw HTML stored per URL |
+| 2. Analyze | LangGraph pipeline over an LLM: `parse_html → analyze_seo_geo → generate_json_ld → compile_report` | SEO / GEO / overall scores, categorised findings, recommendations, generated JSON-LD |
+| 3. Optimize | Optimizer agents rewrite the page's weak points | Optimized HTML, enriched schema.org JSON-LD, GEO/AEO-rewritten copy, copy-paste snippets |
+| 4. Prove | AEO Live Test + GEO Citation Score + ROI model | Before/after LLM answers for a real query, a 0–100 citability score, projected financial impact |
+| 5. Export | Jinja2 report printed to PDF by the Playwright Chromium already in the backend image | One self-contained hand-off document per analysis |
 
-- **Browse**: Discover items across categories (Furniture, Art, Antiques, etc.) and periods (18th-21st century)
-- **Filter**: Search by category, period, or browse all available items
-- **Ingest**: Scrape and store HTML from any e-commerce URL (Shopify, Magento, InCollect, etc.)
-- **Analyze**: AI-powered SEO/GEO/AEO analysis with LangGraph + Gemini
-- **Inquire**: Sign in and send inquiries to dealers about items you're interested in
-- **Admin**: Manage items, dealers, categories, and periods (coming in Phase 6)
+Findings are grouped by category — `metadata`, `content`, `headings`, `images`,
+`structured_data`, `social`, `crawlability`, `performance`, `geo_aeo` — and colour-coded
+by severity consistently across the UI and the PDF.
 
-### Key Features (Phase 1-3)
-✅ Browse curated marketplace with filtering  
-✅ Responsive design (mobile, tablet, desktop)  
-✅ RESTful API with PostgreSQL database  
-✅ JWT authentication infrastructure  
-✅ URL ingestion with agnostic web scraping (httpx + Playwright fallback)  
-✅ AI-powered SEO/GEO/AEO analysis with LangGraph + Gemini  
-🔄 User registration & login (Phase 4)  
-🔄 Dealer inquiry system (Phase 5)  
+### Frontend concepts
+
+- **Analyze** — submit a URL, watch the run status live, read findings, copy snippets, export the PDF.
+- **Projects** — group URLs so issues repeating across pages surface as *shared issues*.
+- **Targets / Runs** — per-URL history and a snapshot view of any past run.
+- **Automations** — recurring re-checks of a target.
+
+Projects, automations, and history live in a **session-scoped in-memory store** on the
+client (Zustand); the analyses and reports they point at are persisted by the backend.
+A full page reload clears the client-side grouping.
 
 ---
 
 ## 🏗️ Architecture
 
-### Technology Stack
-
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| **Frontend** | Next.js + React | 15.x |
-| **Frontend Language** | TypeScript | Strict mode |
-| **Frontend Styling** | Tailwind CSS | Latest |
-| **Backend** | FastAPI | 0.104+ |
-| **Backend Language** | Python | 3.12+ |
-| **Database** | PostgreSQL | 16+ |
-| **ORM** | SQLAlchemy | 2.x async |
-| **Migrations** | Alembic | 1.12+ |
-| **Auth** | JWT (python-jose) | Stateless |
-| **AI/LLM** | LangGraph + LangChain + Gemini | Latest |
-| **Web Scraping** | httpx + BeautifulSoup4 + Playwright | Latest |
-| **Testing** | pytest (backend), Vitest (frontend) | Latest |
-| **Containerization** | Docker & Docker Compose | Latest |
-
-### System Architecture
-
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Client Browser                          │
-│                  (Next.js Frontend)                         │
-│              http://localhost:3000                          │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     │ HTTP/REST
-                     │ JSON + JWT
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   FastAPI Backend                           │
-│               http://localhost:8000                         │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │ API Routes                                           │   │
-│  │ - GET /api/v1/items (browse & filter)             │   │
-│  │ - GET /api/v1/items/{id} (detail)                 │   │
-│  │ - GET /api/v1/categories (filter options)         │   │
-│  │ - GET /api/v1/periods (filter options)            │   │
-│  │ - POST /api/v1/ingest/url (scrape + store HTML)   │   │
-│  │ - GET /api/v1/ingest/url/{id} (retrieve HTML)     │   │
-│  │ - GET /api/v1/ingest/urls (list ingested URLs)    │   │
-│  │ - POST /api/v1/analyze/{id} (SEO/GEO analysis)    │   │
-│  │ - GET /api/v1/analyze/{id} (get analysis)         │   │
-│  │ - POST /api/v1/auth/register (Phase 4)            │   │
-│  │ - POST /api/v1/auth/login (Phase 4)               │   │
-│  │ - POST /api/v1/inquiries (Phase 5)                │   │
-│  └──────────────────────────────────────────────────────┘   │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │ Middleware                                           │   │
-│  │ - JWT Authentication                               │   │
-│  │ - CORS Configuration                               │   │
-│  │ - Error Handling                                    │   │
-│  │ - Request Logging (JSON format)                     │   │
-│  └──────────────────────────────────────────────────────┘   │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     │ SQL
-                     │ Async Queries
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│              PostgreSQL Database                            │
-│          localhost:5432 (docker-compose)                    │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │ Tables                                               │   │
-│  │ - categories (5 sample records)                     │   │
-│  │ - periods (4 sample records)                        │   │
-│  │ - dealers (3 sample records)                        │   │
-│  │ - items (10 sample records)                         │   │
-│  │ - ingested_urls (scraped HTML)                      │   │
-│  │ - url_analyses (SEO/GEO analysis results)           │   │
-│  │ - users (Phase 4)                                   │   │
-│  │ - inquiries (Phase 5)                               │   │
-│  └──────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  Next.js 15 App Router · TypeScript strict · Tailwind        │
+│  http://localhost:3000                                       │
+│  app/{analyze,projects,targets,runs,automations}             │
+│  features/{analysis,projects,history,automations,landing}    │
+│  shared/{store,realtime,components}                          │
+└───────────────────────────┬──────────────────────────────────┘
+                            │ REST + JSON
+                            ▼
+┌──────────────────────────────────────────────────────────────┐
+│  FastAPI · Python 3.12 · Pydantic v2                         │
+│  http://localhost:8000  (docs at /docs)                      │
+│                                                              │
+│  api/       ingest · analysis · optimization · geo · report  │
+│  services/  ingest · analysis (LangGraph) · optimizer ·      │
+│             geo_score · report · pdf_renderer                │
+│  agents/    entity · geo_content · llm_simulator             │
+│  llm/       provider-agnostic repository (gemini|anthropic)  │
+│  templates/report/  Jinja2 + CSS printed to PDF              │
+└───────────────────────────┬──────────────────────────────────┘
+                            │ SQLAlchemy 2.x async
+                            ▼
+┌──────────────────────────────────────────────────────────────┐
+│  PostgreSQL 16                                               │
+│  ingested_urls · url_analyses · url_optimizations            │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### Database Schema (MVP)
+### Technology stack
+
+| Layer | Technology |
+| --- | --- |
+| Frontend | Next.js 15 (App Router) + React + TypeScript (strict) |
+| Styling | Tailwind CSS + shadcn-style UI primitives |
+| Backend | FastAPI + Python 3.12+ + Pydantic v2 |
+| Database | PostgreSQL 16, SQLAlchemy 2.x async, Alembic |
+| AI orchestration | LangGraph + LangChain |
+| LLM providers | Google Gemini (default) or Anthropic Claude — swappable by config |
+| Web search | Serper (optional) |
+| Scraping | httpx + BeautifulSoup4, Playwright fallback |
+| PDF | Jinja2 template printed via Playwright Chromium |
+| Testing | pytest + httpx (backend), Vitest + React Testing Library + Playwright (frontend) |
+| Infra | Docker Compose, GitHub Actions, GCP VM + Artifact Registry |
+
+### Data model
 
 ```
-Categories (5)
-├─ id, name, description, timestamps
-
-Periods (4)
-├─ id, name, start_year, end_year, timestamps
-
-Dealers (3)
-├─ id, name, email, description, inquiries_enabled, timestamps
-
-Items (10)
-├─ id, title, description, category_id, period_id, dealer_id
-├─ image_urls[], condition, asking_price, status, timestamps
-├─ FK: category_id → categories
-├─ FK: period_id → periods
-└─ FK: dealer_id → dealers
-
-IngestedUrls (N)
+IngestedUrls
 ├─ id, url (unique), html, status, http_status, content_type, error, timestamps
 
-UrlAnalyses (N)
-├─ id, ingested_url_id (FK), seo_score, geo_score, overall_score
-├─ analysis (JSONB), json_ld (JSONB), status, error, timestamps
-└─ FK: ingested_url_id → ingested_urls (CASCADE DELETE)
+UrlAnalyses
+├─ id, ingested_url_id (FK → ingested_urls, CASCADE DELETE)
+├─ seo_score, geo_score, overall_score
+├─ analysis (JSONB: findings, recommendations, breakdowns, geo_visibility)
+├─ json_ld (JSONB), status, error, timestamps
+
+UrlOptimizations
+├─ id, analysis_id (FK → url_analyses)
+├─ optimized_html, optimized_json_ld (JSONB), optimized_content (JSONB)
+├─ changes (JSONB), score_before, score_after_estimated, status, error, timestamps
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick start
 
 ### Prerequisites
 
-- **Node.js** 20+ and **npm/pnpm**
-- **Python** 3.12+
-- **Docker** & **Docker Compose** (recommended for database)
-- **Git**
+- **Docker** & **Docker Compose** (the shortest path — everything runs in containers)
+- For manual setup instead: **Node.js** 20+, **Python** 3.12+, **PostgreSQL** 16
+- An LLM API key: `GEMINI_API_KEY` **or** `ANTHROPIC_API_KEY`
 
-### Installation
-
-1. **Clone the repository** (or your project structure is already set up)
-
-```bash
-cd /path/to/seo-metadata
-```
-
-2. **Install backend dependencies**
-
-```bash
-cd backend
-pip install -r requirements.txt
-cd ..
-```
-
-3. **Install frontend dependencies**
-
-```bash
-cd frontend
-npm install
-cd ..
-```
-
-4. **Configure environment variables**
+### Option A — Docker Compose (recommended)
 
 ```bash
 cp .env.example .env
-# Edit .env and add your GEMINI_API_KEY if you want to use the analysis feature
+# set GEMINI_API_KEY (or LLM_PROVIDER=anthropic + ANTHROPIC_API_KEY)
+
+make dev            # or: docker-compose up -d
 ```
 
-### Running the Application
+| Service | URL |
+| --- | --- |
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8000 |
+| API docs (Swagger) | http://localhost:8000/docs |
+| PostgreSQL | localhost:5432 (`incollect` / `incollect`) |
+| MailHog UI | http://localhost:8025 |
 
-#### Option A: Using Docker Compose (Recommended)
-
-Start all services (PostgreSQL, backend, frontend):
+The `api` container runs `alembic upgrade head` on start, so the schema is ready
+without a separate step. Both `api` and `web` mount `src/` for hot reload.
 
 ```bash
-docker-compose up -d
+docker-compose down       # stop
+docker-compose down -v    # stop and wipe the database volume
 ```
 
-Access:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
-- Database: localhost:5432 (incollect/incollect)
-- MailHog: http://localhost:8025
-
-To stop:
-```bash
-docker-compose down
-```
-
-To stop and remove volumes (clean slate):
-```bash
-docker-compose down -v
-```
-
-#### Option B: Local Development (Manual Setup)
-
-**1. Start PostgreSQL**
+### Option B — Local development
 
 ```bash
+# 1. database only
 docker-compose up -d postgres
-```
 
-**2. Setup database**
-
-```bash
+# 2. backend
 cd backend
-alembic upgrade head  # Run migrations
-cd ..
-```
+pip install -r requirements.txt
+playwright install chromium        # needed for JS-rendered pages and PDF export
+alembic upgrade head
+uvicorn src.main:app --reload      # → http://localhost:8000
 
-**3. Start backend API** (in `backend/` directory)
-
-```bash
-cd backend
-uvicorn src.main:app --reload
-```
-
-Backend runs at http://localhost:8000
-
-**4. Start frontend** (in `frontend/` directory)
-
-```bash
+# 3. frontend (new shell)
 cd frontend
-npm run dev
+npm install
+npm run dev                        # → http://localhost:3000
 ```
 
-Frontend runs at http://localhost:3000
-
-### Useful Commands
+### Useful commands
 
 ```bash
-# View all available commands
-make help
+make help            # list every target
 
-# Development - start all services
-make dev
+make dev             # start all services (Docker Compose)
+make install         # install backend + frontend dependencies
 
-# Database migrations
-make db-migrate      # Create new migration
-make db-rollback     # Rollback last migration
+make db-migrate      # alembic upgrade head
+make db-rollback     # alembic downgrade -1
 
-# Code quality
-make lint            # Run linters
-make format          # Format code (black, prettier)
-make type-check      # TypeScript type checking
+make lint            # mypy + ruff + black --check, and next lint
+make format          # black + ruff --fix, and prettier
 
-# Testing
-make test            # Run all tests
-make test-backend    # Backend tests only
-make test-frontend   # Frontend tests only
+make test            # backend + frontend
+make test-backend    # pytest --cov=src
+make test-frontend   # vitest
+make test-e2e        # playwright
 
-# Building
-make build           # Build Docker images
-
-# API Client generation (Phase 7)
-make gen-client      # Generate TypeScript client from OpenAPI
+make build           # build both sides
+make clean           # drop caches and build artifacts
 ```
 
 ---
 
-## 🔌 API Endpoints
+## 🔌 API
 
-### Browse (Public - No Auth Required)
+Base prefix: `/api/v1`. Full interactive reference: http://localhost:8000/docs.
 
-```bash
-# List items with optional filters
-GET /api/v1/items?category_id=1&period_id=2&skip=0&limit=20
+### Ingestion
 
-# Get item details
-GET /api/v1/items/{item_id}
-
-# Get all categories
-GET /api/v1/categories
-
-# Get all periods
-GET /api/v1/periods
-
-# Health check
-GET /api/v1/health
+```http
+POST /api/v1/ingest/url          { "url": "https://example.com/product" }
+GET  /api/v1/ingest/url/{id}     # detail, including stored HTML
+GET  /api/v1/ingest/urls         # ?skip=0&limit=100
 ```
 
-### URL Ingestion (Public)
+### Analysis
 
-```bash
-# Ingest a URL (scrape and store HTML)
-POST /api/v1/ingest/url
-{
-  "url": "https://example.com/product"
-}
-
-# Get ingested URL details (including HTML)
-GET /api/v1/ingest/url/{id}
-
-# List all ingested URLs
-GET /api/v1/ingest/urls?skip=0&limit=100
+```http
+POST /api/v1/analyze/{ingested_url_id}    # run the LangGraph pipeline
+GET  /api/v1/analyze/{ingested_url_id}    # latest analysis
 ```
 
-### SEO/GEO Analysis (Public)
+Response shape:
 
-```bash
-# Run AI analysis on ingested URL
-POST /api/v1/analyze/{ingested_url_id}
-
-# Get latest analysis results
-GET /api/v1/analyze/{ingested_url_id}
-```
-
-**Response example:**
 ```json
 {
   "id": 1,
@@ -327,160 +211,90 @@ GET /api/v1/analyze/{ingested_url_id}
   "geo_score": 30,
   "overall_score": 42,
   "analysis": {
-    "findings": ["Falta de marcado JSON-LD", "14 imágenes sin alt text"],
-    "recommendations": ["Implementar Schema.org", "Completar alt text"],
-    "geo_visibility": "La visibilidad para motores de IA generativa es baja..."
+    "findings": [
+      {
+        "id": "structured-data-missing",
+        "category": "structured_data",
+        "severity": "critical",
+        "title": "No JSON-LD markup on the page",
+        "detail": "..."
+      }
+    ],
+    "recommendations": [
+      { "title": "Add Product schema", "current_html": "...", "suggested_html": "..." }
+    ],
+    "geo_visibility": "Visibility for generative engines is low because ..."
   },
-  "json_ld": { "@context": "https://schema.org", "@type": "Product", ... },
+  "json_ld": { "@context": "https://schema.org", "@type": "Product" },
   "status": "completed"
 }
 ```
 
-### Authentication (Coming Phase 4)
+### Optimizer
 
-```bash
-# Register new user
-POST /api/v1/auth/register
-{
-  "email": "user@example.com",
-  "password": "SecurePass123!",
-  "name": "John Doe"
-}
-
-# Login
-POST /api/v1/auth/login
-{
-  "email": "user@example.com",
-  "password": "SecurePass123!"
-}
+```http
+POST /api/v1/optimize/{analysis_id}    # generate optimized HTML, JSON-LD, content
+GET  /api/v1/optimize/{analysis_id}    # latest optimization
 ```
 
-### Inquiries (Coming Phase 5)
+### GEO / AEO
 
-```bash
-# Send inquiry to dealer
-POST /api/v1/inquiries
-Authorization: Bearer {jwt_token}
-{
-  "item_id": 1,
-  "message": "I'm interested in this item"
-}
-
-# Get user's inquiries
-GET /api/v1/inquiries
-Authorization: Bearer {jwt_token}
+```http
+POST /api/v1/geo/optimize/{analysis_id}   # entity + content agent suite
+POST /api/v1/geo/aeo-test/{analysis_id}   { "query": "..." }  → before/after LLM answers
+POST /api/v1/geo/simulate/{analysis_id}   { "query": "..." }  → cited?, confidence, quote
+POST /api/v1/geo/score/{analysis_id}      # 0–100 GEO citation score
+POST /api/v1/geo/roi                      # projected financial impact
 ```
 
-### Admin (Coming Phase 6)
+### PDF report
 
-```bash
-# Create item
-POST /api/v1/admin/items
-Authorization: Bearer {jwt_token}
-
-# Update item
-PATCH /api/v1/admin/items/{item_id}
-Authorization: Bearer {jwt_token}
-
-# etc.
+```http
+GET /api/v1/report/{analysis_id}/pdf
 ```
 
-**Full API documentation**: http://localhost:8000/docs (Swagger UI)
+Returns `application/pdf` as an attachment, filename derived from the analysed URL and
+date. `404` if the analysis does not exist, **`409`** if it exists but is not
+`completed` — the caller can tell "missing" from "not exportable yet". The report
+includes the optimizer sections only when a completed optimization exists.
+
+### Health
+
+```http
+GET /api/v1/health
+```
+
+> `/items`, `/categories`, `/periods` are legacy routes left over from the repository's
+> earlier catalog project and are not part of the analyzer flow.
 
 ---
 
-## 🗄️ Sample Data
+## ⚙️ Configuration
 
-The application comes pre-loaded with realistic sample data:
+Copy `.env.example` to `.env`. The variables that matter:
 
-**Categories** (5):
-- Furniture
-- Fine Art
-- Antiques
-- Decorative Objects
-- Jewelry
-
-**Periods** (4):
-- 18th Century (1700-1799)
-- 19th Century (1800-1899)
-- Early 20th Century (1900-1950)
-- Contemporary (2000-2025)
-
-**Dealers** (3):
-- Antique Emporium (contact@antique-emporium.com)
-- Modern Gallery (hello@modern-gallery.com)
-- Jewelry House (info@jewelry-house.com)
-
-**Items** (10):
-- Victorian Oak Desk
-- Abstract Expressionist Canvas
-- Porcelain Vase
-- Diamond Solitaire Ring
-- Art Deco Sideboard
-- Still Life Oil Painting
-- Persian Carpet Fragment
-- Tiffany Lamp
-- Emerald Bracelet
-- Ming Dynasty Bowl
-
----
-
-## 🛠️ Development Workflow
-
-### Making Changes
-
-1. **Create a feature branch**
-```bash
-git checkout -b feature/your-feature-name
-```
-
-2. **Make changes**
-- Backend: Edit files in `backend/src/`
-- Frontend: Edit files in `frontend/src/`
-
-3. **Format and lint**
-```bash
-make format    # auto-format code
-make lint      # check for issues
-```
-
-4. **Test locally**
-```bash
-make test      # run all tests
-```
-
-5. **Commit and push**
-```bash
-git add .
-git commit -m "feat: description of changes"
-git push origin feature/your-feature-name
-```
-
-### Environment Variables
-
-Copy `.env.example` to `.env` and customize:
-
-```bash
-cp .env.example .env
-```
-
-Key variables:
-- `DATABASE_URL` - PostgreSQL connection string
-- `JWT_SECRET` - Secret key for JWT tokens (change in production!)
-- `FRONTEND_URL` - Frontend URL for CORS
-- `NEXT_PUBLIC_API_BASE_URL` - Backend API URL (public)
-- `LLM_PROVIDER` - Which LLM answers every analysis/optimization call: `gemini` (default) or `anthropic`
-- `GEMINI_API_KEY` - Google Gemini API key for SEO/GEO analysis
-- `GEMINI_MODEL` - Gemini model to use (default: gemini-3.5-flash-lite)
-- `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` - Used when `LLM_PROVIDER=anthropic`
-- `SMTP_*` - Email configuration (Phase 5)
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL async connection string |
+| `NEXT_PUBLIC_API_BASE_URL` | Backend base URL used by the browser |
+| `FRONTEND_URL` | Allowed CORS origin |
+| `LLM_PROVIDER` | `gemini` (default) or `anthropic` |
+| `LLM_MODEL`, `LLM_MODEL_FALLBACK` | Provider-neutral overrides; win over the provider-specific values |
+| `LLM_TEMPERATURE`, `LLM_MAX_RETRIES` | Generation behaviour |
+| `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_MODEL_FALLBACK` | Gemini credentials and models |
+| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `ANTHROPIC_MODEL_FALLBACK` | Used when `LLM_PROVIDER=anthropic` |
+| `SERPER_API_KEY` | Optional web search for the optimizer agents |
+| `REPORT_RENDER_CONCURRENCY` | Parallel PDF renders allowed (default `2`) |
+| `REPORT_MAX_CODE_CHARS` | Cap on a single code block in the PDF (default `20000`) |
+| `JWT_SECRET`, `JWT_ALGORITHM`, `JWT_EXPIRATION_HOURS` | Auth scaffolding |
+| `LOG_LEVEL`, `LOG_FORMAT` | Structured JSON logging |
 
 ### Swapping the LLM provider
 
 Every LLM call goes through the repository in [`backend/src/llm/`](backend/src/llm/), which
-normalises the response the same way for every provider (code-fence stripping, JSON parsing,
-primary-model-then-fallback-model retry). Switching providers is therefore configuration only —
-the nodes and agents keep receiving the same output:
+normalises responses identically for every provider (code-fence stripping, JSON parsing,
+primary-model-then-fallback retry). Switching providers is configuration only — the graph
+nodes and agents keep receiving the same output:
 
 ```bash
 # Gemini (default)
@@ -490,7 +304,8 @@ LLM_PROVIDER=gemini GEMINI_API_KEY=... make dev
 LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=... make dev
 ```
 
-Adding a third provider means one subclass plus one `register_provider()` call — no call site changes:
+Adding a third provider means one subclass plus one `register_provider()` call — no call
+site changes:
 
 ```python
 from src.llm import LLMRepository, register_provider
@@ -508,134 +323,125 @@ register_provider('my-provider', lambda settings: MyProviderRepository(
 
 ---
 
+## 🧪 Testing
+
+```bash
+# Backend
+cd backend
+pytest                                # everything
+pytest --cov=src                      # with coverage
+pytest tests/test_report_service.py   # one file
+pytest tests/contract tests/integration
+
+# Frontend
+cd frontend
+npm run test        # Vitest unit + integration
+npm run test:ui     # Vitest UI
+npm run e2e         # Playwright golden path
+```
+
+Backend suites cover ingestion, analysis, the optimizer, the GEO agents and scoring, the
+LLM repository (including provider fallback), and report mapping/rendering. Frontend
+tests cover the shared-issue detection, severity mapping, recurrence maths, the export
+button, and the submit-analysis / create-project / schedule-automation flows.
+
+---
+
 ## 🚢 Deployment (CI/CD)
 
-Pushing to `main` runs the tests, builds the Docker images, pushes them to
-Artifact Registry (`REGION-docker.pkg.dev/PROJECT/REPO/{api,web}`), and rolls the
-stack forward on a single GCP VM.
+Pushing to `main` runs the tests, builds the Docker images, pushes them to Artifact
+Registry (`REGION-docker.pkg.dev/PROJECT/REPO/{api,web}`), and rolls the stack forward on
+a single GCP VM.
 
 | Workflow | Trigger | What it does |
 | --- | --- | --- |
 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | pull requests, `main` | `pytest` (backend) and lint / type-check / vitest / `next build` (frontend) |
 | [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) | push to `main`, manual | Builds and pushes the selected images, migrates, restarts the VM stack |
 
-**Deploy one side or both.** Actions → *Deploy to GCP VM* → *Run workflow* → pick
-`both` (the default, and what a push to `main` does), `backend`, or `frontend`.
-Each component carries its own image tag, so deploying one leaves the other on
-the image it is already running; migrations only run when the backend ships.
+**Deploy one side or both.** Actions → *Deploy to GCP VM* → *Run workflow* → pick `both`
+(the default, and what a push to `main` does), `backend`, or `frontend`. Each component
+carries its own image tag, so deploying one leaves the other on the image it is already
+running; migrations only run when the backend ships.
 
-GitHub authenticates to GCP with Workload Identity Federation (no service-account
-key) and reaches the VM through an IAP tunnel (no SSH key secret). The VM runs
-[`docker-compose.prod.yml`](docker-compose.prod.yml), which only pulls images —
-it never builds.
+GitHub authenticates to GCP with Workload Identity Federation (no service-account key)
+and reaches the VM through an IAP tunnel (no SSH key secret). The VM runs
+[`docker-compose.prod.yml`](docker-compose.prod.yml), which only pulls images — it never
+builds.
 
-Full setup — APIs, the Artifact Registry repository, service accounts, WIF pool,
-VM, firewall, and the exact list of GitHub secrets and variables — is in
+Full setup — APIs, the Artifact Registry repository, service accounts, WIF pool, VM,
+firewall, and the exact list of GitHub secrets and variables — is in
 **[`infra/gcp/README.md`](infra/gcp/README.md)**.
 
-To roll back, run the **Deploy to GCP VM** workflow manually with an earlier
-commit SHA as `image_tag`.
+To roll back, run the **Deploy to GCP VM** workflow manually with an earlier commit SHA
+as `image_tag`.
 
 ---
 
-## 📊 Implementation Progress
+## 📁 Repository layout
 
-### Completed ✅
-- [x] Phase 1: Project Setup
-- [x] Phase 2: Foundational Infrastructure
-- [x] Phase 3: Browse Feature (MVP)
-- [x] Phase 2.5: URL Ingestion (agnostic web scraping)
-- [x] Phase 2.6: SEO/GEO/AEO Analysis with LangGraph + Gemini
-
-### In Progress 🔄
-- [ ] Phase 4: User Authentication
-- [ ] Phase 5: Inquiry System
-- [ ] Phase 6: Admin Interface
-- [ ] Phase 7: API Client Generation
-- [ ] Phase 8: Testing & Polish
-
-**Detailed Progress**: See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)
-
----
-
-## 🧪 Testing
-
-### Backend Tests
-
-```bash
-cd backend
-
-# Run all tests
-pytest
-
-# Run specific test file
-pytest tests/test_ingest_service.py
-
-# Run with coverage
-pytest --cov=src
-
-# Run tests in watch mode
-pytest-watch
 ```
+backend/
+├── src/
+│   ├── api/            FastAPI routers
+│   ├── services/       ingest, analysis graph, optimizer, geo scoring, report, pdf
+│   ├── agents/         entity, geo_content, llm_simulator
+│   ├── llm/            provider-agnostic LLM repository
+│   ├── models/         SQLAlchemy models
+│   ├── schemas/        Pydantic schemas
+│   ├── templates/      Jinja2 report template + CSS
+│   └── middleware/     auth, errors, request logging (CORS is wired in main.py)
+├── migrations/         Alembic versions
+└── tests/              unit, contract, integration
 
-### Frontend Tests
+frontend/
+├── src/app/            App Router pages
+├── src/features/       analysis, projects, history, automations, landing
+├── src/shared/         store, realtime services, UI primitives, helpers
+├── src/lib/            API client, auth
+└── tests/              unit, integration, e2e
 
-```bash
-cd frontend
+infra/
+├── gcp/                VM startup, remote deploy script, setup guide
+└── postgres/           init.sql
 
-# Run unit tests
-npm run test
-
-# Run E2E tests
-npm run e2e
-
-# View test UI
-npm run test:ui
+specs/                  feature specifications and implementation plans
 ```
 
 ---
 
 ## 📝 Documentation
 
-- **[Specification](specs/001-catalog-discovery/spec.md)** - Feature requirements and acceptance criteria
-- **[Technical Plan](specs/001-catalog-discovery/plan.md)** - Architecture and decisions
-- **[Data Model](specs/001-catalog-discovery/data-model.md)** - Entity definitions and relationships
-- **[API Contracts](specs/001-catalog-discovery/contracts/api.md)** - Detailed endpoint specifications
-- **[Task Breakdown](specs/001-catalog-discovery/tasks.md)** - 164 tasks across 8 phases
+| Feature | Spec | Plan |
+| --- | --- | --- |
+| URL ingestion | [spec](specs/002-url-ingestion/spec.md) | [plan](specs/002-url-ingestion/plan.md) · [data model](specs/002-url-ingestion/data-model.md) |
+| SEO analyzer frontend | [spec](specs/003-seo-analyzer-frontend/spec.md) | [plan](specs/003-seo-analyzer-frontend/plan.md) · [tasks](specs/003-seo-analyzer-frontend/tasks.md) |
+| SEO/GEO/AEO optimizer | [spec](specs/004-seo-optimizer/spec.md) | [plan](specs/004-seo-optimizer/plan.md) |
+| PDF report export | [spec](specs/005-pdf-report-export/spec.md) | [plan](specs/005-pdf-report-export/plan.md) · [tasks](specs/005-pdf-report-export/tasks.md) |
 
-### URL Ingestion Feature
-- **[Spec](specs/002-url-ingestion/spec.md)** - URL ingestion requirements
-- **[Plan](specs/002-url-ingestion/plan.md)** - Technical architecture
-- **[Data Model](specs/002-url-ingestion/data-model.md)** - IngestedUrl entity
-- **[API Contract](specs/002-url-ingestion/contracts/api.md)** - Endpoint specifications
-
-### SEO/GEO Analysis Feature
-- **[Spec](specs/003-seo-analyzer/spec.md)** - Analysis requirements
-- **[Plan](specs/003-seo-analyzer/plan.md)** - LangGraph architecture
-- **[Data Model](specs/003-seo-analyzer/data-model.md)** - UrlAnalysis entity
-- **[API Contract](specs/003-seo-analyzer/contracts/api.md)** - Endpoint specifications
+Also useful: [`constitution.md`](constitution.md) (engineering principles),
+[`POSTMAN_COLLECTION.md`](POSTMAN_COLLECTION.md) (API walkthrough),
+[`specs/001-catalog-discovery/`](specs/001-catalog-discovery/) (the repository's original
+catalog project, kept for history).
 
 ---
 
 ## 🤝 Contributing
 
-1. Follow the existing code style
-2. Add tests for new features
-3. Update documentation
-4. Create a pull request with a clear description
+```bash
+git checkout -b feature/your-feature-name
+# backend → backend/src/ · frontend → frontend/src/
+make format
+make lint
+make test
+git commit -m "feat: description of changes"
+git push origin feature/your-feature-name
+```
 
----
-
-## 📞 Support
-
-For issues or questions:
-
-1. Check [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for current status
-2. Review specification in `specs/001-catalog-discovery/`
-3. Check existing code in `backend/src/` and `frontend/src/`
+Follow the existing code style, add tests for new behaviour, keep the relevant spec in
+`specs/` in sync, and open a pull request with a clear description.
 
 ---
 
 ## 📄 License
 
-Internal project - InCollect
+Internal project — Visora.
