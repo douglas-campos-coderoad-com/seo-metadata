@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { normalizeUrl } from '@/shared/lib/url';
-import type { AnalysisRun, AnalysisTarget, Automation, Finding, Project } from '@/shared/types';
+import type { 
+  AnalysisRun, 
+  AnalysisTarget, 
+  Automation, 
+  Finding, 
+  Project 
+} from '@/shared/types';
 
 // Session-scoped, in-memory store (Clarifications: no persistence — a full reload
 // resets everything). This is the single authoritative place entity identity and

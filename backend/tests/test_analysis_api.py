@@ -23,13 +23,22 @@ async def test_analyze_url_success(client, db_session_factory):
         await session.refresh(ingested)
         ingested_id = ingested.id
 
+    mock_finding = {
+        'severity': 'critical',
+        'category': 'meta-tags',
+        'title': 'Missing meta description',
+        'description': 'The page has no meta description tag.',
+        'suggestion': 'Add meta description',
+        'is_missing': True,
+        'metric_value': None,
+        'code_snippet': None,
+    }
     mock_result = {
         'seo_score': 65,
         'geo_score': 45,
         'overall_score': 55,
         'analysis': {
-            'findings': ['Missing meta description'],
-            'recommendations': ['Add meta description'],
+            'findings': [mock_finding],
             'geo_visibility': 'Moderate visibility',
             'seo_breakdown': {},
             'geo_breakdown': {},
@@ -51,7 +60,8 @@ async def test_analyze_url_success(client, db_session_factory):
     assert data['overall_score'] == 55
     assert data['status'] == 'completed'
     assert data['json_ld'] is not None
-    assert data['analysis']['findings'] == ['Missing meta description']
+    assert data['analysis']['findings'][0]['title'] == 'Missing meta description'
+    assert data['analysis']['findings'][0]['severity'] == 'critical'
 
 
 @pytest.mark.asyncio
@@ -85,7 +95,20 @@ async def test_get_analysis_success(client, db_session_factory):
             seo_score=70,
             geo_score=50,
             overall_score=60,
-            analysis={'findings': ['Test finding']},
+            analysis={
+                'findings': [
+                    {
+                        'severity': 'warning',
+                        'category': 'content',
+                        'title': 'Test finding',
+                        'description': 'A test finding.',
+                        'suggestion': 'Do the test fix',
+                        'is_missing': False,
+                        'metric_value': None,
+                        'code_snippet': None,
+                    }
+                ]
+            },
             json_ld={'@context': 'https://schema.org'},
             status='completed',
             error=None,

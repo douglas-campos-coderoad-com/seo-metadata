@@ -11,7 +11,7 @@ const STEP_ORDER = ['queued', 'fetching', 'analyzing', 'complete'] as const;
 const STATUS_LABEL: Record<string, string> = {
   queued: 'Queued',
   fetching: 'Fetching page',
-  analyzing: 'Analyzing SEO',
+  analyzing: 'Analyzing',
   complete: 'Complete',
 };
 

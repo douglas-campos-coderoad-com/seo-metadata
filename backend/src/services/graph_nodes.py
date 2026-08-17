@@ -13,6 +13,9 @@ import os
 from typing import Any, Optional
 
 from bs4 import BeautifulSoup
+from pydantic import ValidationError
+
+from src.schemas.analysis import FindingItem
 
 logger = logging.getLogger(__name__)
 
@@ -277,12 +280,39 @@ EVALUATION RULES:
    - Are the title and meta description "citable" by an LLM? (15 pts)
    - Is the page optimized for featured snippets / AI Overviews? (10 pts)
 
+FINDINGS:
+Produce one object per notable issue or strength you observe (aim for 5-10). Each finding must be
+self-contained: its "suggestion" is the specific fix for that finding, not a separate general tip list.
+
+- "severity": one of "critical" (missing or actively harmful), "warning" (present but suboptimal),
+  "good" (a genuine strength worth calling out — include at least one if the page does something well)
+- "category": one of "meta-tags" (title, meta description, OG/Twitter tags, canonical),
+  "content" (headings, answer-directness, citability, text quality), "html-structure" (JSON-LD,
+  viewport, robots, favicon), "file-size" (image alt coverage, page weight)
+- "title": short label for the issue, e.g. "Meta description missing"
+- "description": 1-2 sentences on what you observed and why it matters
+- "suggestion": the specific, actionable fix for this finding
+- "is_missing": true only if the underlying element is fully absent from the page (not just weak)
+- "metric_value": a short measured value if relevant, e.g. "62 characters", "3 of 5 images", else null
+- "code_snippet": a ready-to-use HTML/meta snippet if the fix is a concrete tag, else null
+
 Return EXACTLY this JSON (without markdown):
 {{
   "seo_score": <int 0-100>,
   "geo_score": <int 0-100>,
-  "findings": ["<finding 1>", "<finding 2>", ...],
-  "recommendations": ["<recommendation 1>", "<recommendation 2>", ...],
+  "findings": [
+    {{
+      "severity": "critical" | "warning" | "good",
+      "category": "meta-tags" | "content" | "html-structure" | "file-size",
+      "title": "<short label>",
+      "description": "<1-2 sentences>",
+      "suggestion": "<specific fix>",
+      "is_missing": <bool>,
+      "metric_value": "<string>" | null,
+      "code_snippet": "<string>" | null
+    }},
+    ...
+  ],
   "geo_visibility": "<2-3 sentence explanatory text on how visible the content is for generative AI>",
   "seo_breakdown": {{
     "title": <int 0-15>,
@@ -349,8 +379,7 @@ def analyze_seo_geo(state: dict) -> dict:
         return {
             'seo_score': seo_score,
             'geo_score': geo_score,
-            'findings': result.get('findings', []),
-            'recommendations': result.get('recommendations', []),
+            'findings': _validate_findings(result.get('findings', [])),
             'geo_visibility': result.get('geo_visibility', ''),
             'seo_breakdown': result.get('seo_breakdown', {}),
             'geo_breakdown': result.get('geo_breakdown', {}),
@@ -361,13 +390,37 @@ def analyze_seo_geo(state: dict) -> dict:
         return {
             'seo_score': 0,
             'geo_score': 0,
-            'findings': [f'Error during analysis: {str(exc)}'],
-            'recommendations': ['Retry the analysis later'],
+            'findings': [_error_finding(str(exc))],
             'geo_visibility': 'Could not complete the analysis',
             'seo_breakdown': {},
             'geo_breakdown': {},
             'seo_geo_error': str(exc),
         }
+
+
+def _validate_findings(raw_findings: list) -> list:
+    """Validate Gemini's findings against FindingItem, dropping malformed entries."""
+    validated = []
+    for item in raw_findings:
+        try:
+            validated.append(FindingItem.model_validate(item).model_dump())
+        except ValidationError as exc:
+            logger.warning(f'Dropping malformed finding from Gemini: {exc}')
+    return validated
+
+
+def _error_finding(message: str) -> dict:
+    """A single well-formed finding describing an analysis failure."""
+    return FindingItem(
+        severity='critical',
+        category='content',
+        title='Analysis failed',
+        description=f'Error during analysis: {message}',
+        suggestion='Retry the analysis later',
+        is_missing=False,
+        metric_value=None,
+        code_snippet=None,
+    ).model_dump()
 
 
 # ── Node 3: generate_json_ld ──────────────────────────────────────────────
@@ -450,7 +503,6 @@ def compile_report(state: dict) -> dict:
     overall_score = (seo_score + geo_score) // 2
 
     findings = state.get('findings', [])
-    recommendations = state.get('recommendations', [])
     geo_visibility = state.get('geo_visibility', '')
     seo_breakdown = state.get('seo_breakdown', {})
     geo_breakdown = state.get('geo_breakdown', {})
@@ -463,7 +515,6 @@ def compile_report(state: dict) -> dict:
 
     analysis = {
         'findings': findings,
-        'recommendations': recommendations,
         'geo_visibility': geo_visibility,
         'seo_breakdown': seo_breakdown,
         'geo_breakdown': geo_breakdown,

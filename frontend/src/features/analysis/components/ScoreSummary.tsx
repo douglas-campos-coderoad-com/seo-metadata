@@ -1,16 +1,41 @@
 import { ScoreRadial } from '@/shared/components/ScoreRadial';
 import { scoreToSeverity, severityLabel } from '@/shared/lib/severity';
 
-export function ScoreSummary({ score }: { score: number }) {
-  const severity = scoreToSeverity(score);
+function SubScore({ label, score }: { label: string; score: number }) {
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <ScoreRadial score={score} size="sm" />
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+export interface ScoreSummaryScores {
+  overall: number;
+  seo?: number | null;
+  geo?: number | null;
+}
+
+export function ScoreSummary({ scores }: { scores: ScoreSummaryScores }) {
+  const { overall, seo = null, geo = null } = scores;
+  const severity = scoreToSeverity(overall);
+  const hasBreakdown = seo !== null && geo !== null;
 
   return (
-    <div className="flex items-center justify-center gap-4">
-      <ScoreRadial score={score} />
-      <div>
-        <p className="text-lg font-semibold">{severityLabel(severity)}</p>
-        <p className="text-sm text-muted-foreground">Overall SEO score</p>
+    <div className="flex items-center justify-center gap-6">
+      <div className="flex items-center gap-4">
+        <ScoreRadial score={overall} size="lg" />
+        <div>
+          <p className="text-lg font-semibold">{severityLabel(severity)}</p>
+          <p className="text-sm text-muted-foreground">Overall Score</p>
+        </div>
       </div>
+      {hasBreakdown && (
+        <div className="flex gap-4">
+          <SubScore label="SEO" score={seo} />
+          <SubScore label="GEO" score={geo} />
+        </div>
+      )}
     </div>
   );
 }

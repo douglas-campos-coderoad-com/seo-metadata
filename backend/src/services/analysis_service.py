@@ -11,6 +11,7 @@ from src.services.graph_nodes import (
     analyze_seo_geo,
     generate_json_ld,
     compile_report,
+    _error_finding,
 )
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,6 @@ class AnalysisService:
             seo_score: int
             geo_score: int
             findings: list
-            recommendations: list
             geo_visibility: str
             seo_breakdown: dict
             geo_breakdown: dict
@@ -91,8 +91,7 @@ class AnalysisService:
                 'geo_score': 0,
                 'overall_score': 0,
                 'analysis': {
-                    'findings': [f'Error during analysis: {str(exc)}'],
-                    'recommendations': [],
+                    'findings': [_error_finding(str(exc))],
                     'geo_visibility': '',
                     'seo_breakdown': {},
                     'geo_breakdown': {},

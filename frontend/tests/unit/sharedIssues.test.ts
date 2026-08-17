@@ -23,6 +23,8 @@ function makeRun(id: string, targetId: string, findingIds: string[]): AnalysisRu
     startedAt: new Date().toISOString(),
     completedAt: new Date().toISOString(),
     score: 80,
+    seoScore: null,
+    geoScore: null,
     failureReason: null,
     findingIds,
     httpStatus: 200,

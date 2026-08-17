@@ -59,8 +59,18 @@ def test_geo_content_agent_optimize_success(geo_agent):
         'seo_score': 55,
         'geo_score': 30,
         'overall_score': 42,
-        'findings': [{'severity': 'high', 'message': 'Missing JSON-LD'}],
-        'recommendations': ['Add JSON-LD structured data'],
+        'findings': [
+            {
+                'severity': 'critical',
+                'category': 'html-structure',
+                'title': 'Missing JSON-LD',
+                'description': 'No structured data was found on the page.',
+                'suggestion': 'Add JSON-LD structured data',
+                'is_missing': True,
+                'metric_value': None,
+                'code_snippet': None,
+            }
+        ],
     }
     html = '<html><head><title>Test</title></head><body><h1>Product</h1></body></html>'
     result = geo_agent.optimize(

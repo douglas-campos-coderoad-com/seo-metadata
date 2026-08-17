@@ -1,7 +1,9 @@
 import { apiClient } from '@/lib/api-client';
 import { useAppStore } from '@/shared/store/useAppStore';
 import { isValidUrl } from '@/shared/lib/url';
-import type { AnalysisRun, Automation, Finding, Project, Recurrence, SharedIssue } from '@/shared/types';
+import { computeSharedIssues } from '@/shared/lib/sharedIssues';
+import { computeNextRunAt, formatRecurrence } from '@/features/automations/lib/recurrence';
+import type { AnalysisRun, Automation, Finding, FindingCategory, FindingSeverity, Project, Recurrence, SharedIssue } from '@/shared/types';
 import type { AnalysisService } from './AnalysisService';
 import type { RunStatusEvent } from './events';
 
@@ -20,6 +22,17 @@ interface IngestResponse {
   created_at: string;
 }
 
+interface BackendFinding {
+  severity: FindingSeverity;
+  category: FindingCategory;
+  title: string;
+  description: string;
+  suggestion: string;
+  is_missing: boolean;
+  metric_value: string | null;
+  code_snippet: string | null;
+}
+
 interface AnalysisResponse {
   id: number;
   ingested_url_id: number;
@@ -29,8 +42,7 @@ interface AnalysisResponse {
   overall_score: number | null;
   status: string;
   analysis: {
-    findings?: Array<{ severity?: string; message?: string; type?: string }>;
-    recommendations?: string[];
+    findings?: BackendFinding[];
     geo_visibility?: string;
     seo_breakdown?: Record<string, number>;
     geo_breakdown?: Record<string, number>;
@@ -68,6 +80,8 @@ export class AnalysisApiService implements AnalysisService {
       startedAt: new Date().toISOString(),
       completedAt: null,
       score: null,
+      seoScore: null,
+      geoScore: null,
       failureReason: null,
       findingIds: [],
       httpStatus: null,
@@ -127,20 +141,21 @@ export class AnalysisApiService implements AnalysisService {
   }
 
   listSharedIssues(projectId: string): SharedIssue[] {
-    // Real backend would compute this; for now return empty (no cross-target aggregation).
-    return [];
+    const state = useAppStore.getState();
+    const project = state.projects[projectId];
+    if (!project) return [];
+    return computeSharedIssues(project, { targets: state.targets, runs: state.runs, findings: state.findings });
   }
 
   createAutomation(input: { targetId: string; recurrence: Recurrence }): Automation {
-    // Real backend would persist; for now create a local automation.
     const automation: Automation = {
       id: crypto.randomUUID(),
       targetId: input.targetId,
       recurrence: input.recurrence,
-      recurrenceLabel: `${input.recurrence.frequency} at ${input.recurrence.time}`,
+      recurrenceLabel: formatRecurrence(input.recurrence),
       active: true,
       lastRunId: null,
-      nextRunAt: new Date().toISOString(),
+      nextRunAt: computeNextRunAt(input.recurrence),
     };
     useAppStore.getState().upsertAutomation(automation);
     return automation;
@@ -171,6 +186,8 @@ export class AnalysisApiService implements AnalysisService {
       startedAt: new Date().toISOString(),
       completedAt: null,
       score: null,
+      seoScore: null,
+      geoScore: null,
       failureReason: null,
       findingIds: [],
       httpStatus: null,
@@ -230,6 +247,8 @@ export class AnalysisApiService implements AnalysisService {
       status: 'complete',
       completedAt: completeAt,
       score,
+      seoScore: analysis.seo_score,
+      geoScore: analysis.geo_score,
       findingIds: findings.map((f) => f.id),
       httpStatus: ingest.http_status,
       contentType: ingest.content_type,
@@ -247,43 +266,20 @@ export class AnalysisApiService implements AnalysisService {
   }
 
   private buildFindings(runId: string, analysis: AnalysisResponse): Finding[] {
-    const findings: Finding[] = [];
-    const analysisData = analysis.analysis || {};
+    const rawFindings = analysis.analysis?.findings || [];
 
-    // Map backend findings to frontend Finding shape
-    const rawFindings = analysisData.findings || [];
-    for (const raw of rawFindings) {
-      const severity = this.mapSeverity(raw.severity);
-      findings.push({
-        id: crypto.randomUUID(),
-        runId,
-        category: 'content',
-        severity,
-        title: raw.message || raw.type || 'Finding',
-        description: raw || '',
-        metricValue: null,
-        isMissing: false,
-        suggestion: '',
-        codeSnippet: null,
-      });
-    }
-
-    // Map recommendations to findings
-    const recommendations = analysisData.recommendations || [];
-    for (const rec of recommendations) {
-      findings.push({
-        id: crypto.randomUUID(),
-        runId,
-        category: 'content',
-        severity: 'warning',
-        title: rec,
-        description: rec,
-        metricValue: null,
-        isMissing: false,
-        suggestion: rec,
-        codeSnippet: null,
-      });
-    }
+    const findings: Finding[] = rawFindings.map((raw) => ({
+      id: crypto.randomUUID(),
+      runId,
+      category: raw.category,
+      severity: raw.severity,
+      title: raw.title,
+      description: raw.description,
+      metricValue: raw.metric_value,
+      isMissing: raw.is_missing,
+      suggestion: raw.suggestion,
+      codeSnippet: raw.code_snippet,
+    }));
 
     // If no findings, add a default "good" one
     if (findings.length === 0) {
@@ -302,19 +298,6 @@ export class AnalysisApiService implements AnalysisService {
     }
 
     return findings;
-  }
-
-  private mapSeverity(severity?: string): Finding['severity'] {
-    switch (severity) {
-      case 'high':
-      case 'critical':
-        return 'critical';
-      case 'medium':
-      case 'warning':
-        return 'warning';
-      default:
-        return 'good';
-    }
   }
 
   private emit(runId: string, event: RunStatusEvent): void {

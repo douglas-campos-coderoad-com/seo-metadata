@@ -35,6 +35,8 @@ function completedRun(id: string, targetId: string, findingId: string): Analysis
     startedAt: new Date().toISOString(),
     completedAt: new Date().toISOString(),
     score: 60,
+    seoScore: null,
+    geoScore: null,
     failureReason: null,
     findingIds: [findingId],
     httpStatus: 200,

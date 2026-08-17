@@ -91,7 +91,7 @@ export function UrlSubmitForm({ onStarted, projectId }: UrlSubmitFormProps) {
               onClick={() => handleSubmit(undefined, demo.url)}
               title={demo.url}
             >
-              {isSubmitting ? <Spinner /> : demo.label}
+              {demo.label}
             </Button>
           ))}
         </div>

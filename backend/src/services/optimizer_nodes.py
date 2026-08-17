@@ -230,8 +230,7 @@ def plan_changes(state: dict) -> dict:
 
     scores_and_findings = f'''
     Scores: {json.dumps(scores, ensure_ascii=False)}
-    Findings: {json.dumps(findings, ensure_ascii=False)}
-    Recommendations: {json.dumps(analysis.get('recommendations', []), ensure_ascii=False)}
+    Findings (each includes its own fix in "suggestion"): {json.dumps(findings, ensure_ascii=False)}
     Geo visibility: {analysis.get('geo_visibility', 'N/A')}
     '''
 

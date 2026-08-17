@@ -13,13 +13,20 @@ export function Hero({ children }: HeroProps) {
         className="animate-swell pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-ring/10 blur-3xl"
       />
 
-      <div className="relative mx-auto flex max-w-xl flex-col items-center gap-6 px-4 text-center">
+      <div className="relative mx-auto flex flex-col items-center gap-6 px-6 md:px-[8.25rem] text-center">
         <h1 className="font-display text-4xl font-bold leading-tight sm:text-5xl">
-          Find and fix your SEO issues in minutes
+          <span className="text-muted-foreground">
+            Get found by Search Engines.
+          </span>
+          <br />
+          <span className="text-[3.55rem]">
+            Get recommended by AI.
+          </span>
         </h1>
         <p className="text-muted-foreground">
-          Paste a URL and get an instant SEO score, color-coded findings across meta tags, content, and HTML
-          structure, and ready-to-copy fixes.
+          Paste a product listing URL and get an instant SEO score showing what&apos;s costing you search visibility —
+          then get an AI-generated suggestion optimized for AI and Search Engines, prove it works by testing whether they
+          actually recommend your listing before and after.
         </p>
         {children && <div className="w-full">{children}</div>}
       </div>

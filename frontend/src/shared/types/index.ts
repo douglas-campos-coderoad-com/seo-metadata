@@ -39,6 +39,9 @@ export interface AnalysisRun {
   startedAt: string; // ISO datetime
   completedAt: string | null;
   score: number | null; // 0-100, set only when status === 'complete'
+  /** SEO/GEO sub-scores (0-100). Only populated for real-backend runs (FR: BeforeAfterViewer breakdown). */
+  seoScore: number | null;
+  geoScore: number | null;
   failureReason: string | null; // set only when status === 'failed'
   findingIds: string[];
   httpStatus: number | null;

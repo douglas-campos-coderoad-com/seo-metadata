@@ -60,7 +60,7 @@ GEO/AEO PRINCIPLES:
 URL: {url}
 PAGE TYPE: {page_type}
 
-PREVIOUS ANALYSIS (scores, findings, recommendations):
+PREVIOUS ANALYSIS (scores, findings — each finding includes its own suggested fix):
 {analysis_context}
 
 ORIGINAL HTML (truncated):

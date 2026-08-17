@@ -123,11 +123,20 @@ def test_analyze_seo_geo_success():
         'raw_html_length': 100,
     }
 
+    mock_finding = {
+        'severity': 'warning',
+        'category': 'html-structure',
+        'title': 'Missing JSON-LD',
+        'description': 'No structured data was found on the page.',
+        'suggestion': 'Add JSON-LD structured data',
+        'is_missing': True,
+        'metric_value': None,
+        'code_snippet': None,
+    }
     mock_result = {
         'seo_score': 75,
         'geo_score': 60,
-        'findings': ['Missing JSON-LD'],
-        'recommendations': ['Add JSON-LD structured data'],
+        'findings': [mock_finding],
         'geo_visibility': 'The content is moderately visible to AI.',
         'seo_breakdown': {'title': 10, 'meta_description': 10},
         'geo_breakdown': {'question_answering': 15},
@@ -138,8 +147,39 @@ def test_analyze_seo_geo_success():
 
     assert result['seo_score'] == 75
     assert result['geo_score'] == 60
-    assert result['findings'] == ['Missing JSON-LD']
+    assert result['findings'] == [mock_finding]
     assert result['seo_geo_error'] is None
+
+
+def test_analyze_seo_geo_drops_malformed_finding():
+    page_data = {'title': 'Test', 'raw_html_length': 10}
+
+    mock_result = {
+        'seo_score': 50,
+        'geo_score': 50,
+        'findings': [
+            {'severity': 'not-a-real-severity', 'category': 'content', 'title': 'Bad', 'description': 'x'},
+            {
+                'severity': 'good',
+                'category': 'content',
+                'title': 'Clear heading structure',
+                'description': 'Headings follow a logical hierarchy.',
+                'suggestion': '',
+                'is_missing': False,
+                'metric_value': None,
+                'code_snippet': None,
+            },
+        ],
+        'geo_visibility': '',
+        'seo_breakdown': {},
+        'geo_breakdown': {},
+    }
+
+    with patch('src.services.graph_nodes._call_gemini', return_value=mock_result):
+        result = analyze_seo_geo({'page_data': page_data})
+
+    assert len(result['findings']) == 1
+    assert result['findings'][0]['title'] == 'Clear heading structure'
 
 
 def test_analyze_seo_geo_error():
@@ -151,6 +191,9 @@ def test_analyze_seo_geo_error():
     assert result['seo_score'] == 0
     assert result['geo_score'] == 0
     assert result['seo_geo_error'] is not None
+    assert len(result['findings']) == 1
+    assert result['findings'][0]['severity'] == 'critical'
+    assert 'API error' in result['findings'][0]['description']
 
 
 def test_analyze_seo_geo_no_data():
@@ -202,8 +245,7 @@ def test_compile_report_success():
     state = {
         'seo_score': 80,
         'geo_score': 60,
-        'findings': ['Finding 1'],
-        'recommendations': ['Rec 1'],
+        'findings': [{'severity': 'warning', 'category': 'content', 'title': 'Finding 1', 'description': 'x', 'suggestion': 'Rec 1'}],
         'geo_visibility': 'Good visibility',
         'seo_breakdown': {'title': 10},
         'geo_breakdown': {'question_answering': 15},
@@ -220,7 +262,7 @@ def test_compile_report_success():
     assert result['overall_score'] == 70
     assert result['status'] == 'completed'
     assert result['error'] is None
-    assert result['analysis']['findings'] == ['Finding 1']
+    assert result['analysis']['findings'][0]['title'] == 'Finding 1'
 
 
 def test_compile_report_with_errors():
@@ -228,7 +270,6 @@ def test_compile_report_with_errors():
         'seo_score': 0,
         'geo_score': 0,
         'findings': [],
-        'recommendations': [],
         'geo_visibility': '',
         'seo_breakdown': {},
         'geo_breakdown': {},
@@ -297,8 +338,18 @@ async def test_analyze_url_success(db_session_factory):
             'geo_score': 55,
             'overall_score': 63,
             'analysis': {
-                'findings': ['Missing meta description'],
-                'recommendations': ['Add meta description'],
+                'findings': [
+                    {
+                        'severity': 'critical',
+                        'category': 'meta-tags',
+                        'title': 'Missing meta description',
+                        'description': 'The page has no meta description tag.',
+                        'suggestion': 'Add meta description',
+                        'is_missing': True,
+                        'metric_value': None,
+                        'code_snippet': None,
+                    }
+                ],
                 'geo_visibility': 'Moderate visibility',
                 'seo_breakdown': {},
                 'geo_breakdown': {},

@@ -40,6 +40,8 @@ export default function RunResultsPage() {
           analysisId={run.backendAnalysisId}
           originalUrl={url}
           initialScore={run.score}
+          initialSeoScore={run.seoScore}
+          initialGeoScore={run.geoScore}
           findings={findings}
         />
       </div>
@@ -49,7 +51,7 @@ export default function RunResultsPage() {
   // Fallback: legacy / mock-only view.
   return (
     <div className="flex flex-col gap-8">
-      <ScoreSummary score={run.score} />
+      <ScoreSummary scores={{ overall: run.score }} />
       <FindingsList findings={findings} />
     </div>
   );

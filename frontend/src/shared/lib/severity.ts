@@ -30,7 +30,7 @@ export function scoreToSeverity(score: number): FindingSeverity {
   return 'critical';
 }
 
-const SEVERITY_RANK: Record<FindingSeverity, number> = { good: 0, warning: 1, critical: 2 };
+export const SEVERITY_RANK: Record<FindingSeverity, number> = { good: 0, warning: 1, critical: 2 };
 
 /** Worst (highest-rank) severity among a set — used e.g. for a Shared Issue's aggregate severity. */
 export function highestSeverity(severities: FindingSeverity[]): FindingSeverity {
