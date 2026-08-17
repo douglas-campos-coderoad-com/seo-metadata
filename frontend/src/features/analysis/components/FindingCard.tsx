@@ -7,7 +7,9 @@ import { CodeSnippetCard } from './CodeSnippetCard';
 export function FindingCard({
   finding
  }: { finding: Finding }) {
-  const suggestionLabel = finding.severity === 'good' ? 'Why this works' : 'Suggestion';
+  const recommendationLabel = finding.severity === 'good' 
+    ? 'Why this works' 
+    : 'Recommendation';
 
   return (
     <Card>
@@ -18,7 +20,7 @@ export function FindingCard({
           </CardTitle>
           <SeverityBadge severity={finding.severity} />
         </div>
-        <p className="text-sm text-foreground/80">
+        <p className="text-sm">
           {finding.description}
         </p>
         {finding.metricValue !== null && (
@@ -26,13 +28,20 @@ export function FindingCard({
             {finding.metricValue}
           </Badge>
         )}
-        <div className="text-sm font-medium">
-          {suggestionLabel}:
-        </div>
-        <p className="text-sm">
-          {finding.suggestion}
-        </p>
-        {finding.codeSnippet && <CodeSnippetCard code={finding.codeSnippet} />}
+        {finding.recommendations.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <div className="text-sm font-semibold">
+              {recommendationLabel}
+              {finding.recommendations.length > 1 ? 's' : ''}:
+            </div>
+            {finding.recommendations.map((rec) => (
+              <div key={rec.id} className="flex flex-col gap-1">
+                <p className="text-sm">{rec.action}</p>
+                {rec.codeSnippet && <CodeSnippetCard code={rec.codeSnippet} />}
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

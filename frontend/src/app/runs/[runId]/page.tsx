@@ -5,6 +5,7 @@ import { useAppStore } from '@/shared/store/useAppStore';
 import { ScoreSummary } from '@/features/analysis/components/ScoreSummary';
 import { FindingsList } from '@/features/analysis/components/FindingsList';
 import { BeforeAfterViewer } from '@/features/analysis/components/BeforeAfterViewer';
+import { ExportReportButton } from '@/features/analysis/components/ExportReportButton';
 import { Alert } from '@/shared/components/ui/alert';
 import type { Finding } from '@/shared/types';
 
@@ -32,9 +33,14 @@ export default function RunResultsPage() {
   if (run.backendAnalysisId) {
     return (
       <div className="flex flex-col gap-8">
-        <div>
-          <h1 className="text-2xl font-bold">Analysis Results</h1>
-          <p className="text-sm text-muted-foreground">URL: {url}</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Analysis Results</h1>
+            <p className="text-sm text-muted-foreground">URL: {url}</p>
+          </div>
+          {/* Only reachable once the run is complete and the backend produced an
+              analysis — the export keys off that id. */}
+          <ExportReportButton analysisId={run.backendAnalysisId} />
         </div>
         <BeforeAfterViewer
           analysisId={run.backendAnalysisId}

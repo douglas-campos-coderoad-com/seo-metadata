@@ -24,14 +24,17 @@ async def test_analyze_url_success(client, db_session_factory):
         ingested_id = ingested.id
 
     mock_finding = {
+        'id': 'F1',
+        'category': 'metadata',
         'severity': 'critical',
-        'category': 'meta-tags',
+        'status': 'fail',
         'title': 'Missing meta description',
-        'description': 'The page has no meta description tag.',
-        'suggestion': 'Add meta description',
-        'is_missing': True,
-        'metric_value': None,
-        'code_snippet': None,
+        'detail': 'The page has no meta description tag.',
+    }
+    mock_recommendation = {
+        'id': 'R1',
+        'finding_id': 'F1',
+        'action': 'Add meta description',
     }
     mock_result = {
         'seo_score': 65,
@@ -39,6 +42,7 @@ async def test_analyze_url_success(client, db_session_factory):
         'overall_score': 55,
         'analysis': {
             'findings': [mock_finding],
+            'recommendations': [mock_recommendation],
             'geo_visibility': 'Moderate visibility',
             'seo_breakdown': {},
             'geo_breakdown': {},
@@ -98,16 +102,17 @@ async def test_get_analysis_success(client, db_session_factory):
             analysis={
                 'findings': [
                     {
-                        'severity': 'warning',
+                        'id': 'F1',
                         'category': 'content',
+                        'severity': 'medium',
+                        'status': 'warning',
                         'title': 'Test finding',
-                        'description': 'A test finding.',
-                        'suggestion': 'Do the test fix',
-                        'is_missing': False,
-                        'metric_value': None,
-                        'code_snippet': None,
+                        'detail': 'A test finding.',
                     }
-                ]
+                ],
+                'recommendations': [
+                    {'id': 'R1', 'finding_id': 'F1', 'action': 'Do the test fix'}
+                ],
             },
             json_ld={'@context': 'https://schema.org'},
             status='completed',

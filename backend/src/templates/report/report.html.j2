@@ -1,0 +1,209 @@
+{#
+  PDF report template.
+
+  Autoescaping is ON and no value in this file may use the |safe filter. The
+  markup fields (current_markup / suggested_markup / optimized_html) originate
+  from a third-party page and from an LLM: they are *displayed* as text inside
+  <pre><code>, never executed. Escaping them is the primary security control for
+  this feature (research.md section 7).
+
+  No database identifiers appear anywhere in the rendered output (SC-005). The
+  F1/R1 refs shown are the analyser's own labels, not row ids.
+#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SEO and GEO report — {{ doc.url }}</title>
+<style>{{ stylesheet }}</style>
+</head>
+<body>
+
+{# ------------------------------------------------------------------ #}
+{# Cover page (FR-011)                                                 #}
+{# ------------------------------------------------------------------ #}
+<section class="cover">
+  <p class="cover-kicker">SEO &amp; GEO analysis report</p>
+  <h1 class="cover-url">{{ doc.url }}</h1>
+  <p class="cover-date">Analysed on {{ doc.analysis_date_display }}</p>
+
+  <div class="cover-score">
+    <div class="ring" style="--ring-pct: {{ doc.overall_score or 0 }}">
+      <span class="ring-value">{{ doc.overall_score_display }}</span>
+      <span class="ring-label">Overall</span>
+    </div>
+    <div class="cover-subscores">
+      <div class="subscore">
+        <span class="subscore-value">{{ doc.seo_score_display }}</span>
+        <span class="subscore-label">SEO</span>
+      </div>
+      <div class="subscore">
+        <span class="subscore-value">{{ doc.geo_score_display }}</span>
+        <span class="subscore-label">GEO</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="cover-summary">
+    {% if doc.has_no_issues %}
+      No issues were detected in this analysis.
+    {% else %}
+      {{ doc.total_findings }} finding{{ '' if doc.total_findings == 1 else 's' }}
+      and {{ doc.total_recommendations }}
+      recommendation{{ '' if doc.total_recommendations == 1 else 's' }}.
+    {% endif %}
+  </p>
+</section>
+
+<div class="page-break"></div>
+
+{# ------------------------------------------------------------------ #}
+{# Scores and breakdowns (FR-003, FR-004, FR-014)                      #}
+{# ------------------------------------------------------------------ #}
+<section>
+  <h2>Scores</h2>
+
+  {% if doc.seo_breakdown %}
+    <h3>SEO breakdown</h3>
+    <table class="breakdown">
+      {% for dimension in doc.seo_breakdown %}
+        <tr>
+          <td class="dim-label">{{ dimension.label }}</td>
+          <td class="dim-bar">
+            <span class="bar"><span class="bar-fill" style="width: {{ dimension.percent }}%"></span></span>
+          </td>
+          <td class="dim-score">{{ dimension.score }} / {{ dimension.max_score }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+
+  {% if doc.geo_breakdown %}
+    <h3>GEO breakdown</h3>
+    <table class="breakdown">
+      {% for dimension in doc.geo_breakdown %}
+        <tr>
+          <td class="dim-label">{{ dimension.label }}</td>
+          <td class="dim-bar">
+            <span class="bar"><span class="bar-fill" style="width: {{ dimension.percent }}%"></span></span>
+          </td>
+          <td class="dim-score">{{ dimension.score }} / {{ dimension.max_score }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+</section>
+
+{# ------------------------------------------------------------------ #}
+{# GEO visibility narrative (FR-005) — omitted entirely when empty     #}
+{# ------------------------------------------------------------------ #}
+{% if doc.geo_visibility %}
+<section>
+  <h2>Visibility to generative engines</h2>
+  <p class="narrative">{{ doc.geo_visibility }}</p>
+</section>
+{% endif %}
+
+{# ------------------------------------------------------------------ #}
+{# Findings and their fixes (FR-006 .. FR-009, FR-012, FR-013)         #}
+{# ------------------------------------------------------------------ #}
+<section>
+  <h2>Findings and recommendations</h2>
+
+  {% if doc.has_no_issues %}
+    <p class="empty-state">
+      No issues were detected in this analysis. Every criterion the analyser
+      checked either passed or produced no actionable finding.
+    </p>
+  {% endif %}
+
+  {% for group in doc.finding_groups %}
+    <h3 class="group-heading">{{ group.label }}</h3>
+
+    {% for finding in group.findings %}
+      <article class="finding">
+        <div class="finding-head">
+          <span class="severity"
+                style="background: {{ finding.severity_color }}; color: {{ finding.severity_text_color }}">
+            {{ finding.severity_label }}
+          </span>
+          <h4 class="finding-title">{{ finding.title }}</h4>
+        </div>
+
+        {% if finding.detail %}
+          <p class="finding-detail">{{ finding.detail }}</p>
+        {% endif %}
+
+        {% for rec in finding.recommendations %}
+          {% include 'partials/_recommendation.html.j2' %}
+        {% endfor %}
+      </article>
+    {% endfor %}
+  {% endfor %}
+
+  {% if doc.orphan_recommendations %}
+    <h3 class="group-heading">Additional recommendations</h3>
+    {% for rec in doc.orphan_recommendations %}
+      <article class="finding">
+        {% include 'partials/_recommendation.html.j2' %}
+      </article>
+    {% endfor %}
+  {% endif %}
+</section>
+
+{# ------------------------------------------------------------------ #}
+{# Optimizer output (FR-010) — nothing at all when absent              #}
+{# ------------------------------------------------------------------ #}
+{% if doc.optimizer %}
+<div class="page-break"></div>
+<section>
+  <h2>Optimized version</h2>
+
+  {% if doc.optimizer.has_scores %}
+    <h3>Score comparison</h3>
+    <table class="scores-compare">
+      <tr>
+        <th></th>
+        {% for key in (doc.optimizer.score_before or doc.optimizer.score_after or {}) %}
+          <th>{{ key }}</th>
+        {% endfor %}
+      </tr>
+      {% if doc.optimizer.score_before %}
+        <tr>
+          <td class="dim-label">Before</td>
+          {% for value in doc.optimizer.score_before.values() %}<td>{{ value }}</td>{% endfor %}
+        </tr>
+      {% endif %}
+      {% if doc.optimizer.score_after %}
+        <tr>
+          <td class="dim-label">After (estimated)</td>
+          {% for value in doc.optimizer.score_after.values() %}<td>{{ value }}</td>{% endfor %}
+        </tr>
+      {% endif %}
+    </table>
+  {% endif %}
+
+  {% if doc.optimizer.optimized_html %}
+    <h3>Optimized HTML</h3>
+    <pre class="code"><code>{{ doc.optimizer.optimized_html }}</code></pre>
+    {% if doc.optimizer.optimized_html_truncated_chars %}
+      <p class="truncation-note">
+        … truncated, {{ doc.optimizer.optimized_html_truncated_chars }} characters omitted.
+      </p>
+    {% endif %}
+  {% endif %}
+
+  {% if doc.optimizer.optimized_json_ld %}
+    <h3>Enriched JSON-LD</h3>
+    <pre class="code"><code>{{ doc.optimizer.optimized_json_ld }}</code></pre>
+    {% if doc.optimizer.optimized_json_ld_truncated_chars %}
+      <p class="truncation-note">
+        … truncated, {{ doc.optimizer.optimized_json_ld_truncated_chars }} characters omitted.
+      </p>
+    {% endif %}
+  {% endif %}
+</section>
+{% endif %}
+
+</body>
+</html>

@@ -37,14 +37,13 @@ function makeFinding(id: string, runId: string, title: string): Finding {
   return {
     id,
     runId,
-    category: 'meta-tags',
+    category: 'metadata',
     severity: 'warning',
     title,
     description: 'desc',
     metricValue: null,
     isMissing: false,
-    suggestion: 'fix it',
-    codeSnippet: null,
+    recommendations: [{ id: `${id}-rec`, action: 'fix it', rationale: '', codeSnippet: null }],
   };
 }
 

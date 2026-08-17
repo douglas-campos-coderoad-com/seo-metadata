@@ -24,6 +24,9 @@ beautifulsoup4==4.12.3
 httpx==0.28.1
 playwright==1.40.0
 
+# Templating (PDF report rendering — direct import, not just transitive)
+jinja2==3.1.4
+
 # AI / LangGraph
 langgraph==0.2.60
 langchain==0.3.11
@@ -31,6 +34,7 @@ langchain-google-genai==2.0.3
 google-genai==1.4.0
 
 # Testing
+pypdf==4.3.1
 pytest==7.4.3
 pytest-asyncio==0.21.1
 pytest-cov==4.1.0

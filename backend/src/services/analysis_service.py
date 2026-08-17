@@ -42,6 +42,7 @@ class AnalysisService:
             seo_score: int
             geo_score: int
             findings: list
+            recommendations: list
             geo_visibility: str
             seo_breakdown: dict
             geo_breakdown: dict
@@ -92,6 +93,7 @@ class AnalysisService:
                 'overall_score': 0,
                 'analysis': {
                     'findings': [_error_finding(str(exc))],
+                    'recommendations': [],
                     'geo_visibility': '',
                     'seo_breakdown': {},
                     'geo_breakdown': {},

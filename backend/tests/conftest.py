@@ -19,6 +19,22 @@ from src.models.url_optimization import UrlOptimization  # noqa: E402
 from sqlalchemy import MetaData  # noqa: E402
 
 
+@pytest.fixture(scope='session')
+def event_loop():
+    """One event loop for the whole session.
+
+    pytest-asyncio's default is a fresh loop per test, which breaks any
+    loop-bound resource shared across tests — notably the Playwright browser the
+    PDF export reuses (src/services/pdf_renderer.py). With a per-test loop the
+    second render either deadlocks or has to abandon a live Chromium process.
+    """
+    import asyncio
+
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
+
+
 @pytest_asyncio.fixture
 async def db_engine():
     """Create an in-memory SQLite async engine for tests."""

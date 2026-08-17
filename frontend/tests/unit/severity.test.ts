@@ -7,13 +7,18 @@ describe('scoreToSeverity', () => {
     expect(scoreToSeverity(100)).toBe('good');
   });
 
-  it('classifies 50-79 as warning', () => {
-    expect(scoreToSeverity(50)).toBe('warning');
+  it('classifies 60-79 as warning', () => {
+    expect(scoreToSeverity(60)).toBe('warning');
     expect(scoreToSeverity(79)).toBe('warning');
   });
 
-  it('classifies below 50 as critical', () => {
-    expect(scoreToSeverity(49)).toBe('critical');
+  it('classifies 40-59 as medium', () => {
+    expect(scoreToSeverity(40)).toBe('medium');
+    expect(scoreToSeverity(59)).toBe('medium');
+  });
+
+  it('classifies below 40 as critical', () => {
+    expect(scoreToSeverity(39)).toBe('critical');
     expect(scoreToSeverity(0)).toBe('critical');
   });
 });

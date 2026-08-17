@@ -104,6 +104,7 @@ class OptimizerService:
             'geo_score': analysis.geo_score,
             'overall_score': analysis.overall_score,
             'findings': (analysis.analysis or {}).get('findings', []) if analysis.analysis else [],
+            'recommendations': (analysis.analysis or {}).get('recommendations', []) if analysis.analysis else [],
             'geo_visibility': (analysis.analysis or {}).get('geo_visibility', '') if analysis.analysis else '',
             'json_ld': analysis.json_ld,
             'scores': {

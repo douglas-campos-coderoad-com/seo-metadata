@@ -5,9 +5,20 @@ export type RunStatus = 'queued' | 'fetching' | 'analyzing' | 'complete' | 'fail
 
 export type RunTrigger = 'manual' | 'automation';
 
-export type FindingCategory = 'meta-tags' | 'content' | 'html-structure' | 'file-size';
+// Mirrors the analyser prompt's category enum (backend/src/services/graph_nodes.py) and
+// backend/src/services/report_mappings.py's CATEGORY_LABELS keys — keep both in sync.
+export type FindingCategory =
+  | 'metadata'
+  | 'content'
+  | 'headings'
+  | 'images'
+  | 'structured_data'
+  | 'social'
+  | 'crawlability'
+  | 'performance'
+  | 'geo_aeo';
 
-export type FindingSeverity = 'good' | 'warning' | 'critical';
+export type FindingSeverity = 'good' | 'warning' | 'critical' | 'medium';
 
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly';
 
@@ -53,6 +64,13 @@ export interface AnalysisRun {
   backendOptimizationId?: number;
 }
 
+export interface FindingRecommendation {
+  id: string;
+  action: string;
+  rationale: string;
+  codeSnippet: string | null;
+}
+
 export interface Finding {
   id: string;
   runId: string;
@@ -63,8 +81,9 @@ export interface Finding {
   metricValue: string | number | null;
   /** True when the underlying element was absent — flag as missing, never blank. */
   isMissing: boolean;
-  suggestion: string;
-  codeSnippet: string | null;
+  /** Usually one; empty is fine for a rare, low-impact finding; more than one when
+   *  genuinely separate fixes apply — never collapsed into a single entry. */
+  recommendations: FindingRecommendation[];
 }
 
 export interface SharedIssue {

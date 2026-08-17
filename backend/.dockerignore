@@ -1,0 +1,31 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtualenvs (never ship a host venv into the image)
+.venv/
+venv/
+
+# Coverage artifacts
+.coverage
+coverage.xml
+htmlcov/
+
+# VCS and env
+.git/
+.gitignore
+.env
+.env.local
+.env.*.local
+
+# Docker
+Dockerfile*
+.dockerignore
+
+# Logs and OS cruft
+*.log
+.DS_Store

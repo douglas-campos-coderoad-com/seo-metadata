@@ -1,23 +1,32 @@
-import { Tag, FileText, Code2, Image as ImageIcon, type LucideIcon } from 'lucide-react';
 import type { Finding, FindingCategory } from '@/shared/types';
 import { SEVERITY_RANK } from '@/shared/lib/severity';
+import { CATEGORY_ICONS } from '@/shared/lib/categoryIcons';
 import { FindingCard } from './FindingCard';
 
+// Mirrors report_mappings.py's CATEGORY_LABELS and CATEGORY_ORDER.
 const CATEGORY_LABELS: Record<FindingCategory, string> = {
-  'meta-tags': 'Meta Tags',
+  metadata: 'Metadata',
   content: 'Content',
-  'html-structure': 'HTML Structure',
-  'file-size': 'File Size',
+  headings: 'Headings',
+  structured_data: 'Structured data',
+  geo_aeo: 'Generative and answer engines',
+  images: 'Images',
+  social: 'Social sharing',
+  crawlability: 'Crawlability',
+  performance: 'Performance',
 };
 
-const CATEGORY_ICONS: Record<FindingCategory, LucideIcon> = {
-  'meta-tags': Tag,
-  content: FileText,
-  'html-structure': Code2,
-  'file-size': ImageIcon,
-};
-
-const CATEGORY_ORDER: FindingCategory[] = ['meta-tags', 'content', 'html-structure', 'file-size'];
+const CATEGORY_ORDER: FindingCategory[] = [
+  'metadata',
+  'content',
+  'headings',
+  'structured_data',
+  'geo_aeo',
+  'images',
+  'social',
+  'crawlability',
+  'performance',
+];
 
 export function FindingsList({ findings }: { findings: Finding[] }) {
   if (findings.length === 0) {

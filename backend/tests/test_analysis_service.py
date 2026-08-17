@@ -124,19 +124,36 @@ def test_analyze_seo_geo_success():
     }
 
     mock_finding = {
-        'severity': 'warning',
-        'category': 'html-structure',
+        'id': 'F1',
+        'category': 'structured_data',
+        'dimension': 'json_ld',
+        'impact': 'both',
+        'severity': 'medium',
+        'status': 'warning',
         'title': 'Missing JSON-LD',
-        'description': 'No structured data was found on the page.',
-        'suggestion': 'Add JSON-LD structured data',
-        'is_missing': True,
-        'metric_value': None,
-        'code_snippet': None,
+        'detail': 'No structured data was found on the page.',
+    }
+    mock_recommendation = {
+        'id': 'R1',
+        'finding_id': 'F1',
+        'category': 'structured_data',
+        'priority': 'medium',
+        'effort': 'low',
+        'impact': 'both',
+        'action': 'Add JSON-LD structured data',
+        'rationale': 'Helps search engines and LLMs parse the product.',
+        'html_change': {
+            'change_type': 'add',
+            'location': 'inside <head>',
+            'current_html': '',
+            'suggested_html': '<script type="application/ld+json">{"@type":"Product"}</script>',
+        },
     }
     mock_result = {
         'seo_score': 75,
         'geo_score': 60,
         'findings': [mock_finding],
+        'recommendations': [mock_recommendation],
         'geo_visibility': 'The content is moderately visible to AI.',
         'seo_breakdown': {'title': 10, 'meta_description': 10},
         'geo_breakdown': {'question_answering': 15},
@@ -148,28 +165,21 @@ def test_analyze_seo_geo_success():
     assert result['seo_score'] == 75
     assert result['geo_score'] == 60
     assert result['findings'] == [mock_finding]
+    assert result['recommendations'] == [mock_recommendation]
     assert result['seo_geo_error'] is None
 
 
-def test_analyze_seo_geo_drops_malformed_finding():
+def test_analyze_seo_geo_passes_through_raw_findings():
+    """The analyser never validates/drops findings — malformed shapes must survive
+    unchanged, since each consumer (report_mappings, AnalysisApiService) coerces at
+    its own boundary instead."""
     page_data = {'title': 'Test', 'raw_html_length': 10}
 
     mock_result = {
         'seo_score': 50,
         'geo_score': 50,
-        'findings': [
-            {'severity': 'not-a-real-severity', 'category': 'content', 'title': 'Bad', 'description': 'x'},
-            {
-                'severity': 'good',
-                'category': 'content',
-                'title': 'Clear heading structure',
-                'description': 'Headings follow a logical hierarchy.',
-                'suggestion': '',
-                'is_missing': False,
-                'metric_value': None,
-                'code_snippet': None,
-            },
-        ],
+        'findings': [{'severity': 'not-a-real-severity', 'category': 'content', 'title': 'Bad'}],
+        'recommendations': [],
         'geo_visibility': '',
         'seo_breakdown': {},
         'geo_breakdown': {},
@@ -178,8 +188,7 @@ def test_analyze_seo_geo_drops_malformed_finding():
     with patch('src.services.graph_nodes._call_gemini', return_value=mock_result):
         result = analyze_seo_geo({'page_data': page_data})
 
-    assert len(result['findings']) == 1
-    assert result['findings'][0]['title'] == 'Clear heading structure'
+    assert result['findings'] == mock_result['findings']
 
 
 def test_analyze_seo_geo_error():
@@ -191,9 +200,10 @@ def test_analyze_seo_geo_error():
     assert result['seo_score'] == 0
     assert result['geo_score'] == 0
     assert result['seo_geo_error'] is not None
+    assert result['recommendations'] == []
     assert len(result['findings']) == 1
     assert result['findings'][0]['severity'] == 'critical'
-    assert 'API error' in result['findings'][0]['description']
+    assert 'API error' in result['findings'][0]['detail']
 
 
 def test_analyze_seo_geo_no_data():
@@ -245,7 +255,8 @@ def test_compile_report_success():
     state = {
         'seo_score': 80,
         'geo_score': 60,
-        'findings': [{'severity': 'warning', 'category': 'content', 'title': 'Finding 1', 'description': 'x', 'suggestion': 'Rec 1'}],
+        'findings': [{'id': 'F1', 'severity': 'warning', 'category': 'content', 'title': 'Finding 1', 'detail': 'x'}],
+        'recommendations': [{'id': 'R1', 'finding_id': 'F1', 'action': 'Rec 1'}],
         'geo_visibility': 'Good visibility',
         'seo_breakdown': {'title': 10},
         'geo_breakdown': {'question_answering': 15},
@@ -263,6 +274,7 @@ def test_compile_report_success():
     assert result['status'] == 'completed'
     assert result['error'] is None
     assert result['analysis']['findings'][0]['title'] == 'Finding 1'
+    assert result['analysis']['recommendations'][0]['action'] == 'Rec 1'
 
 
 def test_compile_report_with_errors():
@@ -340,14 +352,19 @@ async def test_analyze_url_success(db_session_factory):
             'analysis': {
                 'findings': [
                     {
+                        'id': 'F1',
+                        'category': 'metadata',
                         'severity': 'critical',
-                        'category': 'meta-tags',
+                        'status': 'fail',
                         'title': 'Missing meta description',
-                        'description': 'The page has no meta description tag.',
-                        'suggestion': 'Add meta description',
-                        'is_missing': True,
-                        'metric_value': None,
-                        'code_snippet': None,
+                        'detail': 'The page has no meta description tag.',
+                    }
+                ],
+                'recommendations': [
+                    {
+                        'id': 'R1',
+                        'finding_id': 'F1',
+                        'action': 'Add meta description',
                     }
                 ],
                 'geo_visibility': 'Moderate visibility',

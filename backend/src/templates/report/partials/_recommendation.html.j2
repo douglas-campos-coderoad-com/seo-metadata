@@ -1,0 +1,56 @@
+{#
+  One recommendation, with its markup change (FR-007, FR-008).
+
+  Included with `rec` in scope. Autoescaped like everything else: the markup is
+  printed as text inside <pre><code>, never rendered as live HTML.
+#}
+<div class="recommendation">
+  <p class="rec-action">
+    {% if rec.ref %}<span class="rec-ref">{{ rec.ref }}</span>{% endif %}
+    {{ rec.action }}
+  </p>
+
+  {% if rec.rationale %}
+    <p class="rec-rationale">{{ rec.rationale }}</p>
+  {% endif %}
+
+  <p class="rec-meta">
+    <span class="chip">Priority: {{ rec.priority_label }}</span>
+    <span class="chip">Effort: {{ rec.effort_label }}</span>
+    {% if rec.resolves_ref %}
+      <span class="chip">Resolves: {{ rec.resolves_ref }}</span>
+    {% endif %}
+  </p>
+
+  {% if rec.html_change and rec.html_change.has_content %}
+    {% with change = rec.html_change %}
+      <p class="change-location">
+        <strong>{{ change.change_type_label }}</strong> — {{ change.location }}
+      </p>
+
+      {% if change.current_is_absent %}
+        <p class="absent-note">
+          Element does not exist yet — this is an addition.
+        </p>
+      {% elif change.current_markup %}
+        <p class="code-label">Current</p>
+        <pre class="code code-current"><code>{{ change.current_markup }}</code></pre>
+        {% if change.current_truncated_chars %}
+          <p class="truncation-note">
+            … truncated, {{ change.current_truncated_chars }} characters omitted.
+          </p>
+        {% endif %}
+      {% endif %}
+
+      {% if change.suggested_markup %}
+        <p class="code-label">Suggested</p>
+        <pre class="code code-suggested"><code>{{ change.suggested_markup }}</code></pre>
+        {% if change.suggested_truncated_chars %}
+          <p class="truncation-note">
+            … truncated, {{ change.suggested_truncated_chars }} characters omitted.
+          </p>
+        {% endif %}
+      {% endif %}
+    {% endwith %}
+  {% endif %}
+</div>
