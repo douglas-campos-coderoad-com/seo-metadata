@@ -1,8 +1,7 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from src.services.ingest_service import IngestService
-from src.models import IngestedUrl
 
 
 @pytest.mark.asyncio
@@ -51,13 +50,17 @@ async def test_ingest_url_upsert_updates_existing(db_session_factory):
     async with db_session_factory() as session:
         service = IngestService(session)
 
-        # First ingestion
+        # First ingestion. _has_content() requires >50 chars of extracted text, or
+        # ingest_url() falls back to a real (unmocked) Playwright fetch — so the body
+        # needs enough text to satisfy that check on its own.
         with patch.object(
             service,
             '_scrape_with_httpx',
             new=AsyncMock(
                 return_value=(
-                    '<html><body><h1>Version 1</h1></body></html>',
+                    '<html><body><h1>Version 1</h1>'
+                    '<p>This is the first version of the page content, long enough to count.</p>'
+                    '</body></html>',
                     200,
                     'text/html',
                     None,
@@ -72,7 +75,9 @@ async def test_ingest_url_upsert_updates_existing(db_session_factory):
             '_scrape_with_httpx',
             new=AsyncMock(
                 return_value=(
-                    '<html><body><h1>Version 2</h1></body></html>',
+                    '<html><body><h1>Version 2</h1>'
+                    '<p>This is the second version of the page content, long enough to count.</p>'
+                    '</body></html>',
                     200,
                     'text/html',
                     None,

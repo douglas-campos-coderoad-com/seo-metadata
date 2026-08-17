@@ -82,8 +82,18 @@ def test_plan_changes_success():
     state = {
         'analysis': {
             'scores': {'seo': 55, 'geo': 30, 'overall': 42},
-            'findings': ['Missing JSON-LD'],
-            'recommendations': ['Add JSON-LD'],
+            'findings': [
+                {
+                    'severity': 'critical',
+                    'category': 'html-structure',
+                    'title': 'Missing JSON-LD',
+                    'description': 'No structured data was found on the page.',
+                    'suggestion': 'Add JSON-LD structured data',
+                    'is_missing': True,
+                    'metric_value': None,
+                    'code_snippet': None,
+                }
+            ],
             'geo_visibility': 'Low',
             'json_ld': {'@type': 'Product'},
         },
@@ -299,8 +309,18 @@ async def test_optimize_analysis_success(db_session_factory):
             geo_score=30,
             overall_score=42,
             analysis={
-                'findings': ['Missing JSON-LD'],
-                'recommendations': ['Add JSON-LD'],
+                'findings': [
+                    {
+                        'severity': 'critical',
+                        'category': 'html-structure',
+                        'title': 'Missing JSON-LD',
+                        'description': 'No structured data was found on the page.',
+                        'suggestion': 'Add JSON-LD structured data',
+                        'is_missing': True,
+                        'metric_value': None,
+                        'code_snippet': None,
+                    }
+                ],
                 'geo_visibility': 'Low',
             },
             json_ld={'@type': 'Product'},

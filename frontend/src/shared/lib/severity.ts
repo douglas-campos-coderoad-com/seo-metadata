@@ -25,14 +25,15 @@ export function severityLabel(severity: FindingSeverity): string {
   return SEVERITY_LABELS[severity];
 }
 
-/** 0-100 overall score -> severity, using the same good/warning/critical bands as individual findings. */
+/** 0-100 overall score -> severity, using the same good/warning/medium/critical bands as individual findings. */
 export function scoreToSeverity(score: number): FindingSeverity {
   if (score >= 80) return 'good';
-  if (score >= 50) return 'warning';
+  if (score >= 60) return 'warning';
+  if (score >= 40) return 'medium';
   return 'critical';
 }
 
-const SEVERITY_RANK: Record<FindingSeverity, number> = { good: 0, warning: 1, medium: 2, critical: 3 };
+export const SEVERITY_RANK: Record<FindingSeverity, number> = { good: 0, warning: 1, medium: 2, critical: 3 };
 
 /** Worst (highest-rank) severity among a set — used e.g. for a Shared Issue's aggregate severity. */
 export function highestSeverity(severities: FindingSeverity[]): FindingSeverity {

@@ -134,11 +134,9 @@
           <p class="finding-detail">{{ finding.detail }}</p>
         {% endif %}
 
-        {% if finding.recommendation %}
-          {% with rec = finding.recommendation %}
-            {% include 'partials/_recommendation.html.j2' %}
-          {% endwith %}
-        {% endif %}
+        {% for rec in finding.recommendations %}
+          {% include 'partials/_recommendation.html.j2' %}
+        {% endfor %}
       </article>
     {% endfor %}
   {% endfor %}

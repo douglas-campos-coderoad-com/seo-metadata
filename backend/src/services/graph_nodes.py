@@ -255,7 +255,7 @@ SEO_GEO_PROMPT= """You are an expert in traditional SEO and in GEO (Generative E
 1. Infer the page's PRIMARY TOPIC and 1 primary + up to 3 secondary keywords from the title, headings, and visible text. Any input that is empty, null, "None", or "[]" MUST be treated as MISSING and scored as 0 for its dimension — never assume a value.
 2. Score every dimension using the rubric below. Award PARTIAL credit proportional to how well the criterion is met (e.g. a 45-char title that includes the keyword is a near-miss, not a zero). State the observed evidence for each finding.
 3. Produce findings, each mapped to exactly one scoring dimension and one category.
-4. For every finding whose status is "warning" or "fail", produce a matching recommendation that includes the exact HTML change required.
+4. For every finding whose status is "warning" or "fail", produce a matching recommendation that includes the exact HTML change required — most findings should have exactly one. It is fine to leave a rare, low-impact finding without one. If a finding genuinely needs more than one distinct fix, emit multiple recommendations that share its finding_id rather than combining them into one.
 5. Verify that seo_breakdown values sum to seo_score and geo_breakdown values sum to geo_score. Clamp all scores to their allowed ranges before returning.
 
 ## SEO RUBRIC (0-100)
@@ -288,7 +288,7 @@ SEO_GEO_PROMPT= """You are an expert in traditional SEO and in GEO (Generative E
 - change_type: "add" | "modify" | "remove"
 
 ## OUTPUT
-Return EXACTLY the following JSON and nothing else. No markdown, no code fences, no commentary. Every recommendation MUST reference the id of the finding it resolves and MUST include an html_change object with copy-paste-ready markup. If nothing needs changing for a criterion, emit a finding with status "pass" and no recommendation.
+Return EXACTLY the following JSON and nothing else. No markdown, no code fences, no commentary. Every recommendation MUST reference the id of the finding it resolves and MUST include an html_change object with copy-paste-ready markup. If nothing needs changing for a criterion, emit a finding with status "pass" and no recommendation. Most findings should have exactly one matching recommendation; it is fine to leave a rare, low-impact finding without one, and fine to give a finding multiple recommendations (sharing its finding_id) when there are genuinely separate fixes.
 
 {{
   "seo_score": <int 0-100>,
@@ -478,13 +478,30 @@ def analyze_seo_geo(state: dict) -> dict:
         return {
             'seo_score': 0,
             'geo_score': 0,
-            'findings': [f'Error during analysis: {str(exc)}'],
-            'recommendations': ['Retry the analysis later'],
+            'findings': [_error_finding(str(exc))],
+            'recommendations': [],
             'geo_visibility': 'Could not complete the analysis',
             'seo_breakdown': {},
             'geo_breakdown': {},
             'seo_geo_error': str(exc),
         }
+
+
+def _error_finding(message: str) -> dict:
+    """A plain finding dict in the analyser's raw shape describing an analysis
+    failure. Consumers (report_mappings.collapse_severity/normalise_category,
+    AnalysisApiService.mapSeverity/mapCategory) coerce raw shapes like this one —
+    nothing here needs to validate against a strict schema."""
+    return {
+        'id': 'F1',
+        'category': 'content',
+        'dimension': None,
+        'impact': 'both',
+        'severity': 'critical',
+        'status': 'fail',
+        'title': 'Analysis failed',
+        'detail': f'Error during analysis: {message}',
+    }
 
 
 # ── Node 3: generate_json_ld ──────────────────────────────────────────────

@@ -1,12 +1,27 @@
 import { apiClient } from '@/lib/api-client';
 import { useAppStore } from '@/shared/store/useAppStore';
 import { isValidUrl } from '@/shared/lib/url';
-import type { AnalysisRun, Automation, Finding, Project, Recurrence, SharedIssue } from '@/shared/types';
+import { computeSharedIssues } from '@/shared/lib/sharedIssues';
+import { computeNextRunAt, formatRecurrence } from '@/features/automations/lib/recurrence';
+import type { AnalysisRun, Automation, Finding, FindingRecommendation, Project, Recurrence, SharedIssue } from '@/shared/types';
 import type { AnalysisService } from './AnalysisService';
 import type { RunStatusEvent } from './events';
 
 // Real backend-backed implementation of AnalysisService.
 // Maps the FastAPI responses to the frontend entity shapes.
+
+// Mirrors report_mappings.py's CATEGORY_LABELS keys.
+const KNOWN_CATEGORIES: ReadonlySet<Finding['category']> = new Set([
+  'metadata',
+  'content',
+  'headings',
+  'images',
+  'structured_data',
+  'social',
+  'crawlability',
+  'performance',
+  'geo_aeo',
+]);
 
 // ── Backend response shapes (subset we consume) ──────────────────────────
 
@@ -101,6 +116,8 @@ export class AnalysisApiService implements AnalysisService {
       startedAt: new Date().toISOString(),
       completedAt: null,
       score: null,
+      seoScore: null,
+      geoScore: null,
       failureReason: null,
       findingIds: [],
       httpStatus: null,
@@ -160,20 +177,21 @@ export class AnalysisApiService implements AnalysisService {
   }
 
   listSharedIssues(projectId: string): SharedIssue[] {
-    // Real backend would compute this; for now return empty (no cross-target aggregation).
-    return [];
+    const state = useAppStore.getState();
+    const project = state.projects[projectId];
+    if (!project) return [];
+    return computeSharedIssues(project, { targets: state.targets, runs: state.runs, findings: state.findings });
   }
 
   createAutomation(input: { targetId: string; recurrence: Recurrence }): Automation {
-    // Real backend would persist; for now create a local automation.
     const automation: Automation = {
       id: crypto.randomUUID(),
       targetId: input.targetId,
       recurrence: input.recurrence,
-      recurrenceLabel: `${input.recurrence.frequency} at ${input.recurrence.time}`,
+      recurrenceLabel: formatRecurrence(input.recurrence),
       active: true,
       lastRunId: null,
-      nextRunAt: new Date().toISOString(),
+      nextRunAt: computeNextRunAt(input.recurrence),
     };
     useAppStore.getState().upsertAutomation(automation);
     return automation;
@@ -204,6 +222,8 @@ export class AnalysisApiService implements AnalysisService {
       startedAt: new Date().toISOString(),
       completedAt: null,
       score: null,
+      seoScore: null,
+      geoScore: null,
       failureReason: null,
       findingIds: [],
       httpStatus: null,
@@ -263,6 +283,8 @@ export class AnalysisApiService implements AnalysisService {
       status: 'complete',
       completedAt: completeAt,
       score,
+      seoScore: analysis.seo_score,
+      geoScore: analysis.geo_score,
       findingIds: findings.map((f) => f.id),
       httpStatus: ingest.http_status,
       contentType: ingest.content_type,
@@ -283,15 +305,18 @@ export class AnalysisApiService implements AnalysisService {
     const findings: Finding[] = [];
     const analysisData = analysis.analysis || {};
 
-    // Each recommendation points back at the finding it resolves, so fold it into
-    // that finding's suggestion/snippet instead of listing it as its own card.
+    // Each recommendation points back at the finding it resolves. Usually one per
+    // finding, but several can share a finding_id when there are genuinely separate
+    // fixes — all of them stay attached, none silently dropped or overwritten.
     const rawRecommendations = analysisData.recommendations || [];
-    const recsByFindingId = new Map<string, BackendRecommendation>();
+    const recsByFindingId = new Map<string, BackendRecommendation[]>();
     const orphanRecs: BackendRecommendation[] = [];
     for (const raw of rawRecommendations) {
       const rec: BackendRecommendation = typeof raw === 'string' ? { action: raw } : raw;
       if (rec.finding_id) {
-        recsByFindingId.set(rec.finding_id, rec);
+        const existing = recsByFindingId.get(rec.finding_id);
+        if (existing) existing.push(rec);
+        else recsByFindingId.set(rec.finding_id, [rec]);
       } else {
         orphanRecs.push(rec);
       }
@@ -300,7 +325,7 @@ export class AnalysisApiService implements AnalysisService {
     const rawFindings = analysisData.findings || [];
     for (const raw of rawFindings) {
       const finding: BackendFinding = typeof raw === 'string' ? { detail: raw } : raw;
-      const rec = finding.id ? recsByFindingId.get(finding.id) : undefined;
+      const recs = finding.id ? recsByFindingId.get(finding.id) ?? [] : [];
       if (finding.id) recsByFindingId.delete(finding.id);
 
       findings.push({
@@ -313,14 +338,13 @@ export class AnalysisApiService implements AnalysisService {
         metricValue: null,
         // "add" + no current markup is the backend's way of saying the element is absent;
         // a plain "fail" status can still mean the element exists but scores badly.
-        isMissing: rec?.html_change?.change_type === 'add' && !rec.html_change.current_html,
-        suggestion: this.recommendationText(rec),
-        codeSnippet: rec?.html_change?.suggested_html || null,
+        isMissing: recs.some((rec) => rec.html_change?.change_type === 'add' && !rec.html_change.current_html),
+        recommendations: recs.map((rec) => this.toFindingRecommendation(rec)),
       });
     }
 
     // Recommendations that reference no finding (or an unknown one) still get shown.
-    for (const rec of [...orphanRecs, ...recsByFindingId.values()]) {
+    for (const rec of [...orphanRecs, ...recsByFindingId.values()].flat()) {
       const action = rec.action || rec.rationale || '';
       if (!action) continue;
       findings.push({
@@ -332,8 +356,7 @@ export class AnalysisApiService implements AnalysisService {
         description: rec.rationale || '',
         metricValue: null,
         isMissing: false,
-        suggestion: this.recommendationText(rec),
-        codeSnippet: rec.html_change?.suggested_html || null,
+        recommendations: [this.toFindingRecommendation(rec)],
       });
     }
 
@@ -348,37 +371,29 @@ export class AnalysisApiService implements AnalysisService {
         description: 'No critical issues detected.',
         metricValue: null,
         isMissing: false,
-        suggestion: '',
-        codeSnippet: null,
+        recommendations: [],
       });
     }
 
     return findings;
   }
 
-  /** Flatten a recommendation object into the single suggestion line the UI renders. */
-  private recommendationText(rec?: BackendRecommendation): string {
-    if (!rec) return '';
+  private toFindingRecommendation(rec: BackendRecommendation): FindingRecommendation {
     const location = rec.html_change?.location;
-    return [rec.action, rec.rationale, location && `Where: ${location}`].filter(Boolean).join(' ');
+    const action = [rec.action, location && `Where: ${location}`].filter(Boolean).join(' ');
+    return {
+      id: crypto.randomUUID(),
+      action,
+      rationale: rec.rationale || '',
+      codeSnippet: rec.html_change?.suggested_html || null,
+    };
   }
 
-  // The backend prompt emits 9 categories; the UI groups findings into 4.
+  // Normalize-and-validate against the analyser's 9 categories, mirroring
+  // report_mappings.normalise_category — unrecognized/missing falls back to 'content'.
   private mapCategory(category?: string): Finding['category'] {
-    switch (category?.toLowerCase()) {
-      case 'metadata':
-      case 'social':
-      case 'crawlability':
-        return 'meta-tags';
-      case 'headings':
-      case 'images':
-      case 'structured_data':
-        return 'html-structure';
-      case 'performance':
-        return 'file-size';
-      default:
-        return 'content';
-    }
+    const key = category?.trim().toLowerCase();
+    return key && (KNOWN_CATEGORIES as ReadonlySet<string>).has(key) ? (key as Finding['category']) : 'content';
   }
 
   /** Recommendations carry a priority rather than a severity — reuse the same badge scale. */

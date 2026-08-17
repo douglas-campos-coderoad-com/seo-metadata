@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useAutomations } from '@/features/automations/hooks/useAutomations';
 import { ScheduleForm } from '@/features/automations/components/ScheduleForm';
 import { AutomationList } from '@/features/automations/components/AutomationList';
 import { useAppStore } from '@/shared/store/useAppStore';
+import { mockSuccessfulAnalysisPipeline } from './mockAnalysisApi';
 
 function resetStore() {
   useAppStore.setState({ targets: {}, targetIdByUrl: {}, runs: {}, findings: {}, projects: {}, automations: {} });
@@ -31,7 +32,7 @@ describe('schedule recurring analysis flow (User Story 4)', () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it('saving the default schedule creates an active automation with a human-readable label', async () => {
@@ -57,22 +58,20 @@ describe('schedule recurring analysis flow (User Story 4)', () => {
   });
 
   it('running an automation now records an automation-triggered run in the target history', async () => {
+    mockSuccessfulAnalysisPipeline();
     const target = useAppStore.getState().upsertTargetByUrl('https://schedule-trigger-test.example.com');
     render(<AutomationHarness targetId={target.id} />);
 
-    // Creating the schedule is a synchronous store update — the "Run now" button
-    // appears immediately, before any fake timers are involved.
+    // Creating the schedule is a synchronous store update — the "Run now" button appears immediately.
     fireEvent.click(screen.getByRole('button', { name: /save schedule/i }));
     const runNowButton = screen.getByRole('button', { name: /run now/i });
 
-    vi.useFakeTimers();
     fireEvent.click(runNowButton);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(2000);
-    });
 
-    const runs = Object.values(useAppStore.getState().runs).filter((run) => run.targetId === target.id);
-    expect(runs.some((run) => run.triggeredBy === 'automation' && run.status === 'complete')).toBe(true);
+    await waitFor(() => {
+      const runs = Object.values(useAppStore.getState().runs).filter((run) => run.targetId === target.id);
+      expect(runs.some((run) => run.triggeredBy === 'automation' && run.status === 'complete')).toBe(true);
+    });
   });
 
   it('a URL can hold multiple independent automations', async () => {

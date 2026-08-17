@@ -149,12 +149,37 @@ def test_recommendations_are_joined_to_their_finding() -> None:
     doc = build_report_document(_analysis(FULL_ANALYSIS), _url())
     by_ref = {f.ref: f for group in doc.finding_groups for f in group.findings}
 
-    assert by_ref['F1'].recommendation is not None
-    assert by_ref['F1'].recommendation.ref == 'R1'
-    assert by_ref['F1'].recommendation.resolves_ref == 'F1'
-    assert by_ref['F2'].recommendation is not None
-    assert by_ref['F2'].recommendation.action == 'Add an offers block.'
+    assert len(by_ref['F1'].recommendations) == 1
+    assert by_ref['F1'].recommendations[0].ref == 'R1'
+    assert by_ref['F1'].recommendations[0].resolves_ref == 'F1'
+    assert len(by_ref['F2'].recommendations) == 1
+    assert by_ref['F2'].recommendations[0].action == 'Add an offers block.'
     assert doc.orphan_recommendations == []
+
+
+@pytest.mark.unit
+def test_multiple_recommendations_for_one_finding_all_survive() -> None:
+    """Two genuinely separate fixes for the same finding must both attach — neither
+    the backend's old "first wins" nor the frontend's old "last wins" behavior."""
+    analysis = {
+        'findings': [
+            {'id': 'F1', 'category': 'metadata', 'severity': 'critical', 'title': 'Missing meta description'},
+        ],
+        'recommendations': [
+            {'id': 'R1', 'finding_id': 'F1', 'action': 'Add a meta description tag.'},
+            {'id': 'R2', 'finding_id': 'F1', 'action': 'Also add an og:description tag.'},
+        ],
+    }
+    doc = build_report_document(_analysis(analysis), _url())
+    by_ref = {f.ref: f for group in doc.finding_groups for f in group.findings}
+
+    assert len(by_ref['F1'].recommendations) == 2
+    assert {r.action for r in by_ref['F1'].recommendations} == {
+        'Add a meta description tag.',
+        'Also add an og:description tag.',
+    }
+    assert doc.orphan_recommendations == []
+    assert doc.total_recommendations == 2
 
 
 @pytest.mark.unit
@@ -185,7 +210,7 @@ def test_html_change_splits_current_and_suggested() -> None:
     doc = build_report_document(_analysis(FULL_ANALYSIS), _url())
     by_ref = {f.ref: f for group in doc.finding_groups for f in group.findings}
 
-    change = by_ref['F2'].recommendation.html_change
+    change = by_ref['F2'].recommendations[0].html_change
     assert change.location == 'the JSON-LD script'
     assert change.current_markup == '{"@type":"Product"}'
     assert change.suggested_markup == '{"@type":"Product","offers":{}}'
@@ -284,15 +309,15 @@ def test_recommendation_without_html_change_renders_no_code_block() -> None:
     )
     finding = doc.finding_groups[0].findings[0]
 
-    assert finding.recommendation is not None
-    assert finding.recommendation.html_change is None
+    assert len(finding.recommendations) == 1
+    assert finding.recommendations[0].html_change is None
 
 
 @pytest.mark.unit
 def test_absent_element_is_labelled_not_rendered_as_an_empty_block() -> None:
     doc = build_report_document(_analysis(FULL_ANALYSIS), _url())
     by_ref = {f.ref: f for group in doc.finding_groups for f in group.findings}
-    change = by_ref['F1'].recommendation.html_change
+    change = by_ref['F1'].recommendations[0].html_change
 
     assert change.current_markup is None
     assert change.current_is_absent is True
@@ -343,7 +368,7 @@ def test_oversized_markup_is_truncated_and_says_so() -> None:
         ),
         _url(),
     )
-    change = doc.finding_groups[0].findings[0].recommendation.html_change
+    change = doc.finding_groups[0].findings[0].recommendations[0].html_change
 
     assert change.suggested_markup is not None
     assert len(change.suggested_markup) == MAX_CODE_CHARS

@@ -21,7 +21,7 @@ export function RunSnapshotView({ run }: { run: AnalysisRun }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <ScoreSummary score={run.score} />
+      <ScoreSummary scores={{ overall: run.score, seo: run.seoScore, geo: run.geoScore }} />
       <FindingsList findings={findings} />
     </div>
   );

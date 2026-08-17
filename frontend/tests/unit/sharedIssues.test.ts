@@ -23,6 +23,8 @@ function makeRun(id: string, targetId: string, findingIds: string[]): AnalysisRu
     startedAt: new Date().toISOString(),
     completedAt: new Date().toISOString(),
     score: 80,
+    seoScore: null,
+    geoScore: null,
     failureReason: null,
     findingIds,
     httpStatus: 200,
@@ -35,14 +37,13 @@ function makeFinding(id: string, runId: string, title: string): Finding {
   return {
     id,
     runId,
-    category: 'meta-tags',
+    category: 'metadata',
     severity: 'warning',
     title,
     description: 'desc',
     metricValue: null,
     isMissing: false,
-    suggestion: 'fix it',
-    codeSnippet: null,
+    recommendations: [{ id: `${id}-rec`, action: 'fix it', rationale: '', codeSnippet: null }],
   };
 }
 

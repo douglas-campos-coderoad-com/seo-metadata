@@ -35,6 +35,8 @@ function completedRun(id: string, targetId: string, findingId: string): Analysis
     startedAt: new Date().toISOString(),
     completedAt: new Date().toISOString(),
     score: 60,
+    seoScore: null,
+    geoScore: null,
     failureReason: null,
     findingIds: [findingId],
     httpStatus: 200,
@@ -47,14 +49,13 @@ function missingMetaFinding(id: string, runId: string): Finding {
   return {
     id,
     runId,
-    category: 'meta-tags',
+    category: 'metadata',
     severity: 'critical',
     title: 'Missing meta description',
     description: 'No meta description tag was found.',
     metricValue: null,
     isMissing: true,
-    suggestion: 'Add a meta description.',
-    codeSnippet: null,
+    recommendations: [{ id: `${id}-rec`, action: 'Add a meta description.', rationale: '', codeSnippet: null }],
   };
 }
 

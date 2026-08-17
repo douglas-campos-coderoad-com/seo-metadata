@@ -137,6 +137,8 @@ export class MockAnalysisService implements AnalysisService {
       startedAt: new Date().toISOString(),
       completedAt: null,
       score: null,
+      seoScore: null,
+      geoScore: null,
       failureReason: null,
       findingIds: [],
       httpStatus: null,

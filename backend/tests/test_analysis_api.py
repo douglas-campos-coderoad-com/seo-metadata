@@ -23,13 +23,26 @@ async def test_analyze_url_success(client, db_session_factory):
         await session.refresh(ingested)
         ingested_id = ingested.id
 
+    mock_finding = {
+        'id': 'F1',
+        'category': 'metadata',
+        'severity': 'critical',
+        'status': 'fail',
+        'title': 'Missing meta description',
+        'detail': 'The page has no meta description tag.',
+    }
+    mock_recommendation = {
+        'id': 'R1',
+        'finding_id': 'F1',
+        'action': 'Add meta description',
+    }
     mock_result = {
         'seo_score': 65,
         'geo_score': 45,
         'overall_score': 55,
         'analysis': {
-            'findings': ['Missing meta description'],
-            'recommendations': ['Add meta description'],
+            'findings': [mock_finding],
+            'recommendations': [mock_recommendation],
             'geo_visibility': 'Moderate visibility',
             'seo_breakdown': {},
             'geo_breakdown': {},
@@ -51,7 +64,8 @@ async def test_analyze_url_success(client, db_session_factory):
     assert data['overall_score'] == 55
     assert data['status'] == 'completed'
     assert data['json_ld'] is not None
-    assert data['analysis']['findings'] == ['Missing meta description']
+    assert data['analysis']['findings'][0]['title'] == 'Missing meta description'
+    assert data['analysis']['findings'][0]['severity'] == 'critical'
 
 
 @pytest.mark.asyncio
@@ -85,7 +99,21 @@ async def test_get_analysis_success(client, db_session_factory):
             seo_score=70,
             geo_score=50,
             overall_score=60,
-            analysis={'findings': ['Test finding']},
+            analysis={
+                'findings': [
+                    {
+                        'id': 'F1',
+                        'category': 'content',
+                        'severity': 'medium',
+                        'status': 'warning',
+                        'title': 'Test finding',
+                        'detail': 'A test finding.',
+                    }
+                ],
+                'recommendations': [
+                    {'id': 'R1', 'finding_id': 'F1', 'action': 'Do the test fix'}
+                ],
+            },
             json_ld={'@context': 'https://schema.org'},
             status='completed',
             error=None,

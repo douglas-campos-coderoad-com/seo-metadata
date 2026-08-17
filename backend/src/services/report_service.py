@@ -277,30 +277,33 @@ def build_report_document(
     if not isinstance(raw_recommendations, list):
         raw_recommendations = []
 
-    # Index recommendations by the finding they resolve.
-    by_finding: dict[str, ReportRecommendation] = {}
+    # Index recommendations by the finding they resolve. Usually one per finding, but
+    # several can share a finding_id when there are genuinely separate fixes — all of
+    # them stay attached, none silently dropped.
+    by_finding: dict[str, list[ReportRecommendation]] = {}
     orphans: list[ReportRecommendation] = []
     for entry in raw_recommendations:
         recommendation = _build_recommendation(entry)
         if recommendation is None:
             continue
         key = recommendation.resolves_ref
-        if key and key not in by_finding:
-            by_finding[key] = recommendation
+        if key:
+            by_finding.setdefault(key, []).append(recommendation)
         else:
             orphans.append(recommendation)
 
-    # Build findings and attach their recommendation (FR-009).
+    # Build findings and attach their recommendations (FR-009).
     findings: list[ReportFinding] = []
     for entry in raw_findings:
         finding = _build_finding(entry)
-        if finding.ref and finding.ref in by_finding:
-            finding.recommendation = by_finding.pop(finding.ref)
+        if finding.ref:
+            finding.recommendations = by_finding.pop(finding.ref, [])
         findings.append(finding)
 
     # Anything still unclaimed resolved a finding that does not exist. It is
     # rendered anyway — SC-002 makes dropping a recommendation a defect.
-    orphans.extend(by_finding.values())
+    for leftover in by_finding.values():
+        orphans.extend(leftover)
 
     # Group by category in fixed order, worst severity first within a group.
     grouped: dict[str, list[ReportFinding]] = {}

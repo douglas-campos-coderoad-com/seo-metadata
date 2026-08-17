@@ -224,14 +224,15 @@ def plan_changes(state: dict) -> dict:
     if not analysis or not html:
         return {'plan_error': 'Missing analysis or HTML'}
 
-    # Extract scores and findings
+    # Extract scores, findings, and their recommendations
     scores = analysis.get('scores', {})
     findings = analysis.get('findings', [])
+    recommendations = analysis.get('recommendations', [])
 
     scores_and_findings = f'''
     Scores: {json.dumps(scores, ensure_ascii=False)}
     Findings: {json.dumps(findings, ensure_ascii=False)}
-    Recommendations: {json.dumps(analysis.get('recommendations', []), ensure_ascii=False)}
+    Recommendations (each references the finding id it resolves via "finding_id"): {json.dumps(recommendations, ensure_ascii=False)}
     Geo visibility: {analysis.get('geo_visibility', 'N/A')}
     '''
 

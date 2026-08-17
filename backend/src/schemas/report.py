@@ -86,8 +86,10 @@ class ReportFinding(BaseModel):
     severity_label: str = 'Needs improvement'
     severity_color: str = ''
     severity_text_color: str = ''
-    #: The recommendation that resolves this finding, if any (FR-009).
-    recommendation: ReportRecommendation | None = None
+    #: The recommendations that resolve this finding (FR-009). Usually one; can be
+    #: empty for a low-impact finding, or more than one when genuinely separate
+    #: fixes apply — never collapsed into a single entry.
+    recommendations: list[ReportRecommendation] = Field(default_factory=list)
 
 
 class FindingGroup(BaseModel):
@@ -147,10 +149,9 @@ class ReportDocument(BaseModel):
     @property
     def total_recommendations(self) -> int:
         joined = sum(
-            1
+            len(finding.recommendations)
             for group in self.finding_groups
             for finding in group.findings
-            if finding.recommendation is not None
         )
         return joined + len(self.orphan_recommendations)
 

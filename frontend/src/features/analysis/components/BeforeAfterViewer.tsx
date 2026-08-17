@@ -5,7 +5,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Spinner } from '@/shared/components/Spinner';
 import { ScoreSummary } from './ScoreSummary';
 import { FindingsList } from './FindingsList';
-import { EntityGraph } from './EntityGraph';
+import { EntityGraphBlock } from './EntityGraphBlock';
 import { AeoLiveTest } from './AeoLiveTest';
 import { useOptimize, type OptimizationData, type GeoScoreData } from '../hooks/useOptimize';
 import type { Finding } from '@/shared/types';
@@ -14,6 +14,8 @@ interface BeforeAfterViewerProps {
   analysisId: number;
   originalUrl: string;
   initialScore: number;
+  initialSeoScore: number | null;
+  initialGeoScore: number | null;
   findings: Finding[];
 }
 
@@ -37,7 +39,17 @@ function AfterBlock({ optimization }: { optimization: OptimizationData | null })
   if (!optimization) return null;
   const content = optimization.optimized_content || {};
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {optimization.score_after_estimated && (
+          <ScoreSummary
+            scores={{
+              overall: optimization.score_after_estimated.overall ?? 0,
+              seo: optimization.score_after_estimated.seo ?? null,
+              geo: optimization.score_after_estimated.geo ?? null,
+            }}
+          />
+      )}
+
       <div className="rounded-xl border border-border bg-card p-4">
         <h4 className="mb-2 text-sm font-semibold uppercase text-muted-foreground">Optimized Content</h4>
         {content.optimized_title && <p className="font-medium">{content.optimized_title}</p>}
@@ -64,22 +76,18 @@ function AfterBlock({ optimization }: { optimization: OptimizationData | null })
           </div>
         </div>
       )}
-
-      {optimization.score_after_estimated && (
-        <div className="rounded-xl border border-border bg-card p-4">
-          <h4 className="mb-2 text-sm font-semibold uppercase text-muted-foreground">Estimated Scores After</h4>
-          <div className="flex gap-4 text-sm">
-            <span>SEO: <b>{optimization.score_after_estimated.seo}</b></span>
-            <span>GEO: <b>{optimization.score_after_estimated.geo}</b></span>
-            <span>Overall: <b>{optimization.score_after_estimated.overall}</b></span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-export function BeforeAfterViewer({ analysisId, originalUrl, initialScore, findings }: BeforeAfterViewerProps) {
+export function BeforeAfterViewer({
+  analysisId,
+  originalUrl,
+  initialScore,
+  initialSeoScore,
+  initialGeoScore,
+  findings
+}: BeforeAfterViewerProps) {
   const { optimization, geoScore, isLoading, error, run } = useOptimize();
   const [optimized, setOptimized] = useState(false);
 
@@ -92,20 +100,17 @@ export function BeforeAfterViewer({ analysisId, originalUrl, initialScore, findi
     <div className="flex flex-col gap-8">
       <div className="grid gap-6 lg:grid-cols-2">
         {/* BEFORE */}
-        <section className="rounded-2xl border border-border bg-muted/20 p-6">
+        <section className="rounded-2xl border border-border bg-white p-6 space-y-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold">Before</h2>
             <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">Original</span>
           </div>
-          <ScoreSummary score={initialScore} />
-          <div className="mt-4">
-            <p className="text-sm text-muted-foreground">Current GEO/AEO metrics: low visibility, unstructured content, no knowledge graph.</p>
-          </div>
+          <ScoreSummary scores={{ overall: initialScore, seo: initialSeoScore, geo: initialGeoScore }} />
           <FindingsList findings={findings} />
         </section>
 
         {/* AFTER */}
-        <section className="rounded-2xl border border-primary/30 bg-card p-6">
+        <section className="rounded-2xl border-2 border-primary/40 bg-card p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold">After</h2>
             {optimized ? (
@@ -128,7 +133,7 @@ export function BeforeAfterViewer({ analysisId, originalUrl, initialScore, findi
           ) : (
             <div className="space-y-4">
               <AfterBlock optimization={optimization} />
-              <EntityGraph optimization={optimization} />
+              <EntityGraphBlock jsonld={optimization?.optimized_json_ld ?? null} />
               <GeoScoreBlock geoScore={geoScore} />
               {optimization?.changes && optimization.changes.length > 0 && (
                 <div className="rounded-xl border border-border bg-card p-4">
