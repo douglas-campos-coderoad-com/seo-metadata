@@ -1,7 +1,7 @@
 .PHONY: help dev test build gen-client clean install lint format
 
 help:
-	@echo "InCollect Development Commands"
+	@echo "Visora Development Commands"
 	@echo "==============================="
 	@echo "make dev           - Start local development (Docker Compose)"
 	@echo "make test          - Run all tests (backend + frontend)"

@@ -1,6 +1,6 @@
-# InCollect Constitution
+# Visora Constitution
 
-The governing principles for InCollect. This document supersedes ad-hoc practices.
+The governing principles for Visora. This document supersedes ad-hoc practices.
 Every spec, plan, task, and pull request MUST be checkable against it. When a
 principle and convenience conflict, the principle wins or the principle is amended
 first — never silently ignored.

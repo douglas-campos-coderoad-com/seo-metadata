@@ -1,6 +1,6 @@
 # Backend
 
-FastAPI service for InCollect. Runs via Docker Compose from the repository root:
+FastAPI service for Visora. Runs via Docker Compose from the repository root:
 
 ```bash
 docker compose up -d          # postgres + api

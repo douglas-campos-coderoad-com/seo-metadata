@@ -162,7 +162,7 @@ class ReportDocument(BaseModel):
 
     @property
     def analysis_date_display(self) -> str:
-        return self.analysis_date.strftime('%Y-%m-%d')
+        return self.analysis_date.strftime('%m-%d-%Y')
 
     @property
     def seo_score_display(self) -> str:

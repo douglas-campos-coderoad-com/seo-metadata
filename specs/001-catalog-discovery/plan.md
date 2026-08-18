@@ -1,10 +1,10 @@
-# Implementation Plan: Curated Catalog Discovery & Dealer Inquiry
+# Implementation Plan: Curated Catalog Discovery & Dealer Inquiry DEPRECATED
 
 **Branch**: `001-catalog-discovery` | **Date**: 2026-08-04 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `specs/001-catalog-discovery/spec.md`
 
-**Note**: This plan is filled in by the `/speckit-plan` command following the InCollect constitution and tech stack.
+**Note**: This plan is filled in by the `/speckit-plan` command following the Visora constitution and tech stack.
 
 ## Summary
 

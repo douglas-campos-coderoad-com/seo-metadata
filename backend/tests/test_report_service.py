@@ -112,7 +112,7 @@ def test_scores_and_metadata_are_carried_through() -> None:
 
     assert isinstance(doc, ReportDocument)
     assert doc.url == 'https://example.com/products/chair'
-    assert doc.analysis_date_display == '2026-08-16'
+    assert doc.analysis_date_display == '08-16-2026'
     assert (doc.seo_score, doc.geo_score, doc.overall_score) == (70, 60, 65)
     assert doc.geo_visibility.startswith('The page is moderately citable')
 

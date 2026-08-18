@@ -11,7 +11,7 @@ Implementar el endpoint `POST /api/v1/ingest/url` que recibe una URL de cualquie
 1. **Motor principal (rápido y ligero)**: `httpx` + `BeautifulSoup4`
    - Cliente HTTP async (consistente con el stack FastAPI)
    - Timeouts y headers configurables (User-Agent realista)
-   - Funciona para la mayoría de sitios (Shopify, Magento, InCollect sirven HTML estático con JSON-LD / meta tags)
+   - Funciona para la mayoría de sitios (Shopify, Magento, Visora sirven HTML estático con JSON-LD / meta tags)
 
 2. **Fallback con JavaScript**: `Playwright`
    - Para URLs que renderizan contenido dinámicamente (SPAs)

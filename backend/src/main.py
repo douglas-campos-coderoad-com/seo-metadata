@@ -21,7 +21,7 @@ from src.services.pdf_renderer import pdf_renderer
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title='InCollect',
+        title='Visora Analyzer',
         description='Curated Catalog Discovery & Dealer Inquiry',
         version='0.1.0',
     )

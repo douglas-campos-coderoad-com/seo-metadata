@@ -1,4 +1,4 @@
--- PostgreSQL initialization script for InCollect
+-- PostgreSQL initialization script for Visora Analyzer
 
 -- Create test database
 CREATE DATABASE incollect_test;
