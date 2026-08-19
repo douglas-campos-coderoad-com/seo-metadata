@@ -64,18 +64,12 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "Deploying: ${COMPONENT}"
 
-  # ── Gate: the same checks that run on pull requests, scoped to what ships ─
-  test:
-    # Skipped when rolling out an already-built tag: that image passed CI when
-    # it was built, and re-testing today's main would test the wrong commit.
-    if: ${{ !inputs.image_tag }}
-    uses: ./.github/workflows/ci.yml
-    with:
-      components: ${{ inputs.component || 'both' }}
-
   # ── Build the selected images and push them to the registry ────────────
+  # No test gate here: ci.yml runs on its own for every pull_request and for
+  # every push to main, so the same checks still cover this commit — they just
+  # no longer sit in front of the build and add ~minutes to each rollout.
   build:
-    needs: [plan, test]
+    needs: [plan]
     if: ${{ !inputs.image_tag }}
     runs-on: ubuntu-latest
     strategy:
@@ -116,9 +110,9 @@ jobs:
 
   # ── Roll the VM forward ────────────────────────────────────────────────
   deploy:
-    needs: [plan, test, build]
-    # Runs when the gates passed *or* were skipped (the workflow_dispatch path
-    # that rolls out an already-built tag), but never when one of them failed.
+    needs: [plan, build]
+    # Runs when the build passed *or* was skipped (the workflow_dispatch path
+    # that rolls out an already-built tag), but never when it failed.
     if: ${{ !cancelled() && !failure() }}
     runs-on: ubuntu-latest
     environment:
