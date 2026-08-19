@@ -130,6 +130,23 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v3
 
+      - name: Verify the impersonated identity
+        # This job is environment-scoped, so its OIDC token carries
+        # sub=repo:OWNER/REPO:environment:production — a different subject from
+        # every other job here. A workload-identity binding written against
+        # google.subject rather than attribute.repository therefore passes for
+        # `build` and fails only here, surfacing as an inscrutable
+        # `gcloud compute ssh` auth error. Force the impersonation now instead.
+        run: |
+          gcloud auth print-access-token >/dev/null || {
+            echo "::error::Could not impersonate ${{ secrets.GCP_SERVICE_ACCOUNT }}." \
+                 "Check roles/iam.workloadIdentityUser on that service account —" \
+                 "it must be bound to the attribute.repository principalSet, not a" \
+                 "google.subject principal (see infra/gcp/README.md, Troubleshooting)."
+            exit 1
+          }
+          echo "Acting as: $(gcloud auth list --filter=status:ACTIVE --format='value(account)')"
+
       - name: Render the production .env
         # Written to the runner's workspace, uploaded over the IAP tunnel, then
         # installed root-only (0600) on the VM by deploy-remote.sh. GitHub masks

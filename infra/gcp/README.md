@@ -122,6 +122,13 @@ repository could mint tokens for your project.
 
 Let the pool impersonate the deployer, scoped to this one repository:
 
+Bind by `attribute.repository`, **not** by `google.subject`. The `deploy` job is
+environment-scoped (`environment: production`), and GitHub mints its OIDC token
+with `sub=repo:OWNER/REPO:environment:production` — a different subject from the
+`repo:OWNER/REPO:ref:refs/heads/main` every other job gets. A subject-scoped
+binding therefore authenticates `build` and denies `deploy`. `attribute.repository`
+is the same for both.
+
 ```bash
 gcloud iam service-accounts add-iam-policy-binding "$DEPLOYER" \
   --role=roles/iam.workloadIdentityUser \
