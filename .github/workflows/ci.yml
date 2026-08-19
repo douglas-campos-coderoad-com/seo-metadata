@@ -22,7 +22,9 @@ jobs:
     # On pull_request/push `inputs` is empty, so both jobs run as usual. A
     # component-scoped deploy gates on only the side it is shipping.
     if: ${{ (inputs.components || 'both') != 'frontend' }}
-    runs-on: ubuntu-latest
+    # Pinned rather than ubuntu-latest: the Chromium apt packages below use
+    # Noble's t64 names, so the image and the list have to move together.
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: backend
@@ -49,10 +51,43 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
 
+      # `playwright install --with-deps` is not usable here: playwright 1.40
+      # predates Ubuntu 24.04, so it asks apt for pre-time_t package names
+      # (libasound2, libatk1.0-0, ...) that Noble renamed to *t64 and the
+      # install aborts with "has no installation candidate". Installing the
+      # runtime libraries directly keeps the pinned playwright version, which
+      # matches the Debian bookworm image the service actually ships on.
+      - name: Install Chromium system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            fonts-liberation \
+            libasound2t64 \
+            libatk-bridge2.0-0t64 \
+            libatk1.0-0t64 \
+            libatspi2.0-0t64 \
+            libcairo2 \
+            libcups2t64 \
+            libdbus-1-3 \
+            libdrm2 \
+            libgbm1 \
+            libglib2.0-0t64 \
+            libnspr4 \
+            libnss3 \
+            libpango-1.0-0 \
+            libx11-6 \
+            libxcb1 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxext6 \
+            libxfixes3 \
+            libxkbcommon0 \
+            libxrandr2
+
       # The PDF export renders through Chromium, so the browser has to be
       # present for tests/integration/test_report_pdf.py to run at all.
       - name: Install Chromium
-        run: python -m playwright install --with-deps chromium
+        run: python -m playwright install chromium
 
       - name: Run tests
         # The suite uses in-memory SQLite (tests/conftest.py), so no database
