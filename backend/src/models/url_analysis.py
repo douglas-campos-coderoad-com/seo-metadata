@@ -18,6 +18,12 @@ class UrlAnalysis(Base, TimestampMixin):
         nullable=False,
         index=True,
     )
+    project_id = Column(
+        Integer,
+        ForeignKey('projects.id', ondelete='CASCADE'),
+        nullable=True,
+        index=True,
+    )
     seo_score = Column(Integer, nullable=True)
     geo_score = Column(Integer, nullable=True)
     overall_score = Column(Integer, nullable=True)
@@ -27,3 +33,4 @@ class UrlAnalysis(Base, TimestampMixin):
     error = Column(Text, nullable=True)
 
     ingested_url = relationship('IngestedUrl', backref='analyses')
+    project = relationship('Project', backref='analyses')

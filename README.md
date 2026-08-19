@@ -28,12 +28,14 @@ by severity consistently across the UI and the PDF.
 ### Frontend concepts
 
 - **Analyze** — submit a URL, watch the run status live, read findings, copy snippets, export the PDF.
-- **Projects** — group URLs so issues repeating across pages surface as *shared issues*.
+- **Projects** — group URLs so issues repeating across pages surface as *shared issues*; capture competitor context and a persisted before/after analysis history for each project.
 - **Targets / Runs** — per-URL history and a snapshot view of any past run.
 
-Projects and history live in a **session-scoped in-memory store** on the
-client (Zustand); the analyses and reports they point at are persisted by the backend.
-A full page reload clears the client-side grouping.
+Projects, their competitors, and their analysis history are **persisted server-side**
+(PostgreSQL) — reopening a project after a full reload shows the same data. The
+anonymous first-glance flow on the initial page stays session-scoped and client-side
+(Zustand): an analysis isn't saved anywhere durable unless it's explicitly added to a
+project.
 
 ---
 
@@ -53,10 +55,11 @@ A full page reload clears the client-side grouping.
 │  FastAPI · Python 3.12 · Pydantic v2                         │
 │  http://localhost:8000  (docs at /docs)                      │
 │                                                              │
-│  api/       ingest · analysis · optimization · geo · report  │
+│  api/       ingest · analysis · optimization · geo · report ·│
+│             projects                                         │
 │  services/  ingest · analysis (LangGraph) · optimizer ·      │
-│             geo_score · report · pdf_renderer                │
-│  agents/    entity · geo_content · llm_simulator             │
+│             geo_score · report · pdf_renderer · project      │
+│  agents/    entity · geo_content · llm_simulator · competitor│
 │  llm/       provider-agnostic repository (gemini|anthropic)  │
 │  templates/report/  Jinja2 + CSS printed to PDF              │
 └───────────────────────────┬──────────────────────────────────┘
@@ -64,7 +67,8 @@ A full page reload clears the client-side grouping.
                             ▼
 ┌──────────────────────────────────────────────────────────────┐
 │  PostgreSQL 16                                               │
-│  ingested_urls · url_analyses · url_optimizations            │
+│  ingested_urls · url_analyses · url_optimizations ·          │
+│  projects · competitors                                      │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -384,8 +388,8 @@ as `image_tag`.
 backend/
 ├── src/
 │   ├── api/            FastAPI routers
-│   ├── services/       ingest, analysis graph, optimizer, geo scoring, report, pdf
-│   ├── agents/         entity, geo_content, llm_simulator
+│   ├── services/       ingest, analysis graph, optimizer, geo scoring, report, pdf, project
+│   ├── agents/         entity, geo_content, llm_simulator, competitor
 │   ├── llm/            provider-agnostic LLM repository
 │   ├── models/         SQLAlchemy models
 │   ├── schemas/        Pydantic schemas
@@ -418,6 +422,7 @@ specs/                  feature specifications and implementation plans
 | SEO analyzer frontend | [spec](specs/003-seo-analyzer-frontend/spec.md) | [plan](specs/003-seo-analyzer-frontend/plan.md) · [tasks](specs/003-seo-analyzer-frontend/tasks.md) |
 | SEO/GEO/AEO optimizer | [spec](specs/004-seo-optimizer/spec.md) | [plan](specs/004-seo-optimizer/plan.md) |
 | PDF report export | [spec](specs/005-pdf-report-export/spec.md) | [plan](specs/005-pdf-report-export/plan.md) · [tasks](specs/005-pdf-report-export/tasks.md) |
+| Project-centric analysis management | [spec](specs/008-project-centric-analysis/spec.md) | [plan](specs/008-project-centric-analysis/plan.md) · [tasks](specs/008-project-centric-analysis/tasks.md) |
 
 Also useful: [`constitution.md`](constitution.md) (engineering principles),
 [`POSTMAN_COLLECTION.md`](POSTMAN_COLLECTION.md) (API walkthrough),
