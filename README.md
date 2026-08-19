@@ -43,7 +43,7 @@ A full page reload clears the client-side grouping.
 ┌──────────────────────────────────────────────────────────────┐
 │  Next.js 15 App Router · TypeScript strict · Tailwind        │
 │  http://localhost:3000                                       │
-│  app/{analyze,projects,targets,runs}                          │
+│  app/{projects,targets,runs}                                  │
 │  features/{analysis,projects,history,landing}                │
 │  shared/{store,realtime,components}                          │
 └───────────────────────────┬──────────────────────────────────┘
