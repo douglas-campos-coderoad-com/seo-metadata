@@ -233,18 +233,20 @@ Response shape:
 ### Optimizer
 
 ```http
-POST /api/v1/optimize/{analysis_id}    # generate optimized HTML, JSON-LD, content
+POST /api/v1/optimize/{analysis_id}    # generate optimized HTML, JSON-LD, content + roi_projection
 GET  /api/v1/optimize/{analysis_id}    # latest optimization
 ```
+
+The `POST` accepts an optional JSON body with business metrics used to project ROI
+(`metrics.monthly_organic_traffic`, `generative_search_share`, `conversion_rate`,
+`avg_order_value`, `cost_per_product`). When omitted, sensible defaults are used.
 
 ### GEO / AEO
 
 ```http
-POST /api/v1/geo/optimize/{analysis_id}   # entity + content agent suite
 POST /api/v1/geo/aeo-test/{analysis_id}   { "query": "..." }  → before/after LLM answers
 POST /api/v1/geo/simulate/{analysis_id}   { "query": "..." }  → cited?, confidence, quote
 POST /api/v1/geo/score/{analysis_id}      # 0–100 GEO citation score
-POST /api/v1/geo/roi                      # projected financial impact
 ```
 
 ### PDF report

@@ -14,6 +14,7 @@ class OptimizationResponse(BaseSchema):
     copy_paste_ready: Optional[Any] = None
     score_before: Optional[Any] = None
     score_after_estimated: Optional[Any] = None
+    roi_projection: Optional[Any] = None
     status: str
     error: Optional[str] = None
     created_at: datetime

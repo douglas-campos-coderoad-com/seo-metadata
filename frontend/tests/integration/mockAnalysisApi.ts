@@ -52,6 +52,22 @@ export function mockSuccessfulAnalysisPipeline() {
         },
         score_before: { seo: 70, geo: 60, overall: 65 },
         score_after_estimated: { seo: 92, geo: 85, overall: 89 },
+        roi_projection: {
+          metrics_used: {
+            monthly_organic_traffic: 10000,
+            generative_search_share: 0.2,
+            conversion_rate: 0.015,
+            avg_order_value: 150.0,
+            cost_per_product: 1.0,
+          },
+          incremental_traffic_monthly: { seo_traditional: 376, geo_ai: 110, total: 486 },
+          financial_impact_annual: {
+            incremental_revenue: 13122.0,
+            optimization_cost: 1.0,
+            net_profit: 13121.0,
+            roi_percentage: 1312100.0,
+          },
+        },
         status: 'completed',
         error: null,
         created_at: new Date().toISOString(),

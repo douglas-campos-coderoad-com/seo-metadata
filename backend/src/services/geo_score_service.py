@@ -7,14 +7,15 @@ Calculates:
        - AEO Structure
        - Entity Coverage
        - JSON-LD Validity
-  3.2. AI Financial Impact Calculator:
-       - Generative search traffic share (SearchGPT / Perplexity)
-       - Operational savings vs marginal AI API cost ($0.03 USD/product)
+  3.2. Full ROI Calculator:
+       - Combined SEO traditional (Google) + GEO/AI (Perplexity, SearchGPT) impact
+       - Uses real analysis scores and optional business metrics (with fallbacks)
 """
-import json
 import logging
 import re
 from typing import Optional
+
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -25,13 +26,6 @@ WEIGHTS = {
     'entity_coverage': 0.25,
     'json_ld_validity': 0.25,
 }
-
-# Default ROI parameters
-DEFAULT_COST_PER_PRODUCT = 0.03  # USD
-DEFAULT_GENERATIVE_SEARCH_SHARE = 0.10  # 10%
-DEFAULT_CONVERSION_RATE = 0.02  # 2%
-DEFAULT_AVG_ORDER_VALUE = 500.0  # USD
-
 
 # ── 3.1 GEO Citation Score ────────────────────────────────────────────────
 
@@ -219,80 +213,68 @@ def calculate_geo_citation_score(
     }
 
 
-# ── 3.2 ROI Calculator ────────────────────────────────────────────────────
+# ── 3.2 Full ROI Calculator ───────────────────────────────────────────────
 
 
-def calculate_ai_roi(
-    monthly_organic_traffic: int = 10000,
-    generative_search_share: float = DEFAULT_GENERATIVE_SEARCH_SHARE,
-    current_geo_score: int = 0,
-    improved_geo_score: int = 100,
-    products_count: int = 100,
-    cost_per_product: float = DEFAULT_COST_PER_PRODUCT,
-    conversion_rate: float = DEFAULT_CONVERSION_RATE,
-    avg_order_value: float = DEFAULT_AVG_ORDER_VALUE,
+class BusinessMetrics(BaseModel):
+    monthly_organic_traffic: int = Field(default=10000, ge=0)
+    generative_search_share: float = Field(default=0.20, ge=0.0, le=1.0)  # 20% IA, 80% SEO Tradicional
+    conversion_rate: float = Field(default=0.015, ge=0.0, le=1.0)  # 1.5% Conversión
+    avg_order_value: float = Field(default=150.0, ge=0.0)  # $150 Ticket promedio
+    cost_per_product: float = Field(default=1.0, ge=0.0)  # $1 USD costo API/Página
+
+
+def calculate_full_roi(
+    current_seo_score: int,
+    improved_seo_score: int,
+    current_geo_score: int,
+    improved_geo_score: int,
+    products_count: int = 1,
+    metrics: Optional[BusinessMetrics] = None,
 ) -> dict:
-    """
-    Estimate financial impact from generative search (SearchGPT / Perplexity).
+    """Estimate the combined SEO + GEO/AI financial impact and net ROI."""
+    if metrics is None:
+        metrics = BusinessMetrics()
 
-    Returns:
-    - Current and post-optimization AI traffic share
-    - Revenue from AI traffic
-    - API / operational cost
-    - Net ROI
-    """
-    if current_geo_score < 0 or current_geo_score > 100:
-        raise ValueError('current_geo_score must be between 0 and 100')
-    if improved_geo_score < 0 or improved_geo_score > 100:
-        raise ValueError('improved_geo_score must be between 0 and 100')
+    # 1. Distribución de Tráfico Base (SEO vs IA)
+    ai_share = metrics.generative_search_share
+    seo_share = 1.0 - ai_share
 
-    # Visibility factor: geo_score is a proxy for AI citability (0-1)
-    current_visibility = current_geo_score / 100.0
-    improved_visibility = improved_geo_score / 100.0
+    seo_traffic_base = metrics.monthly_organic_traffic * seo_share
+    ai_traffic_base = metrics.monthly_organic_traffic * ai_share
 
-    # AI traffic share
-    current_ai_traffic = monthly_organic_traffic * generative_search_share * current_visibility
-    improved_ai_traffic = monthly_organic_traffic * generative_search_share * improved_visibility
-    incremental_ai_traffic = improved_ai_traffic - current_ai_traffic
+    # 2. Factores de Visibilidad (Score 0-100 a Ratio 0.0 - 1.0)
+    current_seo_vis = current_seo_score / 100.0
+    improved_seo_vis = improved_seo_score / 100.0
 
-    # Revenue from AI traffic
-    current_ai_revenue = current_ai_traffic * conversion_rate * avg_order_value
-    improved_ai_revenue = improved_ai_traffic * conversion_rate * avg_order_value
-    incremental_ai_revenue = improved_ai_revenue - current_ai_revenue
+    current_geo_vis = current_geo_score / 100.0
+    improved_geo_vis = improved_geo_score / 100.0
 
-    # Operational cost: marginal AI API cost per product
-    ai_api_cost = products_count * cost_per_product
+    # 3. Tráfico Incremental Mensual
+    incremental_seo_traffic = seo_traffic_base * (improved_seo_vis - current_seo_vis)
+    incremental_ai_traffic = ai_traffic_base * (improved_geo_vis - current_geo_vis)
+    total_incremental_traffic = incremental_seo_traffic + incremental_ai_traffic
 
-    # Operational savings / net ROI
-    net_savings = incremental_ai_revenue - ai_api_cost
-    roi_percentage = (net_savings / ai_api_cost) * 100 if ai_api_cost > 0 else 0.0
+    # 4. Proyección Financiera Anual (12 meses)
+    revenue_per_visit = metrics.conversion_rate * metrics.avg_order_value
+    incremental_revenue_annual = (total_incremental_traffic * revenue_per_visit) * 12
+    total_cost = products_count * metrics.cost_per_product
+
+    # 5. Cálculo de ROI Neto
+    net_profit = incremental_revenue_annual - total_cost
+    roi_percentage = (net_profit / total_cost) * 100 if total_cost > 0 else 0.0
 
     return {
-        'inputs': {
-            'monthly_organic_traffic': monthly_organic_traffic,
-            'generative_search_share': generative_search_share,
-            'current_geo_score': current_geo_score,
-            'improved_geo_score': improved_geo_score,
-            'products_count': products_count,
-            'cost_per_product': cost_per_product,
-            'conversion_rate': conversion_rate,
-            'avg_order_value': avg_order_value,
+        'metrics_used': metrics.model_dump(),
+        'incremental_traffic_monthly': {
+            'seo_traditional': round(incremental_seo_traffic),
+            'geo_ai': round(incremental_ai_traffic),
+            'total': round(total_incremental_traffic),
         },
-        'ai_traffic': {
-            'current': round(current_ai_traffic),
-            'improved': round(improved_ai_traffic),
-            'incremental': round(incremental_ai_traffic),
-        },
-        'revenue': {
-            'current': round(current_ai_revenue, 2),
-            'improved': round(improved_ai_revenue, 2),
-            'incremental': round(incremental_ai_revenue, 2),
-        },
-        'costs': {
-            'ai_api_cost': round(ai_api_cost, 2),
-        },
-        'roi': {
-            'net_savings': round(net_savings, 2),
+        'financial_impact_annual': {
+            'incremental_revenue': round(incremental_revenue_annual, 2),
+            'optimization_cost': round(total_cost, 2),
+            'net_profit': round(net_profit, 2),
             'roi_percentage': round(roi_percentage, 1),
         },
     }

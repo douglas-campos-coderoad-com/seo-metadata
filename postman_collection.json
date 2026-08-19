@@ -159,19 +159,6 @@
       "name": "GEO/AEO Motor",
       "item": [
         {
-          "name": "GEO Optimize",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/geo/optimize/{{analysis_id}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "geo", "optimize", "{{analysis_id}}"]
-            }
-          },
-          "response": []
-        },
-        {
           "name": "GEO Score",
           "request": {
             "method": "POST",
@@ -180,28 +167,6 @@
               "raw": "{{baseUrl}}/api/v1/geo/score/{{analysis_id}}",
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "geo", "score", "{{analysis_id}}"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "GEO ROI",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"monthly_organic_traffic\": 10000,\n  \"generative_search_share\": 0.10,\n  \"current_geo_score\": 30,\n  \"improved_geo_score\": 80,\n  \"products_count\": 100,\n  \"cost_per_product\": 0.03,\n  \"conversion_rate\": 0.02,\n  \"avg_order_value\": 500.0\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/geo/roi",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "geo", "roi"]
             }
           },
           "response": []

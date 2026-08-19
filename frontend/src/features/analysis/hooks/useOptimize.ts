@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
+import type { RoiProjection } from '../lib/roi';
 
 // ── Backend response shapes ─────────────────────────────────────────────
+
+export type { RoiProjection } from '../lib/roi';
 
 export interface CopyPasteReady {
   head_tags_html: string;
@@ -28,6 +31,7 @@ export interface OptimizationData {
   copy_paste_ready: CopyPasteReady | null;
   score_before: { seo?: number; geo?: number; overall?: number } | null;
   score_after_estimated: { seo?: number; geo?: number; overall?: number } | null;
+  roi_projection: RoiProjection | null;
   status: string;
   error: string | null;
 }

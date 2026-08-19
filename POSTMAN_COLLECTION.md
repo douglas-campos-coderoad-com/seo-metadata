@@ -93,7 +93,18 @@ Sin body.
 
 **POST** `/api/v1/optimize/{analysis_id}`
 
-Sin body.
+**Body opcional (JSON):** métricas de negocio para la proyección de ROI. Si no se envían, se usan los valores por defecto.
+```json
+{
+  "metrics": {
+    "monthly_organic_traffic": 10000,
+    "generative_search_share": 0.20,
+    "conversion_rate": 0.015,
+    "avg_order_value": 150.0,
+    "cost_per_product": 1.0
+  }
+}
+```
 
 **Respuesta 200:**
 ```json
@@ -106,6 +117,26 @@ Sin body.
   "changes": [...],
   "score_before": {"seo": 55, "geo": 30, "overall": 42},
   "score_after_estimated": {"seo": 85, "geo": 80, "overall": 82},
+  "roi_projection": {
+    "metrics_used": {
+      "monthly_organic_traffic": 10000,
+      "generative_search_share": 0.2,
+      "conversion_rate": 0.015,
+      "avg_order_value": 150.0,
+      "cost_per_product": 1.0
+    },
+    "incremental_traffic_monthly": {
+      "seo_traditional": 376,
+      "geo_ai": 110,
+      "total": 486
+    },
+    "financial_impact_annual": {
+      "incremental_revenue": 13122.0,
+      "optimization_cost": 1.0,
+      "net_profit": 13121.0,
+      "roi_percentage": 1312100.0
+    }
+  },
   "status": "completed",
   "error": null,
   "created_at": "2026-08-11T12:00:00Z"
@@ -122,35 +153,7 @@ Sin body.
 
 ## 5. GEO/AEO Motor (Nuevo)
 
-### 5.1 GEO Optimize
-
-**POST** `/api/v1/geo/optimize/{analysis_id}`
-
-Sin body.
-
-**Respuesta 200:**
-```json
-{
-  "analysis_id": 1,
-  "optimized_html": "<!DOCTYPE html>...",
-  "optimized_json_ld": {...},
-  "optimized_content": {
-    "optimized_title": "...",
-    "optimized_meta_description": "...",
-    "geo_content": "...",
-    "alt_texts": {...},
-    "qa_pairs": [...],
-    "fact_density_score": 75
-  },
-  "changes": [...],
-  "score_before": {"seo": 55, "geo": 30, "overall": 42},
-  "score_after_estimated": {"seo": 85, "geo": 80, "overall": 82},
-  "status": "completed",
-  "error": null
-}
-```
-
-### 5.2 GEO Score (Calculadora de GEO Citation Score)
+### 5.1 GEO Score (Calculadora de GEO Citation Score)
 
 **POST** `/api/v1/geo/score/{analysis_id}`
 
@@ -176,58 +179,7 @@ Sin body.
 }
 ```
 
-### 5.3 GEO ROI (Calculadora de Impacto Financiero en IA)
-
-**POST** `/api/v1/geo/roi`
-
-**Body (JSON):**
-```json
-{
-  "monthly_organic_traffic": 10000,
-  "generative_search_share": 0.10,
-  "current_geo_score": 30,
-  "improved_geo_score": 80,
-  "products_count": 100,
-  "cost_per_product": 0.03,
-  "conversion_rate": 0.02,
-  "avg_order_value": 500.0
-}
-```
-
-**Respuesta 200:**
-```json
-{
-  "inputs": {
-    "monthly_organic_traffic": 10000,
-    "generative_search_share": 0.1,
-    "current_geo_score": 30,
-    "improved_geo_score": 80,
-    "products_count": 100,
-    "cost_per_product": 0.03,
-    "conversion_rate": 0.02,
-    "avg_order_value": 500.0
-  },
-  "ai_traffic": {
-    "current": 300,
-    "improved": 800,
-    "incremental": 500
-  },
-  "revenue": {
-    "current": 3000.0,
-    "improved": 8000.0,
-    "incremental": 5000.0
-  },
-  "costs": {
-    "ai_api_cost": 3.0
-  },
-  "roi": {
-    "net_savings": 4997.0,
-    "roi_percentage": 166566.7
-  }
-}
-```
-
-### 5.4 GEO AEO Live Test (Simulador de Recomendación de IA)
+### 5.2 GEO AEO Live Test (Simulador de Recomendación de IA)
 
 **POST** `/api/v1/geo/aeo-test/{analysis_id}`
 
@@ -260,7 +212,7 @@ Sin body.
 }
 ```
 
-### 5.5 GEO Simulate (Simulador de Citas LLM)
+### 5.3 GEO Simulate (Simulador de Citas LLM)
 
 **POST** `/api/v1/geo/simulate/{analysis_id}`
 
@@ -289,11 +241,9 @@ Sin body.
 
 1. **Ingerir URL**: `POST /api/v1/ingest/url` → obtén `id`
 2. **Analizar**: `POST /api/v1/analyze/{id}` → obtén `analysis_id`
-3. **Optimizar**: `POST /api/v1/optimize/{analysis_id}` → obtén HTML optimizado
-4. **GEO Optimize**: `POST /api/v1/geo/optimize/{analysis_id}` → obtén contenido GEO/AEO
-5. **GEO Score**: `POST /api/v1/geo/score/{analysis_id}` → obtén el GEO Citation Score (0-100)
-6. **ROI**: `POST /api/v1/geo/roi` → estima el impacto financiero en IA
-7. **Simular**: `POST /api/v1/geo/simulate/{analysis_id}` → evalúa citabilidad LLM
+3. **Optimizar**: `POST /api/v1/optimize/{analysis_id}` → obtén HTML optimizado + `roi_projection`
+4. **GEO Score**: `POST /api/v1/geo/score/{analysis_id}` → obtén el GEO Citation Score (0-100)
+5. **Simular**: `POST /api/v1/geo/simulate/{analysis_id}` → evalúa citabilidad LLM
 
 ---
 

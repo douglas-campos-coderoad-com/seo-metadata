@@ -1,15 +1,13 @@
 """Tests for the GEO Score & ROI SaaS service."""
-import pytest
-
 from src.services.geo_score_service import (
-    calculate_geo_citation_score,
-    calculate_ai_roi,
-    _extract_facts,
+    BusinessMetrics,
     _aeo_structure_score,
     _entity_coverage_score,
+    _extract_facts,
     _json_ld_validity_score,
+    calculate_full_roi,
+    calculate_geo_citation_score,
 )
-
 
 # ── 3.1 GEO Citation Score tests ─────────────────────────────────────────
 
@@ -127,45 +125,74 @@ def test_calculate_geo_citation_score_empty():
     assert result['dimensions']['fact_density']['score'] == 0
 
 
-# ── 3.2 ROI Calculator tests ─────────────────────────────────────────────
+# ── 3.2 Full ROI Calculator tests ────────────────────────────────────────
 
 
-def test_calculate_ai_roi_defaults():
-    result = calculate_ai_roi()
-    assert result['inputs']['monthly_organic_traffic'] == 10000
-    assert result['inputs']['cost_per_product'] == 0.03
-    assert result['costs']['ai_api_cost'] == 3.0  # 100 products * $0.03
-    assert result['roi']['roi_percentage'] >= 0
-
-
-def test_calculate_ai_roi_custom():
-    result = calculate_ai_roi(
-        monthly_organic_traffic=50000,
-        generative_search_share=0.20,
+def test_calculate_full_roi_defaults():
+    result = calculate_full_roi(
+        current_seo_score=30,
+        improved_seo_score=90,
         current_geo_score=30,
-        improved_geo_score=80,
-        products_count=500,
-        cost_per_product=0.05,
+        improved_geo_score=90,
+    )
+    metrics = result['metrics_used']
+    assert metrics['monthly_organic_traffic'] == 10000
+    assert metrics['generative_search_share'] == 0.20
+    assert metrics['cost_per_product'] == 1.0
+
+    traffic = result['incremental_traffic_monthly']
+    assert traffic['total'] == traffic['seo_traditional'] + traffic['geo_ai']
+
+    financial = result['financial_impact_annual']
+    assert financial['optimization_cost'] == 1.0  # products_count default 1 * $1.0
+    assert financial['roi_percentage'] >= 0
+
+
+def test_calculate_full_roi_custom_metrics():
+    metrics = BusinessMetrics(
+        monthly_organic_traffic=50000,
+        generative_search_share=0.30,
         conversion_rate=0.03,
         avg_order_value=1000.0,
+        cost_per_product=0.05,
     )
-    assert result['ai_traffic']['incremental'] >= 0
-    assert result['revenue']['incremental'] >= 0
-    assert result['costs']['ai_api_cost'] == 25.0  # 500 * $0.05
-    assert result['roi']['net_savings'] >= 0
+    result = calculate_full_roi(
+        current_seo_score=45,
+        improved_seo_score=92,
+        current_geo_score=30,
+        improved_geo_score=85,
+        products_count=500,
+        metrics=metrics,
+    )
+    assert result['metrics_used'] == metrics.model_dump()
+    assert result['financial_impact_annual']['optimization_cost'] == 25.0  # 500 * $0.05
+    assert result['incremental_traffic_monthly']['seo_traditional'] >= 0
+    assert result['incremental_traffic_monthly']['geo_ai'] >= 0
+    assert result['financial_impact_annual']['net_profit'] >= 0
 
 
-def test_calculate_ai_roi_no_improvement():
-    result = calculate_ai_roi(current_geo_score=50, improved_geo_score=50)
-    assert result['ai_traffic']['incremental'] == 0
-    assert result['revenue']['incremental'] == 0
+def test_calculate_full_roi_no_improvement():
+    result = calculate_full_roi(
+        current_seo_score=50,
+        improved_seo_score=50,
+        current_geo_score=50,
+        improved_geo_score=50,
+    )
+    assert result['incremental_traffic_monthly']['total'] == 0
+    assert result['financial_impact_annual']['incremental_revenue'] == 0.0
     # Cost still applies
-    assert result['costs']['ai_api_cost'] == 3.0
-    assert result['roi']['net_savings'] == -3.0
+    assert result['financial_impact_annual']['optimization_cost'] == 1.0
+    assert result['financial_impact_annual']['net_profit'] == -1.0
 
 
-def test_calculate_ai_roi_invalid_score():
-    with pytest.raises(ValueError):
-        calculate_ai_roi(current_geo_score=150)
-    with pytest.raises(ValueError):
-        calculate_ai_roi(improved_geo_score=-5)
+def test_calculate_full_roi_zero_cost():
+    metrics = BusinessMetrics(cost_per_product=0.0)
+    result = calculate_full_roi(
+        current_seo_score=30,
+        improved_seo_score=90,
+        current_geo_score=30,
+        improved_geo_score=90,
+        metrics=metrics,
+    )
+    assert result['financial_impact_annual']['optimization_cost'] == 0.0
+    assert result['financial_impact_annual']['roi_percentage'] == 0.0

@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.db import get_session
-from src.models import UrlAnalysis, IngestedUrl
-from src.services.optimizer_service import OptimizerService
-from src.services.geo_score_service import calculate_geo_citation_score, calculate_ai_roi
+
 from src.agents import LLMSimulatorAgent
+from src.db import get_session
+from src.models import IngestedUrl, UrlAnalysis
+from src.services.geo_score_service import calculate_geo_citation_score
+from src.services.optimizer_service import OptimizerService
 
 router = APIRouter(prefix='/api/v1/geo', tags=['geo'])
 
@@ -21,41 +22,6 @@ class SimulateResponse(BaseModel):
     response_snippet: str
     reason: str
     query: str
-
-
-class RoiRequest(BaseModel):
-    monthly_organic_traffic: int = Field(default=10000, ge=0)
-    generative_search_share: float = Field(default=0.10, ge=0.0, le=1.0)
-    current_geo_score: int = Field(default=0, ge=0, le=100)
-    improved_geo_score: int = Field(default=100, ge=0, le=100)
-    products_count: int = Field(default=100, ge=1)
-    cost_per_product: float = Field(default=0.03, ge=0.0)
-    conversion_rate: float = Field(default=0.02, ge=0.0, le=1.0)
-    avg_order_value: float = Field(default=500.0, ge=0.0)
-
-
-@router.post('/optimize/{analysis_id}')
-async def geo_optimize(analysis_id: int, session: AsyncSession = Depends(get_session)):
-    """Run the GEO/AEO agent suite: entity + content optimization."""
-    service = OptimizerService(session)
-    try:
-        optimization = await service.optimize_analysis(analysis_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f'GEO optimization failed: {exc}')
-
-    return {
-        'analysis_id': optimization.analysis_id,
-        'optimized_html': optimization.optimized_html,
-        'optimized_json_ld': optimization.optimized_json_ld,
-        'optimized_content': optimization.optimized_content,
-        'changes': optimization.changes,
-        'score_before': optimization.score_before,
-        'score_after_estimated': optimization.score_after_estimated,
-        'status': optimization.status,
-        'error': optimization.error,
-    }
 
 
 @router.post('/aeo-test/{analysis_id}')
@@ -148,22 +114,3 @@ async def geo_score(analysis_id: int, session: AsyncSession = Depends(get_sessio
     )
     result['has_optimization'] = optimization is not None
     return result
-
-
-@router.post('/roi')
-async def geo_roi(request: RoiRequest):
-    """Calculate the AI financial impact (ROI) for GEO optimization."""
-    try:
-        result = calculate_ai_roi(
-            monthly_organic_traffic=request.monthly_organic_traffic,
-            generative_search_share=request.generative_search_share,
-            current_geo_score=request.current_geo_score,
-            improved_geo_score=request.improved_geo_score,
-            products_count=request.products_count,
-            cost_per_product=request.cost_per_product,
-            conversion_rate=request.conversion_rate,
-            avg_order_value=request.avg_order_value,
-        )
-        return result
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))

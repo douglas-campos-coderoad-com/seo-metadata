@@ -8,6 +8,7 @@ import { FindingsList } from './FindingsList';
 import { EntityGraphBlock } from './EntityGraphBlock';
 import { CopyPasteReadyPanel } from './CopyPasteReadyPanel';
 import { AeoLiveTest } from './AeoLiveTest';
+import { RoiProjectionPanel } from './RoiProjectionPanel';
 import { useOptimize, type OptimizationData, type GeoScoreData } from '../hooks/useOptimize';
 import type { Finding } from '@/shared/types';
 
@@ -70,6 +71,8 @@ function AfterBlock({ optimization }: { optimization: OptimizationData | null })
             }}
           />
       )}
+
+      <RoiProjectionPanel optimization={optimization} />
 
       <div className="rounded-xl border border-border bg-card p-4">
         <h4 className="mb-2 text-sm font-semibold uppercase text-muted-foreground">Optimized Content</h4>
