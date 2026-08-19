@@ -36,6 +36,26 @@ function GeoScoreBlock({ geoScore }: { geoScore: GeoScoreData | null }) {
   );
 }
 
+function DownloadHtmlButton({ html, filename }: { html: string; filename: string }) {
+  const handleDownload = () => {
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Button variant="outline" onClick={handleDownload} disabled={!html}>
+      Download Optimized HTML
+    </Button>
+  );
+}
+
 function AfterBlock({ optimization }: { optimization: OptimizationData | null }) {
   if (!optimization) return null;
   const content = optimization.optimized_content || {};
@@ -149,9 +169,15 @@ export function BeforeAfterViewer({
                   </ul>
                 </div>
               )}
-              <Button variant="outline" onClick={handleOptimize} disabled={isLoading}>
-                {isLoading ? <><Spinner /> Re-optimizing...</> : 'Re-run Optimizer'}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={handleOptimize} disabled={isLoading}>
+                  {isLoading ? <><Spinner /> Re-optimizing...</> : 'Re-run Optimizer'}
+                </Button>
+                <DownloadHtmlButton
+                  html={optimization?.optimized_html ?? ''}
+                  filename={`optimized-${analysisId}.html`}
+                />
+              </div>
             </div>
           )}
         </section>
