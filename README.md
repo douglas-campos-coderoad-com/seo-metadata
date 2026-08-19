@@ -30,9 +30,8 @@ by severity consistently across the UI and the PDF.
 - **Analyze** — submit a URL, watch the run status live, read findings, copy snippets, export the PDF.
 - **Projects** — group URLs so issues repeating across pages surface as *shared issues*.
 - **Targets / Runs** — per-URL history and a snapshot view of any past run.
-- **Automations** — recurring re-checks of a target.
 
-Projects, automations, and history live in a **session-scoped in-memory store** on the
+Projects and history live in a **session-scoped in-memory store** on the
 client (Zustand); the analyses and reports they point at are persisted by the backend.
 A full page reload clears the client-side grouping.
 
@@ -44,8 +43,8 @@ A full page reload clears the client-side grouping.
 ┌──────────────────────────────────────────────────────────────┐
 │  Next.js 15 App Router · TypeScript strict · Tailwind        │
 │  http://localhost:3000                                       │
-│  app/{analyze,projects,targets,runs,automations}             │
-│  features/{analysis,projects,history,automations,landing}    │
+│  app/{analyze,projects,targets,runs}                          │
+│  features/{analysis,projects,history,landing}                │
 │  shared/{store,realtime,components}                          │
 └───────────────────────────┬──────────────────────────────────┘
                             │ REST + JSON
@@ -344,8 +343,8 @@ npm run e2e         # Playwright golden path
 
 Backend suites cover ingestion, analysis, the optimizer, the GEO agents and scoring, the
 LLM repository (including provider fallback), and report mapping/rendering. Frontend
-tests cover the shared-issue detection, severity mapping, recurrence maths, the export
-button, and the submit-analysis / create-project / schedule-automation flows.
+tests cover the shared-issue detection, severity mapping, the export
+button, and the submit-analysis / create-project flows.
 
 ---
 
@@ -397,7 +396,7 @@ backend/
 
 frontend/
 ├── src/app/            App Router pages
-├── src/features/       analysis, projects, history, automations, landing
+├── src/features/       analysis, projects, history, landing
 ├── src/shared/         store, realtime services, UI primitives, helpers
 ├── src/lib/            API client, auth
 └── tests/              unit, integration, e2e

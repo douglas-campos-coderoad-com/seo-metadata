@@ -1,4 +1,4 @@
-import type { AnalysisRun, Automation, Project, Recurrence, SharedIssue } from '@/shared/types';
+import type { AnalysisRun, Project, SharedIssue } from '@/shared/types';
 import type { RunStatusEvent } from './events';
 
 /**
@@ -33,9 +33,4 @@ export interface AnalysisService {
   addTargetToProject(projectId: string, url: string): { targetId: string };
   removeTargetFromProject(projectId: string, targetId: string): void;
   listSharedIssues(projectId: string): SharedIssue[]; // FR-016
-
-  // --- Automations (belong to a target/URL only; a target may hold several) ---
-  createAutomation(input: { targetId: string; recurrence: Recurrence }): Automation;
-  setAutomationActive(automationId: string, active: boolean): void; // pause/resume (FR-023)
-  deleteAutomation(automationId: string): void;
 }

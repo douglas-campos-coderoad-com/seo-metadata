@@ -2,8 +2,7 @@ import { apiClient } from '@/lib/api-client';
 import { useAppStore } from '@/shared/store/useAppStore';
 import { isValidUrl } from '@/shared/lib/url';
 import { computeSharedIssues } from '@/shared/lib/sharedIssues';
-import { computeNextRunAt, formatRecurrence } from '@/features/automations/lib/recurrence';
-import type { AnalysisRun, Automation, Finding, FindingRecommendation, Project, Recurrence, SharedIssue } from '@/shared/types';
+import type { AnalysisRun, Finding, FindingRecommendation, Project, SharedIssue } from '@/shared/types';
 import type { AnalysisService } from './AnalysisService';
 import type { RunStatusEvent } from './events';
 
@@ -111,7 +110,6 @@ export class AnalysisApiService implements AnalysisService {
     const run: AnalysisRun = {
       id: crypto.randomUUID(),
       targetId: target.id,
-      triggeredBy: 'manual',
       status: 'queued',
       startedAt: new Date().toISOString(),
       completedAt: null,
@@ -181,75 +179,6 @@ export class AnalysisApiService implements AnalysisService {
     const project = state.projects[projectId];
     if (!project) return [];
     return computeSharedIssues(project, { targets: state.targets, runs: state.runs, findings: state.findings });
-  }
-
-  createAutomation(input: { targetId: string; recurrence: Recurrence }): Automation {
-    const automation: Automation = {
-      id: crypto.randomUUID(),
-      targetId: input.targetId,
-      recurrence: input.recurrence,
-      recurrenceLabel: formatRecurrence(input.recurrence),
-      active: true,
-      lastRunId: null,
-      nextRunAt: computeNextRunAt(input.recurrence),
-    };
-    useAppStore.getState().upsertAutomation(automation);
-    return automation;
-  }
-
-  setAutomationActive(automationId: string, active: boolean): void {
-    useAppStore.getState().setAutomationActive(automationId, active);
-  }
-
-  deleteAutomation(automationId: string): void {
-    useAppStore.getState().deleteAutomation(automationId);
-  }
-
-  triggerAutomationNow(automationId: string): { targetId: string; runId: string } | null {
-    const store = useAppStore.getState();
-    const automation = store.automations[automationId];
-    if (!automation) return null;
-
-    const target = store.targets[automation.targetId];
-    if (!target) return null;
-
-    // Create a run scoped to the automation target and run the real pipeline.
-    const run: AnalysisRun = {
-      id: crypto.randomUUID(),
-      targetId: target.id,
-      triggeredBy: 'automation',
-      status: 'queued',
-      startedAt: new Date().toISOString(),
-      completedAt: null,
-      score: null,
-      seoScore: null,
-      geoScore: null,
-      failureReason: null,
-      findingIds: [],
-      httpStatus: null,
-      contentType: null,
-      contentSizeBytes: null,
-    };
-    store.addRun(run);
-
-    this.runPipeline(run.id, target.displayUrl).catch((err) => {
-      const at = new Date().toISOString();
-      const message = err instanceof Error ? err.message : 'Analysis failed.';
-      useAppStore.getState().updateRun(run.id, {
-        status: 'failed',
-        completedAt: at,
-        failureReason: message,
-      });
-      this.emit(run.id, { type: 'failed', runId: run.id, status: 'failed', at, failureReason: message });
-    });
-
-    store.upsertAutomation({
-      ...automation,
-      lastRunId: run.id,
-      nextRunAt: new Date().toISOString(),
-    });
-
-    return { targetId: target.id, runId: run.id };
   }
 
   // ── Backend pipeline ───────────────────────────────────────────────────

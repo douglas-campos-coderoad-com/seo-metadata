@@ -80,9 +80,6 @@ export default function ProjectDetailPage() {
       <section>
         <h2 className="mb-2 text-lg font-semibold">History</h2>
         <ProjectHistorySummary targets={targets} sharedIssueCount={sharedIssues.length} />
-        <p className="mt-2 text-xs text-muted-foreground">
-          Automations are managed per URL — open a URL&apos;s history above to schedule one.
-        </p>
       </section>
     </div>
   );

@@ -121,13 +121,13 @@ function Stat({
     muted: 'text-muted-foreground',
   };
   return (
-    <div className="rounded-xl border border-border bg-muted/20 p-3">
+    <div className="rounded-xl border border-border bg-muted/20 p-2">
       <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
       <p
         className={cn(
-          'mt-1 font-mono text-lg font-bold tabular-nums',
+          'mt-1 font-mono font-bold tabular-nums',
           tones[tone],
         )}
       >
@@ -248,7 +248,7 @@ export function RoiProjectionPanel({ optimization }: RoiProjectionPanelProps) {
   };
 
   return (
-    <div className="space-y-5 rounded-2xl border border-border bg-card p-6">
+    <div className="space-y-5 rounded-2xl border border-border bg-card p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-bold">ROI Projection</h3>
@@ -256,7 +256,7 @@ export function RoiProjectionPanel({ optimization }: RoiProjectionPanelProps) {
             What this optimization is worth to your business
           </p>
         </div>
-        <Badge variant={positiveRoi ? 'success' : 'warning'}>
+        <Badge className="whitespace-nowrap" variant={positiveRoi ? 'success' : 'warning'}>
           {positiveRoi ? 'Positive ROI' : 'Below break-even'}
         </Badge>
       </div>

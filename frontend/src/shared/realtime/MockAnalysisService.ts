@@ -2,8 +2,7 @@ import { useAppStore } from '@/shared/store/useAppStore';
 import { isValidUrl } from '@/shared/lib/url';
 import { buildRunOutcome } from '@/features/analysis/mocks/scenarios';
 import { computeSharedIssues } from '@/shared/lib/sharedIssues';
-import { computeNextRunAt, formatRecurrence } from '@/features/automations/lib/recurrence';
-import type { AnalysisRun, Automation, Finding, Project, Recurrence, RunTrigger, SharedIssue } from '@/shared/types';
+import type { AnalysisRun, Finding, Project, SharedIssue } from '@/shared/types';
 import type { AnalysisService } from './AnalysisService';
 import type { RunStatusEvent } from './events';
 
@@ -33,7 +32,7 @@ export class MockAnalysisService implements AnalysisService {
       store.addTargetToProject(input.projectId, target.id);
     }
 
-    const run = this.createAndScheduleRun(target.id, input.url, 'manual');
+    const run = this.createAndScheduleRun(target.id, input.url);
 
     return { targetId: target.id, runId: run.id };
   }
@@ -80,59 +79,10 @@ export class MockAnalysisService implements AnalysisService {
     return computeSharedIssues(project, { targets: state.targets, runs: state.runs, findings: state.findings });
   }
 
-  createAutomation(input: { targetId: string; recurrence: Recurrence }): Automation {
-    const automation: Automation = {
-      id: crypto.randomUUID(),
-      targetId: input.targetId,
-      recurrence: input.recurrence,
-      recurrenceLabel: formatRecurrence(input.recurrence),
-      active: true,
-      lastRunId: null,
-      nextRunAt: computeNextRunAt(input.recurrence),
-    };
-
-    useAppStore.getState().upsertAutomation(automation);
-
-    return automation;
-  }
-
-  setAutomationActive(automationId: string, active: boolean): void {
-    useAppStore.getState().setAutomationActive(automationId, active);
-  }
-
-  deleteAutomation(automationId: string): void {
-    useAppStore.getState().deleteAutomation(automationId);
-  }
-
-  /**
-   * Demo-only: forces a scheduled automation to fire immediately, since there is no real
-   * job runner in this phase (spec Assumptions — automation execution is simulated).
-   * Not part of AnalysisService: a real backend wouldn't need a manual "run it now" escape hatch.
-   */
-  triggerAutomationNow(automationId: string): { targetId: string; runId: string } | null {
-    const store = useAppStore.getState();
-    const automation = store.automations[automationId];
-    if (!automation) return null;
-
-    const target = store.targets[automation.targetId];
-    if (!target) return null;
-
-    const run = this.createAndScheduleRun(target.id, target.url, 'automation');
-
-    useAppStore.getState().upsertAutomation({
-      ...automation,
-      lastRunId: run.id,
-      nextRunAt: computeNextRunAt(automation.recurrence),
-    });
-
-    return { targetId: target.id, runId: run.id };
-  }
-
-  private createAndScheduleRun(targetId: string, url: string, triggeredBy: RunTrigger): AnalysisRun {
+  private createAndScheduleRun(targetId: string, url: string): AnalysisRun {
     const run: AnalysisRun = {
       id: crypto.randomUUID(),
       targetId,
-      triggeredBy,
       status: 'queued',
       startedAt: new Date().toISOString(),
       completedAt: null,

@@ -1,11 +1,10 @@
 import { create } from 'zustand';
 import { normalizeUrl } from '@/shared/lib/url';
-import type { 
-  AnalysisRun, 
-  AnalysisTarget, 
-  Automation, 
-  Finding, 
-  Project 
+import type {
+  AnalysisRun,
+  AnalysisTarget,
+  Finding,
+  Project
 } from '@/shared/types';
 
 // Session-scoped, in-memory store (Clarifications: no persistence — a full reload
@@ -20,7 +19,6 @@ interface AppState {
   runs: Record<string, AnalysisRun>;
   findings: Record<string, Finding>;
   projects: Record<string, Project>;
-  automations: Record<string, Automation>;
 
   upsertTargetByUrl: (url: string) => AnalysisTarget;
   addRun: (run: AnalysisRun) => void;
@@ -30,10 +28,6 @@ interface AppState {
   createProject: (name: string) => Project;
   addTargetToProject: (projectId: string, targetId: string) => void;
   removeTargetFromProject: (projectId: string, targetId: string) => void;
-
-  upsertAutomation: (automation: Automation) => void;
-  setAutomationActive: (automationId: string, active: boolean) => void;
-  deleteAutomation: (automationId: string) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -42,7 +36,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   runs: {},
   findings: {},
   projects: {},
-  automations: {},
 
   upsertTargetByUrl: (url) => {
     const normalized = normalizeUrl(url);
@@ -138,26 +131,6 @@ export const useAppStore = create<AppState>((set, get) => ({
           [targetId]: { ...target, projectIds: target.projectIds.filter((id) => id !== projectId) },
         },
       };
-    });
-  },
-
-  upsertAutomation: (automation) => {
-    set((state) => ({ automations: { ...state.automations, [automation.id]: automation } }));
-  },
-
-  setAutomationActive: (automationId, active) => {
-    set((state) => {
-      const automation = state.automations[automationId];
-      if (!automation) return state;
-      return { automations: { ...state.automations, [automationId]: { ...automation, active } } };
-    });
-  },
-
-  deleteAutomation: (automationId) => {
-    set((state) => {
-      const next = { ...state.automations };
-      delete next[automationId];
-      return { automations: next };
     });
   },
 }));

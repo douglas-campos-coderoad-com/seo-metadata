@@ -8,7 +8,7 @@ import { useAppStore } from '@/shared/store/useAppStore';
 import type { AnalysisRun, Finding } from '@/shared/types';
 
 function resetStore() {
-  useAppStore.setState({ targets: {}, targetIdByUrl: {}, runs: {}, findings: {}, projects: {}, automations: {} });
+  useAppStore.setState({ targets: {}, targetIdByUrl: {}, runs: {}, findings: {}, projects: {} });
 }
 
 function ProjectHarness({ projectId }: { projectId: string }) {
@@ -30,7 +30,6 @@ function completedRun(id: string, targetId: string, findingId: string): Analysis
   return {
     id,
     targetId,
-    triggeredBy: 'manual',
     status: 'complete',
     startedAt: new Date().toISOString(),
     completedAt: new Date().toISOString(),

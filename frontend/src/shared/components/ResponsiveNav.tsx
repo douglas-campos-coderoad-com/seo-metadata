@@ -8,7 +8,6 @@ import { Button } from '@/shared/components/ui/button';
 const NAV_LINKS = [
   { href: '/analyze', label: 'Analyze' },
   { href: '/projects', label: 'Projects' },
-  { href: '/automations', label: 'Automations' },
 ];
 
 export function ResponsiveNav() {

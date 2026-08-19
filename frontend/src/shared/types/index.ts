@@ -3,8 +3,6 @@
 
 export type RunStatus = 'queued' | 'fetching' | 'analyzing' | 'complete' | 'failed';
 
-export type RunTrigger = 'manual' | 'automation';
-
 // Mirrors the analyser prompt's category enum (backend/src/services/graph_nodes.py) and
 // backend/src/services/report_mappings.py's CATEGORY_LABELS keys — keep both in sync.
 export type FindingCategory =
@@ -19,8 +17,6 @@ export type FindingCategory =
   | 'geo_aeo';
 
 export type FindingSeverity = 'good' | 'warning' | 'critical' | 'medium';
-
-export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly';
 
 export interface AnalysisTarget {
   id: string;
@@ -45,7 +41,6 @@ export interface Project {
 export interface AnalysisRun {
   id: string;
   targetId: string;
-  triggeredBy: RunTrigger;
   status: RunStatus;
   startedAt: string; // ISO datetime
   completedAt: string | null;
@@ -95,22 +90,4 @@ export interface SharedIssue {
   title: string;
   /** Targets (>= 2) whose latest completed run has a matching finding. */
   affectedTargetIds: string[];
-}
-
-export interface Recurrence {
-  frequency: RecurrenceFrequency;
-  time: string; // HH:mm
-  weekday?: number; // 0-6, for 'weekly'
-  dayOfMonth?: number; // 1-31, for 'monthly'
-}
-
-export interface Automation {
-  id: string;
-  /** A target may hold multiple independent automations. */
-  targetId: string;
-  recurrence: Recurrence;
-  recurrenceLabel: string; // human-readable rendering of `recurrence`
-  active: boolean;
-  lastRunId: string | null;
-  nextRunAt: string; // ISO datetime
 }

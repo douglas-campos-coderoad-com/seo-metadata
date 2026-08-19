@@ -18,7 +18,6 @@ function makeRun(id: string, targetId: string, findingIds: string[]): AnalysisRu
   return {
     id,
     targetId,
-    triggeredBy: 'manual',
     status: 'complete',
     startedAt: new Date().toISOString(),
     completedAt: new Date().toISOString(),
