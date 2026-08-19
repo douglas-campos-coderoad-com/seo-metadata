@@ -9,7 +9,7 @@ import { mockFailingIngest, mockSuccessfulAnalysisPipeline } from './mockAnalysi
 const URL_PLACEHOLDER = /paste any e-commerce product url/i;
 
 function resetStore() {
-  useAppStore.setState({ targets: {}, targetIdByUrl: {}, runs: {}, findings: {}, projects: {} });
+  useAppStore.setState({ targets: {}, targetIdByUrl: {}, runs: {}, findings: {} });
 }
 
 describe('submit analysis flow (User Story 1)', () => {

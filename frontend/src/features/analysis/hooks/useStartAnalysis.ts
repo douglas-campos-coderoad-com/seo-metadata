@@ -7,7 +7,7 @@ import type { RunStatus } from '@/shared/types';
 
 interface StartAnalysisInput {
   url: string;
-  projectId?: string;
+  projectId?: number;
 }
 
 const ACTIVE_STATUSES = new Set<RunStatus>(['queued', 'fetching', 'analyzing']);

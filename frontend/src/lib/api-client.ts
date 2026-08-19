@@ -54,6 +54,12 @@ export class ApiClient {
       throw new Error(errorData.detail || 'API request failed');
     }
 
+    // A 204 (e.g. the DELETE endpoints under /projects) has no body to parse —
+    // response.json() would throw on the empty response.
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
     return response.json();
   }
 

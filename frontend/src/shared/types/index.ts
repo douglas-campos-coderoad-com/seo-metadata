@@ -26,16 +26,93 @@ export interface AnalysisTarget {
   displayUrl: string;
   createdAt: string; // ISO datetime
   latestRunId: string | null;
-  projectIds: string[];
   /** Ordered (chronological) list of all AnalysisRun ids — the history timeline. */
   runIds: string[];
 }
 
-export interface Project {
-  id: string;
-  name: string;
+// FR-011's finalized 21-category-plus-other list — keep in sync with
+// backend/src/schemas/project.py's ProjectCategory literal.
+export const PROJECT_CATEGORIES = [
+  'e-commerce',
+  'marketplace',
+  'saas',
+  'content/blog/media',
+  'news/journalism',
+  'local business/services',
+  'restaurant/food & beverage',
+  'real estate',
+  'healthcare/medical',
+  'legal services',
+  'travel/hospitality',
+  'education',
+  'finance/fintech',
+  'nonprofit',
+  'agency/professional services',
+  'automotive',
+  'b2b/manufacturing',
+  'entertainment/events',
+  'directory/listings',
+  'community/forum',
+  'government/public sector',
+  'other',
+] as const;
+
+export type ProjectCategory = (typeof PROJECT_CATEGORIES)[number];
+
+export interface Competitor {
+  id: number;
+  projectId: number;
+  url: string;
+  description: string;
   createdAt: string; // ISO datetime
-  targetIds: string[];
+  updatedAt: string; // ISO datetime
+}
+
+/** Backend-persisted (specs/008-project-centric-analysis) — no longer a client-only entity. */
+export interface Project {
+  id: number;
+  title: string;
+  description: string;
+  category: ProjectCategory;
+  country: string;
+  region: string | null;
+  competitors: Competitor[];
+  createdAt: string; // ISO datetime
+  updatedAt: string; // ISO datetime
+}
+
+/** The "after" (optimized) half of a project analysis history entry, when it exists. */
+export interface ProjectAnalysisOptimization {
+  id: number;
+  analysisId: number;
+  optimizedHtml: string | null;
+  optimizedJsonLd: Record<string, unknown> | null;
+  optimizedContent: Record<string, unknown> | null;
+  changes: Record<string, unknown> | null;
+  copyPasteReady: Record<string, unknown> | null;
+  scoreBefore: Record<string, unknown> | null;
+  scoreAfterEstimated: Record<string, unknown> | null;
+  roiProjection: Record<string, unknown> | null;
+  status: string;
+  createdAt: string; // ISO datetime
+  updatedAt: string; // ISO datetime
+}
+
+/** One entry in a project's persisted analysis history (FR-004, FR-008). */
+export interface ProjectAnalysis {
+  id: number;
+  ingestedUrlId: number;
+  url: string;
+  seoScore: number | null;
+  geoScore: number | null;
+  overallScore: number | null;
+  analysis: Record<string, unknown> | null;
+  jsonLd: Record<string, unknown> | null;
+  status: string;
+  createdAt: string; // ISO datetime
+  updatedAt: string; // ISO datetime
+  /** Absent when optimization was never run for this analysis — render "before" only. */
+  optimization: ProjectAnalysisOptimization | null;
 }
 
 export interface AnalysisRun {
@@ -84,7 +161,7 @@ export interface Finding {
 export interface SharedIssue {
   /** Grouping key: same category + normalized title across findings. */
   signature: string;
-  projectId: string;
+  projectId: Project['id'];
   category: FindingCategory;
   severity: FindingSeverity;
   title: string;

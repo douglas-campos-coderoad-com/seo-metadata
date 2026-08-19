@@ -1,23 +1,42 @@
 'use client';
 
-import { useAppStore } from '@/shared/store/useAppStore';
+import { useCallback, useEffect, useState } from 'react';
 import { analysisApiService } from '@/shared/realtime/AnalysisApiService';
-import type { AnalysisTarget } from '@/shared/types';
+import type { Project, ProjectAnalysis } from '@/shared/types';
 
-export function useProjectDetail(projectId: string) {
-  const project = useAppStore((state) => state.projects[projectId]);
-  const targets = useAppStore((state) =>
-    (state.projects[projectId]?.targetIds ?? [])
-      .map((id) => state.targets[id])
-      .filter((target): target is AnalysisTarget => Boolean(target)),
-  );
-  // Re-derives on every store change so it stays current as runs/findings complete (FR-016).
-  const sharedIssues = useAppStore(() => analysisApiService.listSharedIssues(projectId));
+/** Fetches a project's own persisted metadata and its analysis history
+ * (specs/008-project-centric-analysis User Story 2 + User Story 4). */
+export function useProjectDetail(projectId: number) {
+  const [project, setProject] = useState<Project | null>(null);
+  const [analyses, setAnalyses] = useState<ProjectAnalysis[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const addUrl = (url: string) => analysisApiService.addTargetToProject(projectId, url);
-  const removeTarget = (targetId: string) => analysisApiService.removeTargetFromProject(projectId, targetId);
-  const analyzeTarget = (url: string) => analysisApiService.startAnalysis({ url, projectId });
-  const analyzeAll = () => targets.map((target) => analysisApiService.startAnalysis({ url: target.displayUrl, projectId }));
+  const refresh = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [fetchedProject, fetchedAnalyses] = await Promise.all([
+        analysisApiService.getProject(projectId),
+        analysisApiService.listProjectAnalyses(projectId),
+      ]);
+      setProject(fetchedProject);
+      setAnalyses(fetchedAnalyses);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load project.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [projectId]);
 
-  return { project, targets, sharedIssues, addUrl, removeTarget, analyzeTarget, analyzeAll };
+  const refreshAnalyses = useCallback(async () => {
+    const fetchedAnalyses = await analysisApiService.listProjectAnalyses(projectId);
+    setAnalyses(fetchedAnalyses);
+  }, [projectId]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { project, analyses, isLoading, error, refresh, refreshAnalyses };
 }

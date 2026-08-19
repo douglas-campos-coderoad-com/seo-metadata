@@ -3,8 +3,7 @@ import { normalizeUrl } from '@/shared/lib/url';
 import type {
   AnalysisRun,
   AnalysisTarget,
-  Finding,
-  Project
+  Finding
 } from '@/shared/types';
 
 // Session-scoped, in-memory store (Clarifications: no persistence — a full reload
@@ -18,16 +17,11 @@ interface AppState {
   targetIdByUrl: Record<string, string>;
   runs: Record<string, AnalysisRun>;
   findings: Record<string, Finding>;
-  projects: Record<string, Project>;
 
   upsertTargetByUrl: (url: string) => AnalysisTarget;
   addRun: (run: AnalysisRun) => void;
   updateRun: (runId: string, patch: Partial<AnalysisRun>) => void;
   addFindings: (findings: Finding[]) => void;
-
-  createProject: (name: string) => Project;
-  addTargetToProject: (projectId: string, targetId: string) => void;
-  removeTargetFromProject: (projectId: string, targetId: string) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -35,7 +29,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   targetIdByUrl: {},
   runs: {},
   findings: {},
-  projects: {},
 
   upsertTargetByUrl: (url) => {
     const normalized = normalizeUrl(url);
@@ -50,7 +43,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       displayUrl: url.trim(),
       createdAt: new Date().toISOString(),
       latestRunId: null,
-      projectIds: [],
       runIds: [],
     };
 
@@ -89,48 +81,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       const next = { ...state.findings };
       for (const finding of findings) next[finding.id] = finding;
       return { findings: next };
-    });
-  },
-
-  createProject: (name) => {
-    const project: Project = {
-      id: crypto.randomUUID(),
-      name,
-      createdAt: new Date().toISOString(),
-      targetIds: [],
-    };
-    set((state) => ({ projects: { ...state.projects, [project.id]: project } }));
-    return project;
-  },
-
-  addTargetToProject: (projectId, targetId) => {
-    set((state) => {
-      const project = state.projects[projectId];
-      const target = state.targets[targetId];
-      if (!project || !target) return state;
-      if (project.targetIds.includes(targetId)) return state;
-      return {
-        projects: { ...state.projects, [projectId]: { ...project, targetIds: [...project.targetIds, targetId] } },
-        targets: { ...state.targets, [targetId]: { ...target, projectIds: [...target.projectIds, projectId] } },
-      };
-    });
-  },
-
-  removeTargetFromProject: (projectId, targetId) => {
-    set((state) => {
-      const project = state.projects[projectId];
-      const target = state.targets[targetId];
-      if (!project || !target) return state;
-      return {
-        projects: {
-          ...state.projects,
-          [projectId]: { ...project, targetIds: project.targetIds.filter((id) => id !== targetId) },
-        },
-        targets: {
-          ...state.targets,
-          [targetId]: { ...target, projectIds: target.projectIds.filter((id) => id !== projectId) },
-        },
-      };
     });
   },
 }));

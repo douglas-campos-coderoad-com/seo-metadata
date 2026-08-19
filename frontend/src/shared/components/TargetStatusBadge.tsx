@@ -7,7 +7,8 @@ import { Spinner } from '@/shared/components/Spinner';
 import { scoreToSeverity } from '@/shared/lib/severity';
 import type { AnalysisTarget } from '@/shared/types';
 
-/** A target's latest-run status as a badge — shared by ProjectUrlList and RecentTargetsList. */
+/** A target's latest-run status as a badge (used by RecentTargetsList, preserved but
+ * currently unmounted — see specs/007-remove-analyze-page). */
 export function TargetStatusBadge({ target }: { target: AnalysisTarget }) {
   const run = useAppStore((state) => (target.latestRunId ? state.runs[target.latestRunId] : undefined));
 

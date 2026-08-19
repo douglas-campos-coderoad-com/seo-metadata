@@ -44,9 +44,10 @@ export default function LandingPage() {
                   href={`/projects/${project.id}`}
                   className="block rounded-xl border border-border bg-card p-4 hover:border-primary"
                 >
-                  <p className="font-semibold">{project.name}</p>
+                  <p className="font-semibold">{project.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {project.targetIds.length} URL{project.targetIds.length === 1 ? '' : 's'}
+                    {project.category} · {project.country}
+                    {project.region ? `, ${project.region}` : ''}
                   </p>
                 </Link>
               </li>
