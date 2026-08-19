@@ -10,7 +10,10 @@ import { useStartAnalysis } from '../hooks/useStartAnalysis';
 
 interface UrlSubmitFormProps {
   onStarted: (result: { targetId: string; runId: string }) => void;
-  projectId?: string;
+  projectId?: number;
+  /** Pre-fills the input (specs/009-project-analysis-ux historical view "re-run") —
+   * the user still submits it explicitly, this never auto-runs. */
+  initialUrl?: string;
 }
 
 // Demo product URLs to showcase the agnostic URL input panel.
@@ -32,8 +35,8 @@ const DEMO_URLS = [
   },
 ];
 
-export function UrlSubmitForm({ onStarted, projectId }: UrlSubmitFormProps) {
-  const [url, setUrl] = useState('');
+export function UrlSubmitForm({ onStarted, projectId, initialUrl }: UrlSubmitFormProps) {
+  const [url, setUrl] = useState(initialUrl ?? '');
   const [validationError, setValidationError] = useState<string | null>(null);
   const { start, isSubmitting, error } = useStartAnalysis();
 

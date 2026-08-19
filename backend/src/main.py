@@ -16,6 +16,7 @@ from src.api.analysis import router as analysis_router
 from src.api.optimization import router as optimization_router
 from src.api.geo import router as geo_router
 from src.api.report import router as report_router
+from src.api.projects import router as projects_router
 from src.services.pdf_renderer import pdf_renderer
 
 
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
     app.include_router(optimization_router)
     app.include_router(geo_router)
     app.include_router(report_router)
+    app.include_router(projects_router)
 
     return app
 

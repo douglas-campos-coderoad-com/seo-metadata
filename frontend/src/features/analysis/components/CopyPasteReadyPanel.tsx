@@ -87,7 +87,7 @@ export function CopyPasteReadyPanel({ copyPasteReady }: { copyPasteReady: CopyPa
   if (blocks.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6">
+    <div className="rounded-2xl border border-border bg-card p-4">
       <h3 className="mb-1 text-lg font-bold">Copy-Paste Ready Snippets</h3>
       <p className="mb-4 text-sm text-muted-foreground">
         Drop these into your page to apply the SEO/GEO optimization instantly.

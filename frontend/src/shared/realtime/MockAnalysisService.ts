@@ -1,10 +1,8 @@
 import { useAppStore } from '@/shared/store/useAppStore';
 import { isValidUrl } from '@/shared/lib/url';
 import { buildRunOutcome } from '@/features/analysis/mocks/scenarios';
-import { computeSharedIssues } from '@/shared/lib/sharedIssues';
-import { computeNextRunAt, formatRecurrence } from '@/features/automations/lib/recurrence';
-import type { AnalysisRun, Automation, Finding, Project, Recurrence, RunTrigger, SharedIssue } from '@/shared/types';
-import type { AnalysisService } from './AnalysisService';
+import type { AnalysisRun, Finding, Project, ProjectAnalysis, ProjectCategory } from '@/shared/types';
+import type { AnalysisService, CompetitorSuggestion, ProjectInput } from './AnalysisService';
 import type { RunStatusEvent } from './events';
 
 // EventTarget-based simulated push channel (research.md §2): startAnalysis schedules
@@ -21,19 +19,24 @@ function runEventName(runId: string): string {
 
 export class MockAnalysisService implements AnalysisService {
   private bus = new EventTarget();
+  private projects = new Map<number, Project>();
+  private nextProjectId = 1;
+  private nextCompetitorId = 1;
+  /** analysisId -> (analysis, owning projectId) — a self-contained fixture world, since
+   * mock runs use string UUIDs while attach/reassign works over numeric backend ids. */
+  private projectAnalyses = new Map<number, { analysis: ProjectAnalysis; projectId: number }>();
 
-  async startAnalysis(input: { url: string; projectId?: string }): Promise<{ targetId: string; runId: string }> {
+  async startAnalysis(input: { url: string; projectId?: number }): Promise<{ targetId: string; runId: string }> {
     if (!isValidUrl(input.url)) {
       throw new Error('Enter a valid http(s) URL.');
     }
 
     const store = useAppStore.getState();
     const target = store.upsertTargetByUrl(input.url);
-    if (input.projectId) {
-      store.addTargetToProject(input.projectId, target.id);
-    }
+    // input.projectId: auto-attach wiring lands in specs/008-project-centric-analysis
+    // User Story 4 (T029), same as AnalysisApiService.
 
-    const run = this.createAndScheduleRun(target.id, input.url, 'manual');
+    const run = this.createAndScheduleRun(target.id, input.url);
 
     return { targetId: target.id, runId: run.id };
   }
@@ -55,84 +58,138 @@ export class MockAnalysisService implements AnalysisService {
     return target.runIds.map((id) => state.runs[id]).filter((run): run is AnalysisRun => Boolean(run));
   }
 
-  createProject(input: { name: string }): Project {
-    return useAppStore.getState().createProject(input.name);
-  }
+  // ── Projects (in-memory fixture store — mirrors AnalysisApiService's shape) ──
 
-  addTargetToProject(projectId: string, url: string): { targetId: string } {
-    if (!isValidUrl(url)) {
-      throw new Error('Enter a valid http(s) URL.');
-    }
-    const store = useAppStore.getState();
-    const target = store.upsertTargetByUrl(url);
-    store.addTargetToProject(projectId, target.id);
-    return { targetId: target.id };
-  }
-
-  removeTargetFromProject(projectId: string, targetId: string): void {
-    useAppStore.getState().removeTargetFromProject(projectId, targetId);
-  }
-
-  listSharedIssues(projectId: string): SharedIssue[] {
-    const state = useAppStore.getState();
-    const project = state.projects[projectId];
-    if (!project) return [];
-    return computeSharedIssues(project, { targets: state.targets, runs: state.runs, findings: state.findings });
-  }
-
-  createAutomation(input: { targetId: string; recurrence: Recurrence }): Automation {
-    const automation: Automation = {
-      id: crypto.randomUUID(),
-      targetId: input.targetId,
-      recurrence: input.recurrence,
-      recurrenceLabel: formatRecurrence(input.recurrence),
-      active: true,
-      lastRunId: null,
-      nextRunAt: computeNextRunAt(input.recurrence),
+  async createProject(input: ProjectInput): Promise<Project> {
+    const project: Project = {
+      id: this.nextProjectId++,
+      title: input.title,
+      description: input.description,
+      category: input.category,
+      country: input.country,
+      region: input.region ?? null,
+      competitors: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
-
-    useAppStore.getState().upsertAutomation(automation);
-
-    return automation;
+    project.competitors = (input.competitors ?? []).map((c) => ({
+      id: this.nextCompetitorId++,
+      projectId: project.id,
+      url: c.url,
+      description: c.description,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+    this.projects.set(project.id, project);
+    return project;
   }
 
-  setAutomationActive(automationId: string, active: boolean): void {
-    useAppStore.getState().setAutomationActive(automationId, active);
+  async listProjects(): Promise<Project[]> {
+    return Array.from(this.projects.values());
   }
 
-  deleteAutomation(automationId: string): void {
-    useAppStore.getState().deleteAutomation(automationId);
+  async getProject(projectId: number): Promise<Project> {
+    const project = this.projects.get(projectId);
+    if (!project) throw new Error(`Project with id ${projectId} not found`);
+    return project;
   }
 
-  /**
-   * Demo-only: forces a scheduled automation to fire immediately, since there is no real
-   * job runner in this phase (spec Assumptions — automation execution is simulated).
-   * Not part of AnalysisService: a real backend wouldn't need a manual "run it now" escape hatch.
-   */
-  triggerAutomationNow(automationId: string): { targetId: string; runId: string } | null {
-    const store = useAppStore.getState();
-    const automation = store.automations[automationId];
-    if (!automation) return null;
-
-    const target = store.targets[automation.targetId];
-    if (!target) return null;
-
-    const run = this.createAndScheduleRun(target.id, target.url, 'automation');
-
-    useAppStore.getState().upsertAutomation({
-      ...automation,
-      lastRunId: run.id,
-      nextRunAt: computeNextRunAt(automation.recurrence),
-    });
-
-    return { targetId: target.id, runId: run.id };
+  async updateProject(projectId: number, input: Partial<ProjectInput>): Promise<Project> {
+    const project = await this.getProject(projectId);
+    const updated: Project = {
+      ...project,
+      ...(input.title !== undefined && { title: input.title }),
+      ...(input.description !== undefined && { description: input.description }),
+      ...(input.category !== undefined && { category: input.category }),
+      ...(input.country !== undefined && { country: input.country }),
+      ...(input.region !== undefined && { region: input.region }),
+      updatedAt: new Date().toISOString(),
+    };
+    if (input.competitors) {
+      updated.competitors = input.competitors.map((c) => ({
+        id: this.nextCompetitorId++,
+        projectId,
+        url: c.url,
+        description: c.description,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
+    }
+    this.projects.set(projectId, updated);
+    return updated;
   }
 
-  private createAndScheduleRun(targetId: string, url: string, triggeredBy: RunTrigger): AnalysisRun {
+  async deleteProject(projectId: number): Promise<void> {
+    await this.getProject(projectId); // throws if the project doesn't exist
+    this.projects.delete(projectId);
+    for (const [analysisId, entry] of this.projectAnalyses) {
+      if (entry.projectId === projectId) this.projectAnalyses.delete(analysisId);
+    }
+  }
+
+  async listProjectAnalyses(projectId: number): Promise<ProjectAnalysis[]> {
+    return Array.from(this.projectAnalyses.values())
+      .filter((entry) => entry.projectId === projectId)
+      .map((entry) => entry.analysis)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  async getAnalysis(projectId: number, analysisId: number): Promise<ProjectAnalysis> {
+    const entry = this.projectAnalyses.get(analysisId);
+    if (!entry || entry.projectId !== projectId) {
+      throw new Error(`Analysis with id ${analysisId} not found in project ${projectId}`);
+    }
+    return entry.analysis;
+  }
+
+  async attachAnalysisToProject(projectId: number, analysisId: number): Promise<ProjectAnalysis> {
+    await this.getProject(projectId); // throws if the project doesn't exist
+
+    const existing = this.projectAnalyses.get(analysisId)?.analysis;
+    const analysis: ProjectAnalysis = existing ?? {
+      id: analysisId,
+      ingestedUrlId: analysisId,
+      url: `https://mock.example.com/analysis-${analysisId}`,
+      seoScore: 70,
+      geoScore: 60,
+      overallScore: 65,
+      analysis: null,
+      jsonLd: null,
+      status: 'completed',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      optimization: null,
+    };
+    this.projectAnalyses.set(analysisId, { analysis, projectId });
+    return analysis;
+  }
+
+  async removeAnalysisFromProject(projectId: number, analysisId: number): Promise<void> {
+    const entry = this.projectAnalyses.get(analysisId);
+    if (!entry || entry.projectId !== projectId) {
+      throw new Error(`Analysis with id ${analysisId} not found in project ${projectId}`);
+    }
+    this.projectAnalyses.delete(analysisId);
+  }
+
+  async smartSearchCompetitors(input: {
+    description: string;
+    category: ProjectCategory;
+    country: string;
+    region?: string | null;
+  }): Promise<CompetitorSuggestion[]> {
+    return [
+      {
+        url: 'https://mock-competitor.example.com',
+        description: `A plausible competitor in ${input.category} (${input.country}).`,
+      },
+    ];
+  }
+
+  private createAndScheduleRun(targetId: string, url: string): AnalysisRun {
     const run: AnalysisRun = {
       id: crypto.randomUUID(),
       targetId,
-      triggeredBy,
       status: 'queued',
       startedAt: new Date().toISOString(),
       completedAt: null,

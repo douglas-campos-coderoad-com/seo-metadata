@@ -49,6 +49,11 @@ export interface OptimizeState {
   isLoading: boolean;
   error: string | null;
   run: (analysisId: number) => Promise<void>;
+  /** GET-only — fetches the latest already-stored optimization for an analysis
+   * without generating a new one (specs/009-project-analysis-ux, for historical
+   * views). A 404 (no optimization exists yet) is expected and left as no error,
+   * matching FR-010's "before only, no error" behavior. */
+  loadExisting: (analysisId: number) => Promise<void>;
   reset: () => void;
 }
 
@@ -76,6 +81,24 @@ export function useOptimize(): OptimizeState {
     }
   }, []);
 
+  const loadExisting = useCallback(async (analysisId: number) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const optimizationResult = await apiClient.get<OptimizationData>(`/optimize/${analysisId}`);
+      setOptimization(optimizationResult);
+    } catch (err) {
+      // A 404 ("no optimization found for analysis with id X") just means none was ever
+      // run — that's an expected state for a historical view, not a failure to surface.
+      const message = err instanceof Error ? err.message : '';
+      if (!/no optimization found/i.test(message)) {
+        setError(message || 'Could not load the existing optimization.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const reset = useCallback(() => {
     setOptimization(null);
     setGeoScore(null);
@@ -83,5 +106,5 @@ export function useOptimize(): OptimizeState {
     setIsLoading(false);
   }, []);
 
-  return { optimization, geoScore, isLoading, error, run, reset };
+  return { optimization, geoScore, isLoading, error, run, loadExisting, reset };
 }

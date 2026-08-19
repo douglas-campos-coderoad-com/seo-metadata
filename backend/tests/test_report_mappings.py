@@ -39,7 +39,7 @@ from src.services.report_mappings import (
 # Layer 1: the Python table, asserted against literals
 # --------------------------------------------------------------------------
 
-# Mirrors AnalysisApiService.mapSeverity (frontend/src/shared/realtime/AnalysisApiService.ts).
+# Mirrors mapFindingSeverity (frontend/src/shared/lib/findingMappers.ts).
 EXPECTED_COLLAPSE = {
     'critical': Severity.CRITICAL,
     'high': Severity.CRITICAL,
@@ -98,7 +98,7 @@ def test_severity_collapse_is_case_insensitive() -> None:
 def test_unknown_severity_falls_back_rather_than_raising(raw: str | None) -> None:
     """The analysis JSON is LLM-produced; an unexpected value must not break the export.
 
-    Matches the `default:` branch of AnalysisApiService.mapSeverity.
+    Matches the `default:` branch of mapFindingSeverity.
     """
     assert collapse_severity(raw) is DEFAULT_SEVERITY
     assert DEFAULT_SEVERITY is Severity.WARNING
@@ -153,7 +153,10 @@ def test_rubric_totals_match_the_analyser_prompt() -> None:
 _FRONTEND = Path(__file__).resolve().parents[2] / 'frontend' / 'src'
 _GLOBALS_CSS = _FRONTEND / 'styles' / 'globals.css'
 _SEVERITY_TS = _FRONTEND / 'shared' / 'lib' / 'severity.ts'
-_API_SERVICE_TS = _FRONTEND / 'shared' / 'realtime' / 'AnalysisApiService.ts'
+# mapSeverity moved out of AnalysisApiService.ts into its own module
+# (specs/008-project-centric-analysis research.md §6) so both AnalysisApiService and
+# the new project-shared-issues grouping (sharedIssues.ts) use the same mapping.
+_FINDING_MAPPERS_TS = _FRONTEND / 'shared' / 'lib' / 'findingMappers.ts'
 
 _needs_frontend = pytest.mark.skipif(
     not _GLOBALS_CSS.exists(),
@@ -197,17 +200,17 @@ def test_frontend_severity_label_unchanged(severity: Severity, label: str) -> No
 @pytest.mark.unit
 @_needs_frontend
 def test_frontend_map_severity_cases_are_all_covered() -> None:
-    """Every `case '<x>':` inside mapSeverity must exist in our collapse table.
+    """Every `case '<x>':` inside mapFindingSeverity must exist in our collapse table.
 
     A new case added on the frontend with no Python counterpart is exactly the
     silent divergence this suite exists to catch.
     """
-    ts = _API_SERVICE_TS.read_text(encoding='utf-8')
-    body = ts.split('private mapSeverity(', 1)
-    assert len(body) == 2, 'mapSeverity not found in AnalysisApiService.ts'
-    cases = set(re.findall(r"case '([a-z]+)':", body[1].split('\n  }', 1)[0]))
+    ts = _FINDING_MAPPERS_TS.read_text(encoding='utf-8')
+    body = ts.split('export function mapFindingSeverity(', 1)
+    assert len(body) == 2, 'mapFindingSeverity not found in findingMappers.ts'
+    cases = set(re.findall(r"case '([a-z]+)':", body[1].split('\n}', 1)[0]))
     unknown = cases - set(EXPECTED_COLLAPSE)
     assert not unknown, (
-        f'AnalysisApiService.mapSeverity handles {sorted(unknown)} but '
+        f'findingMappers.mapFindingSeverity handles {sorted(unknown)} but '
         f'report_mappings.SEVERITY_COLLAPSE does not (FR-013)'
     )

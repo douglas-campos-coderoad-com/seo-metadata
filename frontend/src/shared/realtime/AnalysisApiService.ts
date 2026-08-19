@@ -1,27 +1,20 @@
 import { apiClient } from '@/lib/api-client';
 import { useAppStore } from '@/shared/store/useAppStore';
 import { isValidUrl } from '@/shared/lib/url';
-import { computeSharedIssues } from '@/shared/lib/sharedIssues';
-import { computeNextRunAt, formatRecurrence } from '@/features/automations/lib/recurrence';
-import type { AnalysisRun, Automation, Finding, FindingRecommendation, Project, Recurrence, SharedIssue } from '@/shared/types';
-import type { AnalysisService } from './AnalysisService';
+import { buildFindings, type RawAnalysisData } from '@/shared/lib/findingMappers';
+import type {
+  AnalysisRun,
+  Competitor,
+  Project,
+  ProjectAnalysis,
+  ProjectAnalysisOptimization,
+  ProjectCategory,
+} from '@/shared/types';
+import type { AnalysisService, CompetitorSuggestion, ProjectInput } from './AnalysisService';
 import type { RunStatusEvent } from './events';
 
 // Real backend-backed implementation of AnalysisService.
 // Maps the FastAPI responses to the frontend entity shapes.
-
-// Mirrors report_mappings.py's CATEGORY_LABELS keys.
-const KNOWN_CATEGORIES: ReadonlySet<Finding['category']> = new Set([
-  'metadata',
-  'content',
-  'headings',
-  'images',
-  'structured_data',
-  'social',
-  'crawlability',
-  'performance',
-  'geo_aeo',
-]);
 
 // ── Backend response shapes (subset we consume) ──────────────────────────
 
@@ -35,39 +28,6 @@ interface IngestResponse {
   created_at: string;
 }
 
-// The analyzer prompt returns structured findings/recommendations, but older stored
-// analyses (and the backend's own error path) still emit plain strings — both shapes
-// have to survive this mapper.
-interface BackendFinding {
-  id?: string;
-  category?: string;
-  dimension?: string;
-  impact?: string;
-  severity?: string;
-  status?: string;
-  title?: string;
-  detail?: string;
-  /** Legacy field name for `title`. */
-  type?: string;
-}
-
-interface BackendRecommendation {
-  id?: string;
-  finding_id?: string;
-  category?: string;
-  priority?: string;
-  effort?: string;
-  impact?: string;
-  action?: string;
-  rationale?: string;
-  html_change?: {
-    change_type?: string;
-    location?: string;
-    current_html?: string;
-    suggested_html?: string;
-  };
-}
-
 interface AnalysisResponse {
   id: number;
   ingested_url_id: number;
@@ -76,16 +36,137 @@ interface AnalysisResponse {
   geo_score: number | null;
   overall_score: number | null;
   status: string;
-  analysis: {
-    findings?: Array<BackendFinding | string>;
-    recommendations?: Array<BackendRecommendation | string>;
-    geo_visibility?: string;
-    seo_breakdown?: Record<string, number>;
-    geo_breakdown?: Record<string, number>;
-    errors?: string[];
-  } | null;
+  analysis: RawAnalysisData | null;
   json_ld: unknown;
   created_at: string;
+}
+
+// ── Project backend response shapes (specs/008-project-centric-analysis) ─
+
+interface CompetitorDto {
+  id: number;
+  project_id: number;
+  url: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ProjectDto {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  country: string;
+  region: string | null;
+  competitors: CompetitorDto[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface ProjectListDto {
+  items: ProjectDto[];
+  total: number;
+}
+
+function mapCompetitor(dto: CompetitorDto): Competitor {
+  return {
+    id: dto.id,
+    projectId: dto.project_id,
+    url: dto.url,
+    description: dto.description,
+    createdAt: dto.created_at,
+    updatedAt: dto.updated_at,
+  };
+}
+
+function mapProject(dto: ProjectDto): Project {
+  return {
+    id: dto.id,
+    title: dto.title,
+    description: dto.description,
+    category: dto.category as ProjectCategory,
+    country: dto.country,
+    region: dto.region,
+    competitors: dto.competitors.map(mapCompetitor),
+    createdAt: dto.created_at,
+    updatedAt: dto.updated_at,
+  };
+}
+
+function toCompetitorPayload(input: ProjectInput['competitors']) {
+  return (input ?? []).map((c) => ({ url: c.url, description: c.description }));
+}
+
+interface OptimizationDto {
+  id: number;
+  analysis_id: number;
+  optimized_html: string | null;
+  optimized_json_ld: Record<string, unknown> | null;
+  optimized_content: Record<string, unknown> | null;
+  changes: Record<string, unknown> | null;
+  copy_paste_ready: Record<string, unknown> | null;
+  score_before: Record<string, unknown> | null;
+  score_after_estimated: Record<string, unknown> | null;
+  roi_projection: Record<string, unknown> | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ProjectAnalysisDto {
+  id: number;
+  ingested_url_id: number;
+  url: string;
+  seo_score: number | null;
+  geo_score: number | null;
+  overall_score: number | null;
+  analysis: Record<string, unknown> | null;
+  json_ld: Record<string, unknown> | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  optimization: OptimizationDto | null;
+}
+
+interface ProjectAnalysisListDto {
+  items: ProjectAnalysisDto[];
+  total: number;
+}
+
+function mapOptimization(dto: OptimizationDto): ProjectAnalysisOptimization {
+  return {
+    id: dto.id,
+    analysisId: dto.analysis_id,
+    optimizedHtml: dto.optimized_html,
+    optimizedJsonLd: dto.optimized_json_ld,
+    optimizedContent: dto.optimized_content,
+    changes: dto.changes,
+    copyPasteReady: dto.copy_paste_ready,
+    scoreBefore: dto.score_before,
+    scoreAfterEstimated: dto.score_after_estimated,
+    roiProjection: dto.roi_projection,
+    status: dto.status,
+    createdAt: dto.created_at,
+    updatedAt: dto.updated_at,
+  };
+}
+
+function mapProjectAnalysis(dto: ProjectAnalysisDto): ProjectAnalysis {
+  return {
+    id: dto.id,
+    ingestedUrlId: dto.ingested_url_id,
+    url: dto.url,
+    seoScore: dto.seo_score,
+    geoScore: dto.geo_score,
+    overallScore: dto.overall_score,
+    analysis: dto.analysis,
+    jsonLd: dto.json_ld,
+    status: dto.status,
+    createdAt: dto.created_at,
+    updatedAt: dto.updated_at,
+    optimization: dto.optimization ? mapOptimization(dto.optimization) : null,
+  };
 }
 
 // ── Event bus for live status ────────────────────────────────────────────
@@ -97,21 +178,21 @@ function runEventName(runId: string): string {
 export class AnalysisApiService implements AnalysisService {
   private bus = new EventTarget();
 
-  async startAnalysis(input: { url: string; projectId?: string }): Promise<{ targetId: string; runId: string }> {
+  async startAnalysis(input: { url: string; projectId?: number }): Promise<{ targetId: string; runId: string }> {
     if (!isValidUrl(input.url)) {
       throw new Error('Enter a valid http(s) URL.');
     }
 
     const store = useAppStore.getState();
     const target = store.upsertTargetByUrl(input.url);
-    if (input.projectId) {
-      store.addTargetToProject(input.projectId, target.id);
-    }
+    // input.projectId: auto-attaching the resulting analysis to a project when
+    // analysis is started from within that project's own view is wired up in
+    // specs/008-project-centric-analysis User Story 4 (T029), once
+    // attachAnalysisToProject exists and this run has a backendAnalysisId to attach.
 
     const run: AnalysisRun = {
       id: crypto.randomUUID(),
       targetId: target.id,
-      triggeredBy: 'manual',
       status: 'queued',
       startedAt: new Date().toISOString(),
       completedAt: null,
@@ -158,98 +239,75 @@ export class AnalysisApiService implements AnalysisService {
     return target.runIds.map((id) => state.runs[id]).filter((run): run is AnalysisRun => Boolean(run));
   }
 
-  createProject(input: { name: string }): Project {
-    return useAppStore.getState().createProject(input.name);
-  }
+  // ── Projects (backend-persisted, specs/008-project-centric-analysis) ────
 
-  addTargetToProject(projectId: string, url: string): { targetId: string } {
-    if (!isValidUrl(url)) {
-      throw new Error('Enter a valid http(s) URL.');
-    }
-    const store = useAppStore.getState();
-    const target = store.upsertTargetByUrl(url);
-    store.addTargetToProject(projectId, target.id);
-    return { targetId: target.id };
-  }
-
-  removeTargetFromProject(projectId: string, targetId: string): void {
-    useAppStore.getState().removeTargetFromProject(projectId, targetId);
-  }
-
-  listSharedIssues(projectId: string): SharedIssue[] {
-    const state = useAppStore.getState();
-    const project = state.projects[projectId];
-    if (!project) return [];
-    return computeSharedIssues(project, { targets: state.targets, runs: state.runs, findings: state.findings });
-  }
-
-  createAutomation(input: { targetId: string; recurrence: Recurrence }): Automation {
-    const automation: Automation = {
-      id: crypto.randomUUID(),
-      targetId: input.targetId,
-      recurrence: input.recurrence,
-      recurrenceLabel: formatRecurrence(input.recurrence),
-      active: true,
-      lastRunId: null,
-      nextRunAt: computeNextRunAt(input.recurrence),
-    };
-    useAppStore.getState().upsertAutomation(automation);
-    return automation;
-  }
-
-  setAutomationActive(automationId: string, active: boolean): void {
-    useAppStore.getState().setAutomationActive(automationId, active);
-  }
-
-  deleteAutomation(automationId: string): void {
-    useAppStore.getState().deleteAutomation(automationId);
-  }
-
-  triggerAutomationNow(automationId: string): { targetId: string; runId: string } | null {
-    const store = useAppStore.getState();
-    const automation = store.automations[automationId];
-    if (!automation) return null;
-
-    const target = store.targets[automation.targetId];
-    if (!target) return null;
-
-    // Create a run scoped to the automation target and run the real pipeline.
-    const run: AnalysisRun = {
-      id: crypto.randomUUID(),
-      targetId: target.id,
-      triggeredBy: 'automation',
-      status: 'queued',
-      startedAt: new Date().toISOString(),
-      completedAt: null,
-      score: null,
-      seoScore: null,
-      geoScore: null,
-      failureReason: null,
-      findingIds: [],
-      httpStatus: null,
-      contentType: null,
-      contentSizeBytes: null,
-    };
-    store.addRun(run);
-
-    this.runPipeline(run.id, target.displayUrl).catch((err) => {
-      const at = new Date().toISOString();
-      const message = err instanceof Error ? err.message : 'Analysis failed.';
-      useAppStore.getState().updateRun(run.id, {
-        status: 'failed',
-        completedAt: at,
-        failureReason: message,
-      });
-      this.emit(run.id, { type: 'failed', runId: run.id, status: 'failed', at, failureReason: message });
+  async createProject(input: ProjectInput): Promise<Project> {
+    const dto = await apiClient.post<ProjectDto>('/projects', {
+      title: input.title,
+      description: input.description,
+      category: input.category,
+      country: input.country,
+      region: input.region ?? null,
+      competitors: toCompetitorPayload(input.competitors),
     });
+    return mapProject(dto);
+  }
 
-    store.upsertAutomation({
-      ...automation,
-      lastRunId: run.id,
-      nextRunAt: new Date().toISOString(),
+  async listProjects(): Promise<Project[]> {
+    const dto = await apiClient.get<ProjectListDto>('/projects');
+    return dto.items.map(mapProject);
+  }
+
+  async getProject(projectId: number): Promise<Project> {
+    const dto = await apiClient.get<ProjectDto>(`/projects/${projectId}`);
+    return mapProject(dto);
+  }
+
+  async updateProject(projectId: number, input: Partial<ProjectInput>): Promise<Project> {
+    const payload: Record<string, unknown> = { ...input };
+    if (input.competitors) payload.competitors = toCompetitorPayload(input.competitors);
+    const dto = await apiClient.patch<ProjectDto>(`/projects/${projectId}`, payload);
+    return mapProject(dto);
+  }
+
+  async deleteProject(projectId: number): Promise<void> {
+    await apiClient.delete<void>(`/projects/${projectId}`);
+  }
+
+  async listProjectAnalyses(projectId: number): Promise<ProjectAnalysis[]> {
+    const dto = await apiClient.get<ProjectAnalysisListDto>(`/projects/${projectId}/analyses`);
+    return dto.items.map(mapProjectAnalysis);
+  }
+
+  async getAnalysis(projectId: number, analysisId: number): Promise<ProjectAnalysis> {
+    const dto = await apiClient.get<ProjectAnalysisDto>(`/projects/${projectId}/analyses/${analysisId}`);
+    return mapProjectAnalysis(dto);
+  }
+
+  async attachAnalysisToProject(projectId: number, analysisId: number): Promise<ProjectAnalysis> {
+    const dto = await apiClient.post<ProjectAnalysisDto>(`/projects/${projectId}/analyses`, {
+      analysis_id: analysisId,
     });
+    return mapProjectAnalysis(dto);
+  }
 
-    return { targetId: target.id, runId: run.id };
+  async removeAnalysisFromProject(projectId: number, analysisId: number): Promise<void> {
+    await apiClient.delete<void>(`/projects/${projectId}/analyses/${analysisId}`);
+  }
+
+  async smartSearchCompetitors(input: {
+    description: string;
+    category: ProjectCategory;
+    country: string;
+    region?: string | null;
+  }): Promise<CompetitorSuggestion[]> {
+    const dto = await apiClient.post<{ suggestions: CompetitorSuggestion[] }>('/projects/competitors/smart-search', {
+      description: input.description,
+      category: input.category,
+      country: input.country,
+      region: input.region ?? null,
+    });
+    return dto.suggestions;
   }
 
   // ── Backend pipeline ───────────────────────────────────────────────────
@@ -273,7 +331,7 @@ export class AnalysisApiService implements AnalysisService {
     const analysis = await apiClient.post<AnalysisResponse>(`/analyze/${ingest.id}`, {});
 
     // 3. Build findings from analysis
-    const findings = this.buildFindings(runId, analysis);
+    const findings = buildFindings(runId, analysis.analysis);
     useAppStore.getState().addFindings(findings);
 
     // 4. Complete the run
@@ -299,133 +357,6 @@ export class AnalysisApiService implements AnalysisService {
       score,
       findingIds: findings.map((f) => f.id),
     });
-  }
-
-  private buildFindings(runId: string, analysis: AnalysisResponse): Finding[] {
-    const findings: Finding[] = [];
-    const analysisData = analysis.analysis || {};
-
-    // Each recommendation points back at the finding it resolves. Usually one per
-    // finding, but several can share a finding_id when there are genuinely separate
-    // fixes — all of them stay attached, none silently dropped or overwritten.
-    const rawRecommendations = analysisData.recommendations || [];
-    const recsByFindingId = new Map<string, BackendRecommendation[]>();
-    const orphanRecs: BackendRecommendation[] = [];
-    for (const raw of rawRecommendations) {
-      const rec: BackendRecommendation = typeof raw === 'string' ? { action: raw } : raw;
-      if (rec.finding_id) {
-        const existing = recsByFindingId.get(rec.finding_id);
-        if (existing) existing.push(rec);
-        else recsByFindingId.set(rec.finding_id, [rec]);
-      } else {
-        orphanRecs.push(rec);
-      }
-    }
-
-    const rawFindings = analysisData.findings || [];
-    for (const raw of rawFindings) {
-      const finding: BackendFinding = typeof raw === 'string' ? { detail: raw } : raw;
-      const recs = finding.id ? recsByFindingId.get(finding.id) ?? [] : [];
-      if (finding.id) recsByFindingId.delete(finding.id);
-
-      findings.push({
-        id: crypto.randomUUID(),
-        runId,
-        category: this.mapCategory(finding.category),
-        severity: this.mapSeverity(finding.severity),
-        title: finding.title || finding.type || finding.detail || 'Finding',
-        description: finding.detail || '',
-        metricValue: null,
-        // "add" + no current markup is the backend's way of saying the element is absent;
-        // a plain "fail" status can still mean the element exists but scores badly.
-        isMissing: recs.some((rec) => rec.html_change?.change_type === 'add' && !rec.html_change.current_html),
-        recommendations: recs.map((rec) => this.toFindingRecommendation(rec)),
-      });
-    }
-
-    // Recommendations that reference no finding (or an unknown one) still get shown.
-    for (const rec of [...orphanRecs, ...recsByFindingId.values()].flat()) {
-      const action = rec.action || rec.rationale || '';
-      if (!action) continue;
-      findings.push({
-        id: crypto.randomUUID(),
-        runId,
-        category: this.mapCategory(rec.category),
-        severity: this.mapPriority(rec.priority),
-        title: action,
-        description: rec.rationale || '',
-        metricValue: null,
-        isMissing: false,
-        recommendations: [this.toFindingRecommendation(rec)],
-      });
-    }
-
-    // If no findings, add a default "good" one
-    if (findings.length === 0) {
-      findings.push({
-        id: crypto.randomUUID(),
-        runId,
-        category: 'content',
-        severity: 'good',
-        title: 'Analysis completed',
-        description: 'No critical issues detected.',
-        metricValue: null,
-        isMissing: false,
-        recommendations: [],
-      });
-    }
-
-    return findings;
-  }
-
-  private toFindingRecommendation(rec: BackendRecommendation): FindingRecommendation {
-    const location = rec.html_change?.location;
-    const action = [rec.action, location && `Where: ${location}`].filter(Boolean).join(' ');
-    return {
-      id: crypto.randomUUID(),
-      action,
-      rationale: rec.rationale || '',
-      codeSnippet: rec.html_change?.suggested_html || null,
-    };
-  }
-
-  // Normalize-and-validate against the analyser's 9 categories, mirroring
-  // report_mappings.normalise_category — unrecognized/missing falls back to 'content'.
-  private mapCategory(category?: string): Finding['category'] {
-    const key = category?.trim().toLowerCase();
-    return key && (KNOWN_CATEGORIES as ReadonlySet<string>).has(key) ? (key as Finding['category']) : 'content';
-  }
-
-  /** Recommendations carry a priority rather than a severity — reuse the same badge scale. */
-  private mapPriority(priority?: string): Finding['severity'] {
-    switch (priority?.toLowerCase()) {
-      case 'high':
-        return 'critical';
-      case 'medium':
-        return 'medium';
-      default:
-        return 'warning';
-    }
-  }
-
-  // The backend prompt emits severity as "critical" | "high" | "medium" | "low";
-  // the UI only knows good/warning/critical/medium, so collapse here at the boundary.
-  private mapSeverity(severity?: string): Finding['severity'] {
-    switch (severity?.toLowerCase()) {
-      case 'critical':
-      case 'high':
-        return 'critical';
-      case 'medium':
-        return 'medium';
-      case 'warning':
-      case 'low':
-        return 'warning';
-      case 'good':
-      case 'pass':
-        return 'good';
-      default:
-        return 'warning';
-    }
   }
 
   private emit(runId: string, event: RunStatusEvent): void {

@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 
 test('User Story 1: analyze a URL and see live progress then results', async ({ page }) => {
-  await page.goto('/analyze');
+  await page.goto('/');
 
-  await page.getByPlaceholder('https://example.com/page').fill('https://e2e-golden-path.example.com');
+  await page.getByPlaceholder(/paste any e-commerce product url/i).fill('https://e2e-golden-path.example.com');
   await page.getByRole('button', { name: 'Analyze' }).click();
 
   // Live status tracker renders immediately while the analysis runs.
@@ -17,11 +17,11 @@ test('User Story 1: analyze a URL and see live progress then results', async ({ 
 });
 
 test('an invalid URL shows an inline error and does not navigate away', async ({ page }) => {
-  await page.goto('/analyze');
+  await page.goto('/');
 
-  await page.getByPlaceholder('https://example.com/page').fill('not-a-url');
+  await page.getByPlaceholder(/paste any e-commerce product url/i).fill('not-a-url');
   await page.getByRole('button', { name: 'Analyze' }).click();
 
   await expect(page.getByText(/enter a valid url/i)).toBeVisible();
-  await expect(page).toHaveURL(/\/analyze$/);
+  await expect(page).toHaveURL(/\/$/);
 });

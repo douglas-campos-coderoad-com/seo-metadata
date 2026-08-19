@@ -5,11 +5,7 @@ import Link from 'next/link';
 import { Menu, TrendingUp, X } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 
-const NAV_LINKS = [
-  { href: '/analyze', label: 'Analyze' },
-  { href: '/projects', label: 'Projects' },
-  { href: '/automations', label: 'Automations' },
-];
+const NAV_LINKS = [{ href: '/projects', label: 'Projects' }];
 
 export function ResponsiveNav() {
   const [menuOpen, setMenuOpen] = useState(false);

@@ -18,6 +18,8 @@ from src.db import get_session  # noqa: E402
 from src.models.ingested_url import IngestedUrl  # noqa: E402
 from src.models.url_analysis import UrlAnalysis  # noqa: E402
 from src.models.url_optimization import UrlOptimization  # noqa: E402
+from src.models.project import Project  # noqa: E402
+from src.models.competitor import Competitor  # noqa: E402
 from sqlalchemy import MetaData  # noqa: E402
 
 
@@ -48,6 +50,8 @@ async def db_engine():
 
     # Create only the tables needed for tests (Item model uses ARRAY which SQLite can't compile)
     metadata = MetaData()
+    Project.__table__.to_metadata(metadata)
+    Competitor.__table__.to_metadata(metadata)
     IngestedUrl.__table__.to_metadata(metadata)
     UrlAnalysis.__table__.to_metadata(metadata)
     UrlOptimization.__table__.to_metadata(metadata)

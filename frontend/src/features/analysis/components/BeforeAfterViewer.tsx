@@ -19,6 +19,12 @@ interface BeforeAfterViewerProps {
   initialSeoScore: number | null;
   initialGeoScore: number | null;
   findings: Finding[];
+  /** Pre-loaded "after" data (specs/009-project-analysis-ux, historical views) — when
+   * both this and `preloadedAfterGeoScore` are provided, the After panel renders them
+   * immediately with no "click to optimize" prompt and no POST. Omitted at the existing
+   * live-run call site, which is byte-for-byte unchanged. */
+  preloadedOptimization?: OptimizationData | null;
+  preloadedAfterGeoScore?: GeoScoreData | null;
 }
 
 function GeoScoreBlock({ geoScore }: { geoScore: GeoScoreData | null }) {
@@ -110,10 +116,14 @@ export function BeforeAfterViewer({
   initialScore,
   initialSeoScore,
   initialGeoScore,
-  findings
+  findings,
+  preloadedOptimization = null,
+  preloadedAfterGeoScore = null,
 }: BeforeAfterViewerProps) {
-  const { optimization, geoScore, isLoading, error, run } = useOptimize();
-  const [optimized, setOptimized] = useState(false);
+  const { optimization: runOptimization, geoScore: runGeoScore, isLoading, error, run } = useOptimize();
+  const optimization = runOptimization ?? preloadedOptimization;
+  const geoScore = runGeoScore ?? preloadedAfterGeoScore;
+  const [optimized, setOptimized] = useState(Boolean(preloadedOptimization));
 
   const handleOptimize = async () => {
     await run(analysisId);

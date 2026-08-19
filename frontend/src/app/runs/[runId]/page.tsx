@@ -6,6 +6,7 @@ import { ScoreSummary } from '@/features/analysis/components/ScoreSummary';
 import { FindingsList } from '@/features/analysis/components/FindingsList';
 import { BeforeAfterViewer } from '@/features/analysis/components/BeforeAfterViewer';
 import { ExportReportButton } from '@/features/analysis/components/ExportReportButton';
+import { AddToProjectAction } from '@/features/projects/components/AddToProjectAction';
 import { Alert } from '@/shared/components/ui/alert';
 import type { Finding } from '@/shared/types';
 
@@ -43,7 +44,10 @@ export default function RunResultsPage() {
           </div>
           {/* Only reachable once the run is complete and the backend produced an
               analysis — the export keys off that id. */}
-          <ExportReportButton analysisId={run.backendAnalysisId} />
+          <div className="flex items-center gap-3">
+            <AddToProjectAction analysisId={run.backendAnalysisId} />
+            <ExportReportButton analysisId={run.backendAnalysisId} />
+          </div>
         </div>
         <BeforeAfterViewer
           analysisId={run.backendAnalysisId}
