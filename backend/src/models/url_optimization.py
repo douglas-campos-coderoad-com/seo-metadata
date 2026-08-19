@@ -22,6 +22,7 @@ class UrlOptimization(Base, TimestampMixin):
     optimized_json_ld = Column(JSONType, nullable=True)
     optimized_content = Column(JSONType, nullable=True)
     changes = Column(JSONType, nullable=True)
+    copy_paste_ready = Column(JSONType, nullable=True)
     score_before = Column(JSONType, nullable=True)
     score_after_estimated = Column(JSONType, nullable=True)
     status = Column(String(50), nullable=False, default='pending')

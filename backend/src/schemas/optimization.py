@@ -11,6 +11,7 @@ class OptimizationResponse(BaseSchema):
     optimized_json_ld: Optional[Any] = None
     optimized_content: Optional[Any] = None
     changes: Optional[Any] = None
+    copy_paste_ready: Optional[Any] = None
     score_before: Optional[Any] = None
     score_after_estimated: Optional[Any] = None
     status: str

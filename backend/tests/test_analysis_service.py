@@ -185,7 +185,7 @@ def test_analyze_seo_geo_passes_through_raw_findings():
         'geo_breakdown': {},
     }
 
-    with patch('src.services.graph_nodes._call_gemini', return_value=mock_result):
+    with patch('src.services.graph_nodes._call_llm', return_value=mock_result):
         result = analyze_seo_geo({'page_data': page_data})
 
     assert result['findings'] == mock_result['findings']

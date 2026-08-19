@@ -5,6 +5,12 @@ import { apiClient } from '@/lib/api-client';
 
 // ── Backend response shapes ─────────────────────────────────────────────
 
+export interface CopyPasteReady {
+  head_tags_html: string;
+  json_ld_script: string;
+  body_snippet_html: string;
+}
+
 export interface OptimizationData {
   id: number;
   analysis_id: number;
@@ -19,6 +25,7 @@ export interface OptimizationData {
     fact_density_score?: number;
   } | null;
   changes: Array<Record<string, unknown>> | null;
+  copy_paste_ready: CopyPasteReady | null;
   score_before: { seo?: number; geo?: number; overall?: number } | null;
   score_after_estimated: { seo?: number; geo?: number; overall?: number } | null;
   status: string;

@@ -30,6 +30,47 @@ export function mockSuccessfulAnalysisPipeline() {
         created_at: new Date().toISOString(),
       } as never;
     }
+    if (endpoint.startsWith('/optimize/')) {
+      return {
+        id: 1,
+        analysis_id: 1,
+        optimized_html: '<html><head><title>Optimized</title></head><body></body></html>',
+        optimized_json_ld: { '@context': 'https://schema.org', '@graph': [] },
+        optimized_content: {
+          optimized_title: 'Optimized Title',
+          optimized_meta_description: 'Optimized meta description with CTA.',
+          geo_content: 'Optimized GEO content.',
+          alt_texts: {},
+          qa_pairs: [],
+          fact_density_score: 85,
+        },
+        changes: [],
+        copy_paste_ready: {
+          head_tags_html: '<!-- Copy and paste inside the <head> -->\n<meta name="description" content="Optimized meta description with CTA.">',
+          json_ld_script: '<script type="application/ld+json">\n{\n  "@context": "https://schema.org",\n  "@graph": []\n}\n</script>',
+          body_snippet_html: '<!-- Copy and paste in the <body> -->\n<div class="artwork-faq-section">\n  <h3>About</h3>\n  <p>Optimized content.</p>\n</div>',
+        },
+        score_before: { seo: 70, geo: 60, overall: 65 },
+        score_after_estimated: { seo: 92, geo: 85, overall: 89 },
+        status: 'completed',
+        error: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as never;
+    }
+    if (endpoint.startsWith('/geo/score/')) {
+      return {
+        total_score: 85,
+        dimensions: {
+          fact_density: { score: 80, weight: 0.25 },
+          aeo_structure: { score: 90, weight: 0.25 },
+          entity_coverage: { score: 85, weight: 0.25 },
+          json_ld_validity: { score: 100, weight: 0.25 },
+        },
+        summary: { fact_density: 80, aeo_structure: 90, entity_coverage: 85, json_ld_validity: 100 },
+        has_optimization: true,
+      } as never;
+    }
     throw new Error(`mockSuccessfulAnalysisPipeline: unexpected endpoint ${endpoint}`);
   });
 }

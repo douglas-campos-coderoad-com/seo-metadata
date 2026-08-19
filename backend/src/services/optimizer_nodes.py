@@ -228,9 +228,7 @@ def plan_changes(state: dict) -> dict:
 # ── Node 4: apply_changes ─────────────────────────────────────────────────
 
 
-APPLY_CHANGES_PROMPT = """You are an expert in SEO, GEO/AEO and schema.org structured data.
-
-Based on the change plan and the original HTML, generate the complete optimized HTML, the enriched JSON-LD, and the rewritten content.
+APPLY_CHANGES_PROMPT = """You are a Senior Technical SEO + GEO (Generative Engine Optimization) Engineer. Your job is to process the JSON audit of a web page (obtained via the analysis) and produce an unified optimized output. Your goal is to raise the page's overall score to +85/100, ensuring content is understandable by both traditional search engines (Google) and AI answer engines (SearchGPT, Perplexity, Gemini, ChatGPT).
 
 URL: {url}
 PAGE TYPE: {page_type}
@@ -247,8 +245,39 @@ PREVIOUS ANALYSIS (including existing JSON-LD):
 WEB SEARCH CONTEXT:
 {search_context}
 
+# OPTIMIZATION INSTRUCTIONS (SEO + GEO FUSION)
+
+## 1. Structured Data (JSON-LD with Schema @graph)
+- Generate a single <script type="application/ld+json"> using @graph.
+- Mandatorily include the main entity (e.g. VisualArtwork or Product with creator, material, seller and URL details).
+- Include an FAQPage entity directly inside the @graph with key information (authorship, provenance, availability).
+
+## 2. Metadata & Social Networks
+- Meta Description: adjust length between 150 and 160 characters and include a clear call-to-action (CTA).
+- OG/Twitter synchronization: assign to og:description the same updated meta description value. Add missing tags (og:url, twitter:card, twitter:title, twitter:description, twitter:image).
+
+## 3. Content and HTML Images (Human GEO)
+- Alt Text: add accessible, informative descriptions to main images missing the alt attribute.
+- GEO Section in HTML: add a readable, natural information block in the HTML. Use clean tags (e.g. <h3>About [Title]</h3> and <p>[Narrative description of origin and availability]</p>) instead of rigid "Q: / A:" formats.
+
 Return EXACTLY this JSON (without markdown):
 {{
+  "status": "completed",
+  "score_before": {{
+    "geo": <int 0-100 original geo score>,
+    "seo": <int 0-100 original seo score>,
+    "overall": <int 0-100 original overall score>
+  }},
+  "score_after_estimated": {{
+    "geo": <int 0-100, >=85>,
+    "seo": <int 0-100, >=85>,
+    "overall": <int 0-100, >=85>
+  }},
+  "copy_paste_ready": {{
+    "head_tags_html": "<!-- Copy and paste inside the <head> -->\\n<meta name=\\"description\\" content=\\"...\\">\\n<meta property=\\"og:url\\" content=\\"...\\">\\n...",
+    "json_ld_script": "<script type=\\"application/ld+json\\">\\n{\\n  \\"@context\\": \\"https://schema.org\\",\\n  \\"@graph\\": [...]\\n}\\n</script>",
+    "body_snippet_html": "<!-- Copy and paste in the <body> where it belongs -->\\n<div class=\\"artwork-faq-section\\">\\n  <h3>...</h3>\\n  <p>...</p>\\n</div>"
+  }},
   "optimized_html": "<complete optimized HTML>",
   "optimized_json_ld": {{
     "@context": "https://schema.org",
@@ -256,19 +285,19 @@ Return EXACTLY this JSON (without markdown):
   }},
   "optimized_content": {{
     "title": "<optimized title>",
-    "meta_description": "<optimized meta description>",
+    "meta_description": "<optimized meta description 150-160 chars with CTA>",
     "alt_texts": {{
       "<image_src>": "<optimized alt text>"
     }},
-    "geo_content": "<content rewritten for GEO/AEO, answering conversational questions>"
+    "geo_content": "<content rewritten for GEO/AEO with natural narrative block>"
   }},
   "changes_applied": [
     {{
-      "element": "<element>",
-      "action": "<updated | added | removed | rewritten>",
+      "element": "meta_description | json_ld | og_tags | twitter_tags | images_alt | content",
+      "action": "updated | added",
+      "severity": "high | medium | low",
       "before": "<previous value>",
       "after": "<new value>",
-      "severity": "high | medium | low",
       "reason": "<reason for the change>",
       "snippet": "<code fragment ready to copy>"
     }}
@@ -277,10 +306,11 @@ Return EXACTLY this JSON (without markdown):
 
 RULES:
 1. The optimized HTML must be the complete HTML with all changes applied.
-2. The JSON-LD must be valid and semantically enriched (Creator, Material, Dimensions, Offers, Brand if applicable).
-3. The GEO/AEO content must answer conversational user questions.
+2. The JSON-LD must be valid, semantically enriched and use @graph (Creator, Material, Dimensions, Offers, Brand, FAQPage if applicable).
+3. The GEO/AEO content must be a natural narrative block, not a rigid "Q:/A:" list.
 4. Each change must include a code snippet ready to copy/paste.
 5. Do NOT invent information that is not in the original HTML. Use null if info is missing.
+6. score_after_estimated must target +85/100 on overall while remaining plausible.
 """
 
 
@@ -307,13 +337,14 @@ def apply_changes(state: dict) -> dict:
     analysis_json = json.dumps(analysis, ensure_ascii=False, default=str)[:5000]
     plan_json = json.dumps(plan, ensure_ascii=False, indent=2)
 
-    prompt = APPLY_CHANGES_PROMPT.format(
-        url=url,
-        page_type=page_type,
-        plan=plan_json,
-        html_preview=html_preview,
-        analysis_json=analysis_json,
-        search_context=search_context,
+    prompt = (
+        APPLY_CHANGES_PROMPT
+        .replace('{url}', url)
+        .replace('{page_type}', page_type)
+        .replace('{plan}', plan_json)
+        .replace('{html_preview}', html_preview)
+        .replace('{analysis_json}', analysis_json)
+        .replace('{search_context}', search_context)
     )
 
     try:
@@ -323,6 +354,7 @@ def apply_changes(state: dict) -> dict:
             'optimized_json_ld': result.get('optimized_json_ld', None),
             'optimized_content': result.get('optimized_content', {}),
             'changes_applied': result.get('changes_applied', []),
+            'copy_paste_ready': result.get('copy_paste_ready', {}),
             'apply_error': None,
         }
     except Exception as exc:
@@ -332,6 +364,7 @@ def apply_changes(state: dict) -> dict:
             'optimized_json_ld': None,
             'optimized_content': {},
             'changes_applied': [],
+            'copy_paste_ready': {},
             'apply_error': str(exc),
         }
 
@@ -350,6 +383,7 @@ def compile_optimization(state: dict) -> dict:
     optimized_json_ld = state.get('optimized_json_ld')
     optimized_content = state.get('optimized_content', {})
     changes = state.get('changes_applied', [])
+    copy_paste_ready = state.get('copy_paste_ready', {})
     estimated_scores = state.get('estimated_scores', {'seo': 0, 'geo': 0, 'overall': 0})
 
     read_error = state.get('read_error')
@@ -369,6 +403,7 @@ def compile_optimization(state: dict) -> dict:
         'optimized_json_ld': optimized_json_ld,
         'optimized_content': optimized_content,
         'changes': changes,
+        'copy_paste_ready': copy_paste_ready,
         'score_before': score_before,
         'score_after_estimated': estimated_scores,
         'status': 'completed' if not errors else 'failed',

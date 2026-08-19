@@ -40,6 +40,7 @@ class OptimizerService:
             optimized_json_ld: Optional[dict]
             optimized_content: dict
             changes_applied: list
+            copy_paste_ready: dict
             apply_error: Optional[str]
             read_error: Optional[str]
             changes: list
@@ -137,6 +138,7 @@ class OptimizerService:
             optimized_json_ld=None,
             optimized_content=None,
             changes=None,
+            copy_paste_ready=None,
             score_before=None,
             score_after_estimated=None,
             error=None,
@@ -155,6 +157,7 @@ class OptimizerService:
         optimization.optimized_json_ld = result.get('optimized_json_ld')
         optimization.optimized_content = result.get('optimized_content')
         optimization.changes = result.get('changes')
+        optimization.copy_paste_ready = result.get('copy_paste_ready')
         optimization.score_before = result.get('score_before')
         optimization.score_after_estimated = result.get('score_after_estimated')
         optimization.status = result.get('status', 'failed')

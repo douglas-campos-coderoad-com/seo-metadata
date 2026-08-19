@@ -6,6 +6,7 @@ import { Spinner } from '@/shared/components/Spinner';
 import { ScoreSummary } from './ScoreSummary';
 import { FindingsList } from './FindingsList';
 import { EntityGraphBlock } from './EntityGraphBlock';
+import { CopyPasteReadyPanel } from './CopyPasteReadyPanel';
 import { AeoLiveTest } from './AeoLiveTest';
 import { useOptimize, type OptimizationData, type GeoScoreData } from '../hooks/useOptimize';
 import type { Finding } from '@/shared/types';
@@ -135,6 +136,7 @@ export function BeforeAfterViewer({
               <AfterBlock optimization={optimization} />
               <EntityGraphBlock jsonld={optimization?.optimized_json_ld ?? null} />
               <GeoScoreBlock geoScore={geoScore} />
+              <CopyPasteReadyPanel copyPasteReady={optimization?.copy_paste_ready ?? null} />
               {optimization?.changes && optimization.changes.length > 0 && (
                 <div className="rounded-xl border border-border bg-card p-4">
                   <h4 className="mb-2 text-sm font-semibold uppercase text-muted-foreground">Changes Applied ({optimization.changes.length})</h4>
