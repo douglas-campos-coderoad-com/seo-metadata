@@ -170,6 +170,9 @@ function TrafficSplitBar({ seo, ai }: { seo: number; ai: number }) {
 
 export function RoiProjectionPanel({ optimization }: RoiProjectionPanelProps) {
   const serverProjection = optimization?.roi_projection;
+  const hasScores = Boolean(
+    optimization?.score_before != null && optimization?.score_after_estimated != null,
+  );
   const [metrics, setMetrics] = useState<Record<MetricKey, string>>(() => {
     const base = serverProjection?.metrics_used;
     return {
@@ -214,8 +217,12 @@ export function RoiProjectionPanel({ optimization }: RoiProjectionPanelProps) {
     scores.improvedGeo,
   ]);
 
-  if (!serverProjection) return null;
+  // Always render when we have score data — if no server projection exists,
+  // the interactive section still lets users enter their own business metrics
+  // and see projected results based on the score lift.
+  if (!hasScores) return null;
 
+  const projectionToUse = serverProjection ?? projection;
   const { financial_impact_annual: f, incremental_traffic_monthly: t } =
     projection;
   const paybackMonths = monthsToRecover(
@@ -237,14 +244,25 @@ export function RoiProjectionPanel({ optimization }: RoiProjectionPanelProps) {
     setMetrics((prev) => ({ ...prev, [key]: raw }));
 
   const resetMetrics = () => {
-    const base = serverProjection.metrics_used;
-    setMetrics({
-      monthly_organic_traffic: String(base.monthly_organic_traffic),
-      generative_search_share: String(base.generative_search_share),
-      conversion_rate: String(base.conversion_rate),
-      avg_order_value: String(base.avg_order_value),
-      cost_per_product: String(base.cost_per_product),
-    });
+    // If server projection exists use its values, otherwise reset to defaults
+    if (serverProjection?.metrics_used) {
+      const base = serverProjection.metrics_used;
+      setMetrics({
+        monthly_organic_traffic: String(base.monthly_organic_traffic),
+        generative_search_share: String(base.generative_search_share),
+        conversion_rate: String(base.conversion_rate),
+        avg_order_value: String(base.avg_order_value),
+        cost_per_product: String(base.cost_per_product),
+      });
+    } else {
+      setMetrics({
+        monthly_organic_traffic: '10000',
+        generative_search_share: '0.2',
+        conversion_rate: '0.015',
+        avg_order_value: '150',
+        cost_per_product: '1',
+      });
+    }
   };
 
   return (
@@ -345,9 +363,16 @@ export function RoiProjectionPanel({ optimization }: RoiProjectionPanelProps) {
           <span className="text-xs text-muted-foreground/70 group-open:hidden">
             Tune to your real numbers
           </span>
-          <span className="hidden text-xs text-muted-foreground/70 group-open:inline">
-            Based on the defaults the optimizer used
-          </span>
+          {!serverProjection && (
+            <span className="hidden text-xs text-muted-foreground/70 group-open:inline">
+              Default assumptions — adjust to see projections
+            </span>
+          )}
+          {serverProjection && (
+            <span className="hidden text-xs text-muted-foreground/70 group-open:inline">
+              Based on the defaults the optimizer used
+            </span>
+          )}
         </summary>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {METRIC_FIELDS.map((field) => (

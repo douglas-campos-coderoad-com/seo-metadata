@@ -9,6 +9,7 @@ import type { Finding, FindingCategory, FindingSeverity } from '@/shared/types';
 import type { OptimizationData, GeoScoreData } from '../hooks/useOptimize';
 import { formatCurrency, formatRoiPercent, monthsToRecover } from '../lib/roi';
 import type { RoiProjection } from '../lib/roi';
+import { RoiProjectionPanel } from './RoiProjectionPanel';
 
 /* ─────────────── types ─────────────── */
 
@@ -723,14 +724,12 @@ export function ExecutiveSummary({
         />
       )}
 
-      {/* ===== TIME & COST SAVINGS (ROI) ===== */}
-      {roi && (
-        <CostSavingsSection
-          roi={roi}
-          monthlyRecovery={monthlyRecovery}
-          changesApplied={changesApplied}
-          criticalBefore={criticalCount}
-        />
+      {/* ===== ROI PROJECTION (full interactive panel) ===== */}
+      {hasOptimization && optimization && (
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">💰 ROI Projection</h4>
+          <RoiProjectionPanel optimization={optimization} />
+        </div>
       )}
 
       {/* ===== IMPLEMENTATION CHECKLIST ===== */}
