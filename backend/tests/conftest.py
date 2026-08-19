@@ -8,8 +8,10 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-# Ensure backend src is importable
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+# The imports below are `src.<module>`, so the backend root has to be on the
+# path -- not backend/src. Relying on the CWD happening to be there works with
+# `python -m pytest` but not with the `pytest` console script.
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.main import create_app  # noqa: E402
 from src.db import get_session  # noqa: E402

@@ -35,6 +35,9 @@ exclude = '''
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Resolved against rootdir (this directory), so `import src.*` works no matter
+# how pytest is invoked or which directory it is invoked from.
+pythonpath = ["."]
 python_files = ["test_*.py", "*_test.py"]
 asyncio_mode = "auto"
 addopts = "--strict-markers"
