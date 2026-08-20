@@ -44,6 +44,8 @@ services:
     volumes:
       - ./backend/src:/app/src
       - ./backend/tests:/app/tests
+      # Mounted so new revision files apply on restart instead of needing an image rebuild.
+      - ./backend/migrations:/app/migrations
     command: >
       sh -c "alembic upgrade head &&
              uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload"
