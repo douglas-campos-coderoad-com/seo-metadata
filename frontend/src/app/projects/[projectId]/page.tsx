@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail';
 import { ProjectAnalysisHistory } from '@/features/projects/components/ProjectAnalysisHistory';
 import { ProjectForm } from '@/features/projects/components/ProjectForm';
@@ -24,9 +25,13 @@ function CompetitorCard({ competitor }: { competitor: { id: number; url: string;
       <div className="mb-2 flex items-start justify-between gap-2">
         <p className="truncate text-sm font-medium">{competitor.url}</p>
         {competitor.status === 'unreachable' ? (
-          <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-900 dark:text-red-200">⚠ Unreachable</span>
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-900 dark:text-red-200">
+            <AlertTriangle className="h-3 w-3" /> Unreachable
+          </span>
         ) : competitor.analyzedAt && (
-          <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200">✓ Analyzed</span>
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200">
+            <CheckCircle2 className="h-3 w-3" /> Analyzed
+          </span>
         )}
       </div>
       <p className="mb-2 text-xs text-muted-foreground">{competitor.description}</p>

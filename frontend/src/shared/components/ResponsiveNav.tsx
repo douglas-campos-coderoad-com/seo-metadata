@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
-import { Menu, TrendingUp, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 
 const NAV_LINKS = [{ href: '/projects', label: 'Projects' }];
@@ -13,9 +14,9 @@ export function ResponsiveNav() {
   return (
     <div className="border-b border-border px-4">
       <div className="flex h-14 items-center justify-between">
-        <Link href="/" className="flex items-center gap-1.5 font-display text-lg font-bold">
-          <TrendingUp className="h-5 w-5 text-ring" />
-          <span>Visora Analyzer</span>
+        <Link href="/" className="flex items-center gap-1.5 font-display font-bold">
+          <Image src="/images/visora-icon.png" alt="" width={30} height={30} />
+          <span className="text-xl">Visora Analyzer</span>
         </Link>
 
         <ul className="hidden items-center gap-1 sm:flex">

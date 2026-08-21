@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Check } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Spinner } from '@/shared/components/Spinner';
 import { apiClient } from '@/lib/api-client';
@@ -31,8 +32,8 @@ function ChatWindow({ messages, label, cited }: { messages: ChatMessage[]; label
       <div className="flex items-center justify-between border-b border-border px-4 py-2">
         <span className="text-sm font-semibold">{label}</span>
         {cited !== undefined && (
-          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cited ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-            {cited ? '✓ Cited' : 'Not cited'}
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${cited ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+            {cited ? <><Check className="h-3 w-3" /> Cited</> : 'Not cited'}
           </span>
         )}
       </div>

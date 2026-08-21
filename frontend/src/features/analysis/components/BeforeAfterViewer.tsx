@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { BarChart3, Scale, Search, type LucideIcon } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Spinner } from '@/shared/components/Spinner';
 import { ScoreSummary } from './ScoreSummary';
@@ -19,13 +20,14 @@ type TabId = 'executive' | 'beforeafter' | 'details';
 interface TabItem {
   id: TabId;
   label: string;
+  icon: LucideIcon;
   description: string;
 }
 
 const TABS: TabItem[] = [
-  { id: 'executive', label: '📊 Executive Summary', description: 'Executive view with key metrics, improvements, and ROI.' },
-  { id: 'beforeafter', label: '⚖️ Before / After', description: 'Direct comparison between the original and optimized state.' },
-  { id: 'details', label: '🔍 Technical Details', description: 'JSON-LD, Q&A, copyable code, and applied changes.' },
+  { id: 'executive', label: 'Executive Summary', icon: BarChart3, description: 'Executive view with key metrics, improvements, and ROI.' },
+  { id: 'beforeafter', label: 'Before / After', icon: Scale, description: 'Direct comparison between the original and optimized state.' },
+  { id: 'details', label: 'Technical Details', icon: Search, description: 'JSON-LD, Q&A, copyable code, and applied changes.' },
 ];
 
 /* ─────────────── props ─────────────── */
@@ -167,7 +169,7 @@ export function BeforeAfterViewer({
   return (
     <div className="flex flex-col gap-8">
       {/* ── Tab navigation ── */}
-      <nav aria-label="Report views" className="-mx-4 -mt-4 flex overflow-x-auto rounded-t-2xl border-b border-border bg-muted/30 px-4 pt-2 pb-0">
+      <nav aria-label="Report views" className="flex overflow-y-hidden overflow-x-hidden rounded-t-2xl border-b border-border">
         <div className="flex gap-1">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -175,7 +177,7 @@ export function BeforeAfterViewer({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative rounded-t-lg px-4 py-3 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-primary ${
+                className={`relative flex items-center gap-2 rounded-t-lg px-4 py-3 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-primary ${
                   isActive
                     ? 'bg-card text-primary shadow-sm'
                     : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
@@ -185,9 +187,10 @@ export function BeforeAfterViewer({
                 aria-controls={`panel-${tab.id}`}
                 title={tab.description}
               >
+                <tab.icon className="hidden md:block h-4 w-4" />
                 {tab.label}
                 {isActive && (
-                  <span className="absolute inset-x-3 -bottom-px h-px bg-primary" />
+                  <span className="absolute inset-x-0 bottom-0 h-[0.75px] bg-primary" />
                 )}
               </button>
             );

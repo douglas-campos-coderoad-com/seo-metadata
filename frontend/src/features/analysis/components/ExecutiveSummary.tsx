@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { AlertCircle, AlertTriangle, BarChart3, Check, ClipboardCheck, Clock, DollarSign, Info, type LucideIcon } from 'lucide-react';
 import { ScoreRadial } from '@/shared/components/ScoreRadial';
 import { scoreToSeverity, severityLabel, SEVERITY_RANK } from '@/shared/lib/severity';
 import { CATEGORY_ICONS } from '@/shared/lib/categoryIcons';
@@ -239,10 +240,10 @@ function TopRecommendations({
     else groups.medium.push(it);
   }
 
-  const groupMeta: Record<string, { label: string; icon: string; count: number }> = {
-    critical: { label: 'Critical Resolved', icon: '🔴', count: groups.critical.length },
-    high: { label: 'High Priority', icon: '🟡', count: groups.high.length },
-    medium: { label: 'Recommendations', icon: '🔵', count: groups.medium.length },
+  const groupMeta: Record<string, { label: string; icon: LucideIcon; iconClassName: string; count: number }> = {
+    critical: { label: 'Critical Resolved', icon: AlertCircle, iconClassName: 'text-red-500', count: groups.critical.length },
+    high: { label: 'High Priority', icon: AlertTriangle, iconClassName: 'text-amber-500', count: groups.high.length },
+    medium: { label: 'Recommendations', icon: Info, iconClassName: 'text-blue-500', count: groups.medium.length },
   };
 
   return (
@@ -260,7 +261,7 @@ function TopRecommendations({
           return (
             <div key={key}>
               <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-                <span>{meta.icon}</span>
+                <meta.icon className={`h-4 w-4 ${meta.iconClassName}`} />
                 <span>{meta.label}</span>
                 <Badge variant="secondary" className="ml-0">{meta.count}</Badge>
               </div>
@@ -318,7 +319,7 @@ function CostSavingsSection({
     <div className="grid gap-4 md:grid-cols-2">
       {/* Financial impact */}
       <div className="rounded-2xl border border-border bg-card p-5">
-        <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">💰 Projected Financial Impact</h4>
+        <h4 className="mb-4 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted-foreground"><DollarSign className="h-4 w-4" /> Projected Financial Impact</h4>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
           <dt className="text-muted-foreground">Incremental Revenue/Year</dt>
           <dd className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(fi.incremental_revenue)}</dd>
@@ -343,7 +344,7 @@ function CostSavingsSection({
 
       {/* Traffic impact */}
       <div className="rounded-2xl border border-border bg-card p-5">
-        <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">📊 Monthly Traffic Impact</h4>
+        <h4 className="mb-4 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted-foreground"><BarChart3 className="h-4 w-4" /> Monthly Traffic Impact</h4>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
           <dt className="text-muted-foreground">Traditional Traffic (+)</dt>
           <dd className="font-semibold">+{it.seo_traditional}/mo</dd>
@@ -358,7 +359,7 @@ function CostSavingsSection({
 
         {/* estimated time saved */}
         <div className="mt-4 rounded-lg border border-dashed border-border bg-muted/30 p-3">
-          <h5 className="mb-1 text-xs font-medium text-muted-foreground">⏱️ Time Saved (estimated)</h5>
+          <h5 className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><Clock className="h-3.5 w-3.5" /> Time Saved (estimated)</h5>
           <p className="text-xs text-muted-foreground">
             {changesApplied ?? 0} changes applied (including {criticalBefore} critical). 
             Based on priority and quantity of automated fixes.
@@ -384,7 +385,7 @@ function ImplementationChecklist({
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">✔ Implementation Checklist</h4>
+        <h4 className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted-foreground"><ClipboardCheck className="h-4 w-4" /> Implementation Checklist</h4>
         <Badge variant="outline">{doneCount} of {checklist.length} completed</Badge>
       </div>
 
@@ -407,7 +408,7 @@ function ImplementationChecklist({
                   ? 'border-emerald-400 bg-emerald-500 text-white'
                   : 'border-muted-foreground/40 bg-muted'
               }`}>
-                {item.done ? '✓' : ''}
+                {item.done ? <Check className="h-3 w-3" /> : ''}
               </span>
               <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="flex-1">{item.label}</span>
@@ -666,8 +667,8 @@ export function ExecutiveSummary({
             <h3 className="text-xl font-bold">Executive Summary</h3>
             <p className="text-sm text-muted-foreground">{originalUrl}</p>
           </div>
-          <Badge className="shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200">
-            Optimized ✓
+          <Badge className="inline-flex shrink-0 items-center gap-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200">
+            Optimized <Check className="h-3.5 w-3.5" />
           </Badge>
         </div>
         {statusMessage && <p className="text-sm font-medium text-muted-foreground">{statusMessage}</p>}
@@ -727,7 +728,7 @@ export function ExecutiveSummary({
       {/* ===== ROI PROJECTION (full interactive panel) ===== */}
       {hasOptimization && optimization && (
         <div className="rounded-2xl border border-border bg-card p-5">
-          <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">💰 ROI Projection</h4>
+          <h4 className="mb-4 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted-foreground"><DollarSign className="h-4 w-4" /> ROI Projection</h4>
           <RoiProjectionPanel optimization={optimization} />
         </div>
       )}

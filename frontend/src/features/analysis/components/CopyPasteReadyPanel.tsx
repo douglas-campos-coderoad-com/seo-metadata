@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Check } from 'lucide-react';
 import type { CopyPasteReady } from '../hooks/useOptimize';
 
 function CopyButton({ text, label }: { text: string; label: string }) {
@@ -28,9 +29,9 @@ function CopyButton({ text, label }: { text: string; label: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className="rounded-md border border-input bg-background px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
     >
-      {copied ? '✓ Copied' : label}
+      {copied ? <><Check className="h-3 w-3" /> Copied</> : label}
     </button>
   );
 }
