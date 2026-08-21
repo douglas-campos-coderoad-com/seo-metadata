@@ -20,6 +20,7 @@ from typing import Any
 import httpx
 
 from src.llm import get_llm_repository
+from src.services.graph_nodes import _clean_html_for_llm
 
 logger = logging.getLogger(__name__)
 
@@ -198,8 +199,8 @@ def plan_changes(state: dict) -> dict:
     json_ld = analysis.get('json_ld') or {}
     page_type = json_ld.get('@type', 'Product') if isinstance(json_ld, dict) else 'Product'
 
-    # Truncate HTML
-    html_preview = html[:10000]
+    # Truncate and clean HTML
+    html_preview = _clean_html_for_llm(html)[:6000]
 
     prompt = PLAN_CHANGES_PROMPT.format(
         url=url,
@@ -331,8 +332,8 @@ def apply_changes(state: dict) -> dict:
     json_ld = analysis.get('json_ld') or {}
     page_type = json_ld.get('@type', 'Product') if isinstance(json_ld, dict) else 'Product'
 
-    # Truncate HTML
-    html_preview = html[:10000]
+    # Truncate and clean HTML
+    html_preview = _clean_html_for_llm(html)[:6000]
 
     analysis_json = json.dumps(analysis, ensure_ascii=False, default=str)[:5000]
     plan_json = json.dumps(plan, ensure_ascii=False, indent=2)

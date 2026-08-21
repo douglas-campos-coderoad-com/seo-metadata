@@ -320,7 +320,7 @@ def _description_fallback_score(description: str) -> dict:
     seo_score = 40
     if word_count >= 12:
         seo_score += 10
-    if len(description) >= 80:
+    if len(text) >= 80:
         seo_score += 10
     if any(kw in text for kw in ('product', 'service', 'marketplace', 'platform', 'store', 'online')):
         seo_score += 10
@@ -333,7 +333,7 @@ def _description_fallback_score(description: str) -> dict:
     geo_score += min(hits * 5, 20)
     if word_count >= 15:
         geo_score += 5
-    if len(description) >= 100:
+    if len(text) >= 100:
         geo_score += 5
 
     return {

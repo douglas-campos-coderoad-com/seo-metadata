@@ -70,3 +70,34 @@ async def get_analysis(
         created_at=analysis.created_at,
         updated_at=analysis.updated_at,
     )
+
+
+from fastapi.responses import StreamingResponse
+
+
+@router.get('/analyze/{ingested_url_id}/stream')
+async def stream_analysis_progress(
+    ingested_url_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """Stream real-time Server-Sent Events (SSE) progress during analysis."""
+    service = AnalysisService(session)
+
+    async def event_generator():
+        async for event in service.stream_analysis_progress(ingested_url_id):
+            if 'comment' in event:
+                yield f": {event['comment']}\n\n"
+            else:
+                evt_type = event.get('event', 'message')
+                evt_data = event.get('data', '{}')
+                yield f'event: {evt_type}\ndata: {evt_data}\n\n'
+
+    return StreamingResponse(
+        event_generator(),
+        media_type='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no',
+        },
+    )
