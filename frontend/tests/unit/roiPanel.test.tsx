@@ -10,6 +10,10 @@ const DEFAULT_METRICS = {
   conversion_rate: 0.015,
   avg_order_value: 150.0,
   cost_per_product: 1.0,
+  manual_minutes_saved_per_listing: 15,
+  listings_per_month: 200,
+  labor_cost_per_hour: 25,
+  annual_visora_cost: 2400,
 };
 
 function optimization(
@@ -38,6 +42,13 @@ function optimization(
         optimization_cost: 1.0,
         net_profit: 131219.0,
         roi_percentage: 13121900.0,
+      },
+      productivity_impact_annual: {
+        annual_productivity_value: 15000,
+        annual_visora_cost: 2400,
+        annual_quantified_benefit: 146220,
+        productivity_roi_percentage: 5992.5,
+        productivity_only_roi_percentage: 525,
       },
     },
     status: 'completed',

@@ -51,13 +51,21 @@ describe('calculateFullRoi', () => {
     );
     expect(result.incremental_traffic_monthly.total).toBe(Math.round(total));
     expect(result.financial_impact_annual.optimization_cost).toBe(0.05);
-    expect(result.metrics_used).toEqual({
-      monthly_organic_traffic: 50000,
-      generative_search_share: 0.3,
-      conversion_rate: 0.03,
-      avg_order_value: 1000,
-      cost_per_product: 0.05,
-    });
+    expect(result.metrics_used).toEqual(
+      expect.objectContaining({
+        monthly_organic_traffic: 50000,
+        generative_search_share: 0.3,
+        conversion_rate: 0.03,
+        avg_order_value: 1000,
+        cost_per_product: 0.05,
+      }),
+    );
+    // productivity defaults are filled when not provided
+    expect(result.metrics_used.manual_minutes_saved_per_listing).toBe(0);
+    expect(result.metrics_used.listings_per_month).toBe(0);
+    expect(result.metrics_used.labor_cost_per_hour).toBe(0);
+    expect(result.metrics_used.annual_visora_cost).toBeNull();
+    expect(result.productivity_impact_annual.annual_productivity_value).toBe(0);
   });
 
   it('yields zero ROI when there is no score improvement', () => {

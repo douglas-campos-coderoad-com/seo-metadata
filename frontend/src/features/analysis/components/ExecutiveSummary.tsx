@@ -319,7 +319,7 @@ function TopRecommendations({
   );
 }
 
-/** Cost savings & time section */
+/** Cost savings & time section — now includes Productivity Value (realistic defaults: 15 min, 200 listings, $25/h, $2400/yr) */
 function CostSavingsSection({
   roi,
   monthlyRecovery: mr,
@@ -333,6 +333,8 @@ function CostSavingsSection({
 }) {
   const fi = roi.financial_impact_annual;
   const it = roi.incremental_traffic_monthly;
+  const prod = (roi as unknown as { productivity_impact_annual?: RoiProjection['productivity_impact_annual'] }).productivity_impact_annual;
+  const m = roi.metrics_used;
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -386,6 +388,39 @@ function CostSavingsSection({
           </p>
         </div>
       </div>
+
+      {/* Productivity Value — subtitle + calculation */}
+      {prod && (
+        <div className="rounded-2xl border border-border bg-card p-5 md:col-span-2">
+          <h4 className="mb-4 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted-foreground"><Clock className="h-4 w-4" /> Productivity Value</h4>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            <dt className="text-muted-foreground">Annual Productivity Value</dt>
+            <dd className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(prod.annual_productivity_value)}</dd>
+
+            <dt className="text-muted-foreground">Annual Visora Cost</dt>
+            <dd className="font-semibold">{formatCurrency(prod.annual_visora_cost)}</dd>
+
+            <dt className="text-muted-foreground">Annual Quantified Benefit</dt>
+            <dd className="font-semibold">{formatCurrency(prod.annual_quantified_benefit)}</dd>
+
+            <dt className="text-muted-foreground">Productivity ROI</dt>
+            <dd className={`font-semibold ${prod.productivity_roi_percentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{formatRoiPercent(prod.productivity_roi_percentage)}</dd>
+
+            <dt className="col-span-2 mt-2 border-t border-border pt-2 text-[11px] text-muted-foreground">Formula</dt>
+            <dd className="col-span-2 font-mono text-xs">
+              ({m.manual_minutes_saved_per_listing ?? 15} min ÷ 60) × {m.listings_per_month ?? 200} listings/mo × {formatCurrency(m.labor_cost_per_hour ?? 25)}/h × 12 = {formatCurrency(prod.annual_productivity_value)}/yr
+              <span className="mx-1 text-muted-foreground">→</span>
+              {formatCurrency(prod.annual_productivity_value)} + {formatCurrency(fi.incremental_revenue)} revenue = {formatCurrency(prod.annual_quantified_benefit)} benefit; ROI = ({formatCurrency(prod.annual_quantified_benefit)} − {formatCurrency(prod.annual_visora_cost)}) ÷ {formatCurrency(prod.annual_visora_cost)} × 100 = {formatRoiPercent(prod.productivity_roi_percentage)}
+            </dd>
+
+            <dt className="text-muted-foreground">Productivity-only ROI</dt>
+            <dd className="font-semibold">{formatRoiPercent(prod.productivity_only_roi_percentage)}</dd>
+          </dl>
+          <p className="mt-3 text-[11px] text-muted-foreground/70">
+            Based on {m.manual_minutes_saved_per_listing ?? 15} min saved per listing, {m.listings_per_month ?? 200} listings/mo at {formatCurrency(m.labor_cost_per_hour ?? 25)}/h and an annual Visora cost of {formatCurrency(prod.annual_visora_cost)}. Adjust these assumptions in the ROI Projection panel to match your reality.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

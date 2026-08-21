@@ -10,6 +10,11 @@ export interface BusinessMetricsInput {
   conversion_rate: number;
   avg_order_value: number;
   cost_per_product: number;
+  // Productividad / ROI Visora (opcionales para compatibilidad; defaults 0/null)
+  manual_minutes_saved_per_listing?: number;
+  listings_per_month?: number;
+  labor_cost_per_hour?: number;
+  annual_visora_cost?: number | null;
 }
 
 export interface RoiProjection {
@@ -25,10 +30,51 @@ export interface RoiProjection {
     net_profit: number;
     roi_percentage: number;
   };
+  productivity_impact_annual: {
+    annual_productivity_value: number;
+    annual_visora_cost: number;
+    annual_quantified_benefit: number;
+    productivity_roi_percentage: number;
+    productivity_only_roi_percentage: number;
+  };
 }
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
 const round1 = (value: number) => Math.round(value * 10) / 10;
+
+/**
+ * Annual Productivity Value = (Manual minutes saved per listing / 60)
+ *                             * listings per month * labor cost per hour * 12
+ */
+export function calculateAnnualProductivityValue(
+  manualMinutesSavedPerListing: number,
+  listingsPerMonth: number,
+  laborCostPerHour: number,
+): number {
+  if (
+    manualMinutesSavedPerListing <= 0 ||
+    listingsPerMonth <= 0 ||
+    laborCostPerHour <= 0
+  )
+    return 0;
+  const hoursSavedPerListing = manualMinutesSavedPerListing / 60;
+  const monthlyValue =
+    hoursSavedPerListing * listingsPerMonth * laborCostPerHour;
+  return round2(monthlyValue * 12);
+}
+
+/**
+ * ROI % = (Annual quantified benefit - Annual Visora cost) / Annual Visora cost * 100
+ */
+export function calculateProductivityRoi(
+  annualQuantifiedBenefit: number,
+  annualVisoraCost: number | null | undefined,
+): number {
+  if (annualVisoraCost == null || annualVisoraCost <= 0) return 0;
+  return round1(
+    ((annualQuantifiedBenefit - annualVisoraCost) / annualVisoraCost) * 100,
+  );
+}
 
 export function calculateFullRoi(
   currentSeoScore: number,
@@ -61,8 +107,38 @@ export function calculateFullRoi(
   const netProfit = incrementalRevenueAnnual - totalCost;
   const roiPercentage = totalCost > 0 ? (netProfit / totalCost) * 100 : 0;
 
+  // --- Productividad ---
+  const annualProductivityValue = calculateAnnualProductivityValue(
+    metrics.manual_minutes_saved_per_listing ?? 0,
+    metrics.listings_per_month ?? 0,
+    metrics.labor_cost_per_hour ?? 0,
+  );
+  const annualVisoraCost =
+    metrics.annual_visora_cost != null
+      ? round2(metrics.annual_visora_cost)
+      : round2(totalCost * 12);
+  const annualQuantifiedBenefit = round2(
+    incrementalRevenueAnnual + annualProductivityValue,
+  );
+  const productivityRoiPercentage = calculateProductivityRoi(
+    annualQuantifiedBenefit,
+    annualVisoraCost,
+  );
+  const productivityOnlyRoiPercentage = calculateProductivityRoi(
+    annualProductivityValue,
+    annualVisoraCost,
+  );
+
+  const normalizedMetrics: BusinessMetricsInput = {
+    manual_minutes_saved_per_listing: 0,
+    listings_per_month: 0,
+    labor_cost_per_hour: 0,
+    annual_visora_cost: null,
+    ...metrics,
+  };
+
   return {
-    metrics_used: { ...metrics },
+    metrics_used: normalizedMetrics,
     incremental_traffic_monthly: {
       seo_traditional: Math.round(incrementalSeoTraffic),
       geo_ai: Math.round(incrementalAiTraffic),
@@ -73,6 +149,13 @@ export function calculateFullRoi(
       optimization_cost: round2(totalCost),
       net_profit: round2(netProfit),
       roi_percentage: round1(roiPercentage),
+    },
+    productivity_impact_annual: {
+      annual_productivity_value: annualProductivityValue,
+      annual_visora_cost: annualVisoraCost,
+      annual_quantified_benefit: annualQuantifiedBenefit,
+      productivity_roi_percentage: productivityRoiPercentage,
+      productivity_only_roi_percentage: productivityOnlyRoiPercentage,
     },
   };
 }

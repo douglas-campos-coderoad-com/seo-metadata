@@ -63,6 +63,34 @@ const METRIC_FIELDS: MetricField[] = [
     step: '0.25',
     hint: 'Per-page cost to apply the optimization',
   },
+  {
+    key: 'manual_minutes_saved_per_listing',
+    label: 'Manual minutes saved per listing',
+    suffix: 'min',
+    step: '5',
+    hint: 'Avg. manual time saved per listing (realistic: 15)',
+  },
+  {
+    key: 'listings_per_month',
+    label: 'Listings per month',
+    suffix: 'listings',
+    step: '50',
+    hint: 'Listings processed per month (realistic: 200)',
+  },
+  {
+    key: 'labor_cost_per_hour',
+    label: 'Labor cost per hour',
+    suffix: '$/h',
+    step: '5',
+    hint: 'Fully-loaded labor cost (realistic: $25)',
+  },
+  {
+    key: 'annual_visora_cost',
+    label: 'Annual Visora cost',
+    suffix: '$/yr',
+    step: '100',
+    hint: 'Annual subscription (realistic: $2,400)',
+  },
 ];
 
 function NumberField({
@@ -174,7 +202,7 @@ export function RoiProjectionPanel({ optimization }: RoiProjectionPanelProps) {
     optimization?.score_before != null && optimization?.score_after_estimated != null,
   );
   const [metrics, setMetrics] = useState<Record<MetricKey, string>>(() => {
-    const base = serverProjection?.metrics_used;
+    const base = serverProjection?.metrics_used as unknown as BusinessMetricsInput | undefined;
     return {
       monthly_organic_traffic: base
         ? String(base.monthly_organic_traffic)
@@ -185,6 +213,10 @@ export function RoiProjectionPanel({ optimization }: RoiProjectionPanelProps) {
       conversion_rate: base ? String(base.conversion_rate) : '0.015',
       avg_order_value: base ? String(base.avg_order_value) : '150',
       cost_per_product: base ? String(base.cost_per_product) : '1',
+      manual_minutes_saved_per_listing: base?.manual_minutes_saved_per_listing != null ? String(base.manual_minutes_saved_per_listing) : '15',
+      listings_per_month: base?.listings_per_month != null ? String(base.listings_per_month) : '200',
+      labor_cost_per_hour: base?.labor_cost_per_hour != null ? String(base.labor_cost_per_hour) : '25',
+      annual_visora_cost: base?.annual_visora_cost != null ? String(base.annual_visora_cost) : '2400',
     };
   });
 
@@ -223,13 +255,14 @@ export function RoiProjectionPanel({ optimization }: RoiProjectionPanelProps) {
   if (!hasScores) return null;
 
   const projectionToUse = serverProjection ?? projection;
-  const { financial_impact_annual: f, incremental_traffic_monthly: t } =
+  const { financial_impact_annual: f, incremental_traffic_monthly: t, productivity_impact_annual: p } =
     projection;
   const paybackMonths = monthsToRecover(
     f.incremental_revenue,
     f.optimization_cost,
   );
   const positiveRoi = f.roi_percentage >= 0;
+  const prodPositive = p.productivity_roi_percentage >= 0;
 
   const paybackText =
     paybackMonths === null
@@ -244,15 +277,19 @@ export function RoiProjectionPanel({ optimization }: RoiProjectionPanelProps) {
     setMetrics((prev) => ({ ...prev, [key]: raw }));
 
   const resetMetrics = () => {
-    // If server projection exists use its values, otherwise reset to defaults
+    // If server projection exists use its values, otherwise reset to realistic defaults
     if (serverProjection?.metrics_used) {
-      const base = serverProjection.metrics_used;
+      const base = serverProjection.metrics_used as unknown as BusinessMetricsInput;
       setMetrics({
         monthly_organic_traffic: String(base.monthly_organic_traffic),
         generative_search_share: String(base.generative_search_share),
         conversion_rate: String(base.conversion_rate),
         avg_order_value: String(base.avg_order_value),
         cost_per_product: String(base.cost_per_product),
+        manual_minutes_saved_per_listing: base.manual_minutes_saved_per_listing != null ? String(base.manual_minutes_saved_per_listing) : '15',
+        listings_per_month: base.listings_per_month != null ? String(base.listings_per_month) : '200',
+        labor_cost_per_hour: base.labor_cost_per_hour != null ? String(base.labor_cost_per_hour) : '25',
+        annual_visora_cost: base.annual_visora_cost != null ? String(base.annual_visora_cost) : '2400',
       });
     } else {
       setMetrics({
@@ -261,6 +298,10 @@ export function RoiProjectionPanel({ optimization }: RoiProjectionPanelProps) {
         conversion_rate: '0.015',
         avg_order_value: '150',
         cost_per_product: '1',
+        manual_minutes_saved_per_listing: '15',
+        listings_per_month: '200',
+        labor_cost_per_hour: '25',
+        annual_visora_cost: '2400',
       });
     }
   };
@@ -354,6 +395,27 @@ export function RoiProjectionPanel({ optimization }: RoiProjectionPanelProps) {
             sub="per year"
             tone={positiveRoi ? 'success' : 'destructive'}
           />
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Productivity Value
+        </h4>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat label="Annual Productivity Value" value={formatCurrency(p.annual_productivity_value, true)} sub={`${formatCurrency(p.annual_productivity_value)}/yr`} tone="success" />
+          <Stat label="Annual Visora Cost" value={formatCurrency(p.annual_visora_cost, true)} sub="per year" tone="muted" />
+          <Stat label="Annual Quantified Benefit" value={formatCurrency(p.annual_quantified_benefit, true)} sub={`${formatCurrency(p.annual_quantified_benefit)}/yr`} tone={p.annual_quantified_benefit >= p.annual_visora_cost ? 'success' : 'destructive'} />
+          <Stat label="Productivity ROI" value={formatRoiPercent(p.productivity_roi_percentage)} sub="per year" tone={prodPositive ? 'success' : 'destructive'} />
+        </div>
+        <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3">
+          <p className="font-mono text-xs">
+            ({projection.metrics_used.manual_minutes_saved_per_listing ?? 15} min ÷ 60) × {projection.metrics_used.listings_per_month ?? 200} × {formatCurrency(projection.metrics_used.labor_cost_per_hour ?? 25)}/h × 12 = {formatCurrency(p.annual_productivity_value)}/yr
+          </p>
+          <p className="mt-1 font-mono text-xs text-muted-foreground">
+            {formatCurrency(p.annual_productivity_value)} + {formatCurrency(f.incremental_revenue)} = {formatCurrency(p.annual_quantified_benefit)}; ROI = ({formatCurrency(p.annual_quantified_benefit)} − {formatCurrency(p.annual_visora_cost)}) ÷ {formatCurrency(p.annual_visora_cost)} × 100 = {formatRoiPercent(p.productivity_roi_percentage)}
+          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground/70">Productivity-only ROI: {formatRoiPercent(p.productivity_only_roi_percentage)} — defaults 15 min, 200 listings, $25/h, $2,400/yr. Adjust below.</p>
         </div>
       </div>
 

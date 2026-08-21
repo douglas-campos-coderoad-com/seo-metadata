@@ -222,6 +222,50 @@ class BusinessMetrics(BaseModel):
     conversion_rate: float = Field(default=0.015, ge=0.0, le=1.0)  # 1.5% Conversión
     avg_order_value: float = Field(default=150.0, ge=0.0)  # $150 Ticket promedio
     cost_per_product: float = Field(default=1.0, ge=0.0)  # $1 USD costo API/Página
+    # ── Productividad / ROI Visora ──
+    manual_minutes_saved_per_listing: float = Field(default=0.0, ge=0.0, description="Minutos manuales ahorrados por listing")
+    listings_per_month: int = Field(default=0, ge=0, description="Listings procesados por mes")
+    labor_cost_per_hour: float = Field(default=0.0, ge=0.0, description="Costo laboral USD/hora")
+    annual_visora_cost: Optional[float] = Field(default=None, ge=0.0, description="Costo anual de Visora; si es None se deriva de cost_per_product*products_count*12")
+
+
+# ── Productivity helpers ────────────────────────────────────────────────
+
+
+def calculate_annual_productivity_value(
+    manual_minutes_saved_per_listing: float,
+    listings_per_month: int,
+    labor_cost_per_hour: float,
+) -> float:
+    """
+    Annual Productivity Value = (Manual minutes saved per listing / 60)
+                                * listings per month * labor cost per hour * 12
+
+    Retorna valor anual en USD redondeado a 2 decimales.
+    Si algún input es 0 o negativo, retorna 0.0.
+    """
+    if manual_minutes_saved_per_listing <= 0 or listings_per_month <= 0 or labor_cost_per_hour <= 0:
+        return 0.0
+    hours_saved_per_listing = manual_minutes_saved_per_listing / 60.0
+    monthly_value = hours_saved_per_listing * listings_per_month * labor_cost_per_hour
+    annual_value = monthly_value * 12
+    return round(annual_value, 2)
+
+
+def calculate_productivity_roi(
+    annual_quantified_benefit: float,
+    annual_visora_cost: float,
+) -> float:
+    """
+    ROI % = (Annual quantified benefit - Annual Visora cost) / Annual Visora cost * 100
+
+    Si annual_visora_cost <= 0 retorna 0.0 para evitar división por cero.
+    Redondeado a 1 decimal (consistente con roi_percentage existente).
+    """
+    if annual_visora_cost is None or annual_visora_cost <= 0:
+        return 0.0
+    roi = ((annual_quantified_benefit - annual_visora_cost) / annual_visora_cost) * 100
+    return round(roi, 1)
 
 
 def calculate_full_roi(
@@ -260,9 +304,28 @@ def calculate_full_roi(
     incremental_revenue_annual = (total_incremental_traffic * revenue_per_visit) * 12
     total_cost = products_count * metrics.cost_per_product
 
-    # 5. Cálculo de ROI Neto
+    # 5. Cálculo de ROI Neto (SEO/GEO incremental)
     net_profit = incremental_revenue_annual - total_cost
     roi_percentage = (net_profit / total_cost) * 100 if total_cost > 0 else 0.0
+
+    # 6. Productividad — Annual Productivity Value + ROI Visora
+    #    Annual Productivity Value = (manual_minutes_saved / 60) * listings_per_month * labor_cost_per_hour * 12
+    #    ROI % = (Annual quantified benefit - Annual Visora cost) / Annual Visora cost * 100
+    annual_productivity_value = calculate_annual_productivity_value(
+        metrics.manual_minutes_saved_per_listing,
+        metrics.listings_per_month,
+        metrics.labor_cost_per_hour,
+    )
+    # Annual Visora cost: si el usuario lo provee se usa tal cual, si no se deriva del costo de optimización anualizado
+    if metrics.annual_visora_cost is not None:
+        annual_visora_cost = round(metrics.annual_visora_cost, 2)
+    else:
+        # fallback: costo mensual (total_cost) * 12 como estimación anual
+        annual_visora_cost = round(total_cost * 12, 2) if total_cost > 0 else 0.0
+
+    annual_quantified_benefit = round(incremental_revenue_annual + annual_productivity_value, 2)
+    productivity_roi_percentage = calculate_productivity_roi(annual_quantified_benefit, annual_visora_cost)
+    productivity_only_roi_percentage = calculate_productivity_roi(annual_productivity_value, annual_visora_cost)
 
     return {
         'metrics_used': metrics.model_dump(),
@@ -276,5 +339,12 @@ def calculate_full_roi(
             'optimization_cost': round(total_cost, 2),
             'net_profit': round(net_profit, 2),
             'roi_percentage': round(roi_percentage, 1),
+        },
+        'productivity_impact_annual': {
+            'annual_productivity_value': annual_productivity_value,
+            'annual_visora_cost': annual_visora_cost,
+            'annual_quantified_benefit': annual_quantified_benefit,
+            'productivity_roi_percentage': productivity_roi_percentage,
+            'productivity_only_roi_percentage': productivity_only_roi_percentage,
         },
     }
