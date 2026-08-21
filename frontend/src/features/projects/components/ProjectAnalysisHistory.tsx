@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { CheckCircle2, Sparkles } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Spinner } from '@/shared/components/Spinner';
+import { BeforeAfterScoreChart } from '@/features/analysis/components/BeforeAfterScoreChart';
 import { useOptimize } from '@/features/analysis/hooks/useOptimize';
 import { analysisApiService } from '@/shared/realtime/AnalysisApiService';
 import { useProjects } from '../hooks/useProjects';
@@ -20,25 +21,6 @@ interface ProjectAnalysisHistoryProps {
 function scoreFromJson(json: Record<string, unknown> | null | undefined, key: string): number | null {
   const value = json?.[key];
   return typeof value === 'number' ? value : null;
-}
-
-/** Background tint for the before/after cards — red deepens as the before score
- * falls toward 0, green deepens as the after score rises toward 100. */
-function scoreTint(score: number | null, kind: 'before' | 'after'): string {
-  const [r, g, b] = kind === 'before' ? [239, 68, 68] : [34, 197, 94];
-  if (score === null) return `rgba(${r}, ${g}, ${b}, 0.05)`;
-  const clamped = Math.max(0, Math.min(100, score));
-  const intensity = kind === 'before' ? 1 - clamped / 100 : clamped / 100;
-  return `rgba(${r}, ${g}, ${b}, ${0.05 + intensity * 0.24})`;
-}
-
-/** Border tint matching scoreTint, slightly stronger for visual separation. */
-function scoreBorder(score: number | null, kind: 'before' | 'after'): string {
-  const [r, g, b] = kind === 'before' ? [239, 68, 68] : [34, 197, 94];
-  if (score === null) return `rgba(${r}, ${g}, ${b}, 0.25)`;
-  const clamped = Math.max(0, Math.min(100, score));
-  const intensity = kind === 'before' ? 1 - clamped / 100 : clamped / 100;
-  return `rgba(${r}, ${g}, ${b}, ${0.35 + intensity * 0.65})`;
 }
 
 /** Renders a project's persisted analysis history, chronological, with before/after
@@ -125,79 +107,55 @@ export function ProjectAnalysisHistory({ analyses, projectId, onAnalysisRemoved 
                 </span>
               </div>
 
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                {/* Before card — red tint deepens as the score drops toward 0 */}
-                <div
-                  className="rounded-lg border p-3"
-                  style={{
-                    backgroundColor: scoreTint(analysis.overallScore, 'before'),
-                    borderColor: scoreBorder(analysis.overallScore, 'before'),
-                  }}
-                >
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Before</p>
-                  <p className="mt-1 font-mono text-lg font-bold tabular-nums text-red-700 dark:text-red-400">
-                    {analysis.overallScore ?? '—'}
+              <div className="mt-3 rounded-lg border border-border bg-card p-3">
+                <div className="mb-2.5 flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Before vs after
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    SEO {analysis.seoScore ?? '—'} · GEO {analysis.geoScore ?? '—'}
-                  </p>
-                </div>
-
-                {/* After card — green tint deepens as the score nears 100; shows the
-                    Optimize action whenever no optimized score exists yet */}
-                <div
-                  className="rounded-lg border p-3"
-                  style={{
-                    backgroundColor: scoreTint(afterScore, 'after'),
-                    borderColor: afterScore !== null ? scoreBorder(afterScore, 'after') : undefined,
-                  }}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">After</p>
-                    {afterScore !== null && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 dark:text-green-400">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Optimized
-                      </span>
-                    )}
-                  </div>
-
                   {afterScore !== null ? (
-                    <>
-                      <p className="mt-1 font-mono text-lg font-bold tabular-nums text-green-700 dark:text-green-400">
-                        {afterScore}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        SEO {scoreFromJson(after, 'seo') ?? '—'} · GEO {scoreFromJson(after, 'geo') ?? '—'}
-                      </p>
-                    </>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-success">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Optimized
+                    </span>
                   ) : (
-                    <div className="mt-1">
-                      <p className="text-[11px] text-muted-foreground">Not optimized yet.</p>
-                      {showOptimize && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="mt-2 w-full gap-1.5"
-                          disabled={optimizingId !== null}
-                          onClick={() => handleOptimize(analysis)}
-                        >
-                          {optimizingId === analysis.id ? (
-                            <>
-                              <Spinner className="h-3.5 w-3.5" />
-                              Optimizing…
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="h-3.5 w-3.5" />
-                              Optimize
-                            </>
-                          )}
-                        </Button>
-                      )}
-                    </div>
+                    <span className="text-[10px] text-muted-foreground">Not optimized yet</span>
                   )}
                 </div>
+
+                <BeforeAfterScoreChart
+                  before={{
+                    overall: analysis.overallScore,
+                    seo: analysis.seoScore,
+                    geo: analysis.geoScore,
+                  }}
+                  after={{
+                    overall: afterScore,
+                    seo: scoreFromJson(after, 'seo'),
+                    geo: scoreFromJson(after, 'geo'),
+                  }}
+                />
+
+                {showOptimize && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="mt-3 w-full gap-1.5"
+                    disabled={optimizingId !== null}
+                    onClick={() => handleOptimize(analysis)}
+                  >
+                    {optimizingId === analysis.id ? (
+                      <>
+                        <Spinner className="h-3.5 w-3.5" />
+                        Optimizing…
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Optimize
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
 
               <div className="mt-3 flex flex-wrap items-center gap-2">

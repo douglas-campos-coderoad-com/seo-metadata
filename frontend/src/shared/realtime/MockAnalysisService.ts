@@ -64,6 +64,7 @@ export class MockAnalysisService implements AnalysisService {
     const project: Project = {
       id: this.nextProjectId++,
       title: input.title,
+      url: input.url ?? null,
       description: input.description,
       category: input.category,
       country: input.country,
@@ -99,6 +100,7 @@ export class MockAnalysisService implements AnalysisService {
     const updated: Project = {
       ...project,
       ...(input.title !== undefined && { title: input.title }),
+      ...(input.url !== undefined && { url: input.url }),
       ...(input.description !== undefined && { description: input.description }),
       ...(input.category !== undefined && { category: input.category }),
       ...(input.country !== undefined && { country: input.country }),

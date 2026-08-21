@@ -103,7 +103,7 @@ export function AddToProjectAction({ analysisId }: AddToProjectActionProps) {
               >
                 {isSubmitting ? 'Adding…' : 'Add to project'}
               </Button>
-              <Button type="button" variant="ghost" onClick={() => setMode('new')}>
+              <Button type="button" variant="ghost" size="md" onClick={() => setMode('new')}>
                 Create a new project instead
               </Button>
             </div>

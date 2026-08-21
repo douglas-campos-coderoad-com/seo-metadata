@@ -22,6 +22,7 @@ interface ProjectFormProps {
 export function ProjectForm({ onCreated, editingProject, onSaved }: ProjectFormProps) {
   const isEditing = Boolean(editingProject);
   const [title, setTitle] = useState(editingProject?.title ?? '');
+  const [url, setUrl] = useState(editingProject?.url ?? '');
   const [description, setDescription] = useState(editingProject?.description ?? '');
   const [category, setCategory] = useState<ProjectCategory>(editingProject?.category ?? PROJECT_CATEGORIES[0]);
   const [country, setCountry] = useState(editingProject?.country ?? '');
@@ -42,6 +43,7 @@ export function ProjectForm({ onCreated, editingProject, onSaved }: ProjectFormP
     try {
       const input: ProjectInput = {
         title: title.trim(),
+        url: url.trim() || null,
         description: description.trim(),
         category,
         country: country.trim(),
@@ -57,6 +59,7 @@ export function ProjectForm({ onCreated, editingProject, onSaved }: ProjectFormP
 
       const project = await createProject(input);
       setTitle('');
+      setUrl('');
       setDescription('');
       setCategory(PROJECT_CATEGORIES[0]);
       setCountry('');
@@ -94,6 +97,17 @@ export function ProjectForm({ onCreated, editingProject, onSaved }: ProjectFormP
       </div>
 
       <label className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-muted-foreground">Site URL (optional)</span>
+        <Input
+          type="text"
+          inputMode="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://example.com"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1">
         <span className="text-xs font-medium text-muted-foreground">Site description</span>
         <Input
           type="text"
@@ -127,7 +141,7 @@ export function ProjectForm({ onCreated, editingProject, onSaved }: ProjectFormP
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" disabled={isSubmitting}>
+      <Button type="submit" size="md" disabled={isSubmitting}>
         {isSubmitting ? (isEditing ? 'Saving…' : 'Creating…') : isEditing ? 'Save changes' : 'Create project'}
       </Button>
     </form>

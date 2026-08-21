@@ -59,6 +59,7 @@ interface CompetitorDto {
 interface ProjectDto {
   id: number;
   title: string;
+  url: string | null;
   description: string;
   category: string;
   country: string;
@@ -92,6 +93,7 @@ function mapProject(dto: ProjectDto): Project {
   return {
     id: dto.id,
     title: dto.title,
+    url: dto.url,
     description: dto.description,
     category: dto.category as ProjectCategory,
     country: dto.country,
@@ -252,6 +254,7 @@ export class AnalysisApiService implements AnalysisService {
   async createProject(input: ProjectInput): Promise<Project> {
     const dto = await apiClient.post<ProjectDto>('/projects', {
       title: input.title,
+      url: input.url ?? null,
       description: input.description,
       category: input.category,
       country: input.country,

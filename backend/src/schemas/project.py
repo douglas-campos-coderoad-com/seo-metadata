@@ -68,6 +68,7 @@ class CompetitorAuditResponse(BaseSchema):
 
 class ProjectCreate(BaseSchema):
     title: str
+    url: Optional[str] = None
     description: str
     category: ProjectCategory
     country: str
@@ -77,6 +78,7 @@ class ProjectCreate(BaseSchema):
 
 class ProjectUpdate(BaseSchema):
     title: Optional[str] = None
+    url: Optional[str] = None
     description: Optional[str] = None
     category: Optional[ProjectCategory] = None
     country: Optional[str] = None
@@ -88,6 +90,7 @@ class ProjectUpdate(BaseSchema):
 class ProjectResponse(BaseSchema):
     id: int
     title: str
+    url: Optional[str] = None
     description: str
     category: str
     country: str

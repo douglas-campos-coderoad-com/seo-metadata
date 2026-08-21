@@ -27,7 +27,7 @@ export default function ProjectsPage() {
           </Button>
         </div>
       ) : (
-        <Button type="button" onClick={() => setIsCreating(true)}>
+        <Button type="button" size="md" onClick={() => setIsCreating(true)}>
           Create Project
         </Button>
       )}

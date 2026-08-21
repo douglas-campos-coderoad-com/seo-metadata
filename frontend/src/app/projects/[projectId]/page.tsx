@@ -11,40 +11,65 @@ import { LiveStatusTracker } from '@/features/analysis/components/LiveStatusTrac
 import { Button } from '@/shared/components/ui/button';
 import { analysisApiService } from '@/shared/realtime/AnalysisApiService';
 
-function ScoreBadge({ value }: { value: number | null }) {
-  if (value === null) return <span className="text-xs text-muted-foreground">—</span>;
-  const color = value >= 70 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200'
-    : value >= 40 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200'
-    : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200';
-  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${color}`}>{value}</span>;
+// Same thresholds the rest of the app scores on: >=70 good, >=40 fair, below that poor.
+function scoreTone(value: number | null) {
+  if (value === null) return 'bg-muted text-muted-foreground ring-border';
+  if (value >= 70) return 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-800';
+  if (value >= 40) return 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-800';
+  return 'bg-red-50 text-red-700 ring-red-200 dark:bg-red-950 dark:text-red-300 dark:ring-red-800';
 }
 
-function CompetitorCard({ competitor }: { competitor: { id: number; url: string; description: string; seoScore?: number | null; geoScore?: number | null; status?: string | null; analyzedAt?: string | null } }) {
+function ScoreTile({ label, value }: { label: string; value: number | null }) {
+  return (
+    <div className={`flex min-w-[4.25rem] flex-col items-center rounded-xl px-3 py-1.5 ring-1 ${scoreTone(value)}`}>
+      <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70">{label}</span>
+      <span className="text-2xl font-bold leading-tight tabular-nums">{value ?? '—'}</span>
+    </div>
+  );
+}
+
+// The badge is derived from the scores rather than the stored `status`/`analyzedAt`
+// fields, which disagreed with them: a competitor scoring 0 on both axes could not
+// really be crawled, so it reads as unreachable. No scores at all means the audit
+// has not run yet, and that stays badge-less.
+type CompetitorState = 'pending' | 'unreachable' | 'analyzed';
+
+function competitorState(seoScore: number | null, geoScore: number | null): CompetitorState {
+  if (seoScore === null && geoScore === null) return 'pending';
+  if ((seoScore ?? 0) === 0 && (geoScore ?? 0) === 0) return 'unreachable';
+  return 'analyzed';
+}
+
+function CompetitorCard({ competitor }: { competitor: { id: number; url: string; description: string; seoScore?: number | null; geoScore?: number | null } }) {
+  const seoScore = competitor.seoScore ?? null;
+  const geoScore = competitor.geoScore ?? null;
+  const state = competitorState(seoScore, geoScore);
+
   return (
     <li className="rounded-lg border border-border bg-card p-4">
       <div className="mb-2 flex items-start justify-between gap-2">
         <p className="truncate text-sm font-medium">{competitor.url}</p>
-        {competitor.status === 'unreachable' ? (
+        {state === 'unreachable' ? (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-900 dark:text-red-200">
             <AlertTriangle className="h-3 w-3" /> Unreachable
           </span>
-        ) : competitor.analyzedAt && (
+        ) : state === 'analyzed' ? (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200">
             <CheckCircle2 className="h-3 w-3" /> Analyzed
           </span>
-        )}
+        ) : null}
       </div>
-      <p className="mb-2 text-xs text-muted-foreground">{competitor.description}</p>
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">SEO:</span>
-          <ScoreBadge value={competitor.seoScore ?? null} />
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">GEO:</span>
-          <ScoreBadge value={competitor.geoScore ?? null} />
-        </div>
-
+      {/* Scores sit beside the description on wide viewports and drop below it on narrow ones.
+          Only shown once there is something to report: an all-zero or score-less
+          competitor is already described by its badge, so empty tiles add nothing. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <p className="text-sm text-muted-foreground sm:flex-1">{competitor.description}</p>
+        {state === 'analyzed' && (
+          <div className="flex shrink-0 items-center gap-2">
+            <ScoreTile label="SEO" value={seoScore} />
+            <ScoreTile label="GEO" value={geoScore} />
+          </div>
+        )}
       </div>
     </li>
   );
@@ -160,7 +185,12 @@ export default function ProjectDetailPage() {
 
       <section>
         <h2 className="mb-2 text-lg font-semibold">Analyze a URL for this project</h2>
-        <UrlSubmitForm onStarted={handleStarted} projectId={numericProjectId} />
+        <UrlSubmitForm
+          onStarted={handleStarted}
+          projectId={numericProjectId}
+          initialUrl={project.url ?? undefined}
+          showDemos={false}
+        />
         {activeRunIds.length > 0 && (
           <div className="mt-4 flex flex-col gap-2">
             {activeRunIds.map((runId) => (

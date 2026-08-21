@@ -18,6 +18,7 @@ const mockedService = vi.mocked(analysisApiService, true);
 const EXISTING_PROJECT = {
   id: 1,
   title: 'Existing Project',
+  url: null,
   description: 'desc',
   category: 'saas' as const,
   country: 'United States',

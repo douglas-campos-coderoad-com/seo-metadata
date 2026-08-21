@@ -14,6 +14,9 @@ interface UrlSubmitFormProps {
   /** Pre-fills the input (specs/009-project-analysis-ux historical view "re-run") —
    * the user still submits it explicitly, this never auto-runs. */
   initialUrl?: string;
+  /** The demo shortcuts only make sense on the landing page; project-scoped
+   * screens analyse real URLs, so they opt out. */
+  showDemos?: boolean;
 }
 
 // Demo product URLs to showcase the agnostic URL input panel.
@@ -35,7 +38,7 @@ const DEMO_URLS = [
   },
 ];
 
-export function UrlSubmitForm({ onStarted, projectId, initialUrl }: UrlSubmitFormProps) {
+export function UrlSubmitForm({ onStarted, projectId, initialUrl, showDemos = true }: UrlSubmitFormProps) {
   const [url, setUrl] = useState(initialUrl ?? '');
   const [validationError, setValidationError] = useState<string | null>(null);
   const { start, isSubmitting, error } = useStartAnalysis();
@@ -82,23 +85,25 @@ export function UrlSubmitForm({ onStarted, projectId, initialUrl }: UrlSubmitFor
         </Button>
       </form>
 
-      <div>
-        <p className="mb-2 text-sm font-medium text-muted-foreground">Or try a demo product:</p>
-        <div className="flex flex-wrap gap-2">
-          {DEMO_URLS.map((demo) => (
-            <Button
-              key={demo.label}
-              type="button"
-              variant="outline"
-              disabled={isSubmitting}
-              onClick={() => handleSubmit(undefined, demo.url)}
-              title={demo.url}
-            >
-              {demo.label}
-            </Button>
-          ))}
+      {showDemos && (
+        <div>
+          <p className="mb-2 text-sm font-medium text-muted-foreground">Or try a demo product:</p>
+          <div className="flex flex-wrap gap-2">
+            {DEMO_URLS.map((demo) => (
+              <Button
+                key={demo.label}
+                type="button"
+                variant="outline"
+                disabled={isSubmitting}
+                onClick={() => handleSubmit(undefined, demo.url)}
+                title={demo.url}
+              >
+                {demo.label}
+              </Button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

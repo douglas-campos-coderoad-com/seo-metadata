@@ -51,6 +51,7 @@ const HISTORICAL_ANALYSIS = {
 const PROJECT = {
   id: 7,
   title: 'My Project',
+  url: null,
   description: '',
   category: 'saas' as const,
   country: 'US',

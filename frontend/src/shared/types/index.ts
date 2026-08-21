@@ -76,6 +76,9 @@ export interface Competitor {
 export interface Project {
   id: number;
   title: string;
+  /** The site this project tracks; pre-fills the project's "analyze a URL" input.
+   * Null for projects created before the field existed (migration 007). */
+  url: string | null;
   description: string;
   category: ProjectCategory;
   country: string;

@@ -16,6 +16,7 @@ class ProjectService:
     async def create(self, data: ProjectCreate) -> Project:
         project = Project(
             title=data.title,
+            url=data.url,
             description=data.description,
             category=data.category,
             country=data.country,
@@ -126,6 +127,8 @@ class ProjectService:
         fields_set = data.model_fields_set
         if 'title' in fields_set:
             project.title = data.title
+        if 'url' in fields_set:
+            project.url = data.url
         if 'description' in fields_set:
             project.description = data.description
         if 'category' in fields_set:

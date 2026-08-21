@@ -4,6 +4,7 @@ import type { RunStatusEvent } from './events';
 /** Shared shape for both project creation and editing (specs/008-project-centric-analysis). */
 export interface ProjectInput {
   title: string;
+  url?: string | null;
   description: string;
   category: ProjectCategory;
   country: string;
