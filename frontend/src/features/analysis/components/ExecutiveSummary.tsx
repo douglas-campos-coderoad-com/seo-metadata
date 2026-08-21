@@ -780,6 +780,14 @@ export function ExecutiveSummary({
         geoScoreAfter={afterGeo ?? geoScore?.total_score ?? null}
       />
 
+      {/* ===== ROI PROJECTION (full interactive panel) ===== */}
+      {hasOptimization && optimization && (
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <h4 className="mb-4 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted-foreground"><DollarSign className="h-4 w-4" /> ROI Projection</h4>
+          <RoiProjectionPanel optimization={optimization} />
+        </div>
+      )}
+
       {/* ===== IMPACT OVERVIEW ===== */}
       <ImpactOverview
         changesApplied={changesApplied}
@@ -791,6 +799,12 @@ export function ExecutiveSummary({
         onNavigateDetail={onNavigateDetail}
       />
 
+      {/* ===== IMPLEMENTATION CHECKLIST ===== */}
+      <ImplementationChecklist
+        checklist={implementationChecklist}
+        onNavigateDetail={(cat) => onNavigateDetail?.(cat)}
+      />
+
       {/* ===== TOP RECOMMENDATIONS (best practices) ===== */}
       {topRecommendations.length > 0 && (
         <TopRecommendations
@@ -798,20 +812,6 @@ export function ExecutiveSummary({
           changesApplied={changesApplied}
         />
       )}
-
-      {/* ===== ROI PROJECTION (full interactive panel) ===== */}
-      {hasOptimization && optimization && (
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <h4 className="mb-4 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted-foreground"><DollarSign className="h-4 w-4" /> ROI Projection</h4>
-          <RoiProjectionPanel optimization={optimization} />
-        </div>
-      )}
-
-      {/* ===== IMPLEMENTATION CHECKLIST ===== */}
-      <ImplementationChecklist
-        checklist={implementationChecklist}
-        onNavigateDetail={(cat) => onNavigateDetail?.(cat)}
-      />
 
       {/* ===== FOOTER: next action ===== */}
       <div className="rounded-xl border border-border bg-card p-4 text-center">
