@@ -41,8 +41,29 @@ class CompetitorResponse(BaseSchema):
     project_id: int
     url: str
     description: str
+    seo_score: Optional[int] = None
+    geo_score: Optional[int] = None
+    status: Optional[str] = None
+    analyzed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+
+
+class CompetitorAuditItem(BaseSchema):
+    """One competitor's lightweight SEO/GEO audit result."""
+    id: int
+    url: str
+    description: str
+    seo_score: int = 0
+    geo_score: int = 0
+    status: str = 'analyzed'
+    analyzed_at: Optional[datetime] = None
+
+
+class CompetitorAuditResponse(BaseSchema):
+    """Response payload for POST /projects/{id}/competitors/analyze."""
+    id: int
+    competitors: List[CompetitorAuditItem] = []
 
 
 class ProjectCreate(BaseSchema):

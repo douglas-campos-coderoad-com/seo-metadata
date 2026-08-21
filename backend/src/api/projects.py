@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.agents.competitor_audit_agent import run_audit
 from src.db import get_session
 from src.models import UrlAnalysis
-from src.services.project_service import ProjectService
-from src.schemas.optimization import OptimizationResponse
 from src.schemas.project import (
     AttachAnalysisRequest,
+    CompetitorAuditItem,
+    CompetitorAuditResponse,
     ProjectAnalysisListResponse,
     ProjectAnalysisResponse,
     ProjectCreate,
@@ -16,6 +17,8 @@ from src.schemas.project import (
     SmartSearchRequest,
     SmartSearchResponse,
 )
+from src.services.project_service import ProjectService
+from src.schemas.optimization import OptimizationResponse
 
 router = APIRouter(prefix='/api/v1', tags=['projects'])
 
@@ -200,3 +203,36 @@ async def list_project_analyses(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     items = [_to_project_analysis_response(a) for a in analyses]
     return ProjectAnalysisListResponse(items=items, total=len(items))
+
+
+@router.post('/projects/{project_id}/competitors/audit', response_model=CompetitorAuditResponse)
+async def audit_competitors(
+    project_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """Run a lightweight SEO & GEO audit on all competitors of a project.
+    
+    Fetches each competitor URL concurrently, extracts HTML signals via BeautifulSoup,
+    scores them with Gemini through the LLM repository, and persistently saves
+    seo_score, geo_score, status and analyzed_at back to the database.
+    """
+    try:
+        results = await run_audit(project_id=project_id, session=session)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+
+    audit_items = []
+    for r in results:
+        audit_items.append(
+            CompetitorAuditItem(
+                id=r.id,
+                url=r.url,
+                description=r.description,
+                seo_score=r.seo_score,
+                geo_score=r.geo_score,
+                status=r.status,
+                analyzed_at=r.analyzed_at,
+            )
+        )
+
+    return CompetitorAuditResponse(id=project_id, competitors=audit_items)
