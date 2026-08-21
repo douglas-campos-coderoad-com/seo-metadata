@@ -15,7 +15,7 @@ whichever model answers.
 import json
 import logging
 import os
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 
@@ -149,6 +149,9 @@ ORIGINAL HTML (truncated):
 WEB SEARCH CONTEXT (best practices):
 {search_context}
 
+PROJECT AND COMPETITORS:
+{project_context}
+
 Return EXACTLY this JSON (without markdown):
 {{
   "plan": [
@@ -164,11 +167,86 @@ Return EXACTLY this JSON (without markdown):
     "seo": <int 0-100 estimated after>,
     "geo": <int 0-100 estimated after>,
     "overall": <int 0-100 estimated after>
-  }}
+  }},
+  "strategic_impacts": [
+    {{
+      "impact": "<short business outcome, e.g. 'Increase organic traffic 30-70%'>",
+      "detail": "<one sentence on why this plan produces that outcome>",
+      "competitors": ["<exact competitor name from the list above, when this outcome is about competing with them>"]
+    }}
+  ]
 }}
 
 Generate a complete and prioritized plan (5-10 changes). Be specific and actionable.
+
+For "strategic_impacts", return between 3 and 5 entries describing what this
+optimization means for the BUSINESS, not for the markup — the outcome a stakeholder
+would care about. Write them as consequences of the plan above ("If done well, this
+could…"). Ground every number in the score movement you just estimated rather than
+inventing a figure. At least one entry MUST be about competitive positioning and
+MUST list the relevant competitors in its "competitors" array, using their names
+exactly as given above. Use an empty array for entries that are not about a specific
+competitor. If no competitors were supplied, omit the competitive entry rather than
+naming a company that was not listed.
 """
+
+
+def _format_project_context(project: Optional[dict]) -> str:
+    """Renders the owning project and its competitors for the planning prompt.
+
+    Competitors are what let the strategic impacts name real rivals instead of
+    generalities; with no project attached there is simply nothing to name."""
+    if not project:
+        return 'No project attached to this analysis — no competitor set available.'
+
+    lines = [
+        f"Project: {project.get('title') or 'Untitled'}",
+        f"Description: {project.get('description') or 'N/A'}",
+        f"Category: {project.get('category') or 'N/A'}",
+        f"Market: {', '.join(p for p in [project.get('country'), project.get('region')] if p) or 'N/A'}",
+    ]
+
+    competitors = project.get('competitors') or []
+    if competitors:
+        lines.append('Competitors:')
+        for competitor in competitors:
+            name = competitor.get('name') or competitor.get('url') or 'unknown'
+            description = competitor.get('description') or ''
+            lines.append(f'  - {name}: {description}'.rstrip(': '))
+    else:
+        lines.append('Competitors: none recorded for this project.')
+
+    return '\n'.join(lines)
+
+
+def _normalize_strategic_impacts(raw: Any, competitor_names: list) -> list:
+    """Coerces the model's impacts into a stable shape and caps them at 5.
+
+    Tolerates a bare list of strings, since that is the most common way the shape
+    drifts. Competitor names are filtered against the project's real list so a
+    hallucinated rival never reaches the UI."""
+    if not isinstance(raw, list):
+        return []
+
+    allowed = {name.lower(): name for name in competitor_names}
+    impacts = []
+
+    for entry in raw[:5]:
+        if isinstance(entry, str):
+            text, detail, named = entry.strip(), None, []
+        elif isinstance(entry, dict):
+            text = str(entry.get('impact') or '').strip()
+            detail = str(entry.get('detail') or '').strip() or None
+            claimed = entry.get('competitors')
+            claimed = claimed if isinstance(claimed, list) else []
+            named = [allowed[str(c).lower()] for c in claimed if str(c).lower() in allowed]
+        else:
+            continue
+
+        if text:
+            impacts.append({'impact': text, 'detail': detail, 'competitors': named})
+
+    return impacts
 
 
 def plan_changes(state: dict) -> dict:
@@ -179,6 +257,7 @@ def plan_changes(state: dict) -> dict:
     html = state.get('html', '')
     url = state.get('url', '')
     search_context = state.get('search_context', '')
+    project = state.get('project')
 
     if not analysis or not html:
         return {'plan_error': 'Missing analysis or HTML'}
@@ -202,12 +281,19 @@ def plan_changes(state: dict) -> dict:
     # Truncate and clean HTML
     html_preview = _clean_html_for_llm(html)[:6000]
 
+    competitor_names = [
+        (c.get('name') or c.get('url') or '')
+        for c in ((project or {}).get('competitors') or [])
+    ]
+    competitor_names = [name for name in competitor_names if name]
+
     prompt = PLAN_CHANGES_PROMPT.format(
         url=url,
         page_type=page_type,
         scores_and_findings=scores_and_findings,
         html_preview=html_preview,
         search_context=search_context,
+        project_context=_format_project_context(project),
     )
 
     try:
@@ -215,6 +301,9 @@ def plan_changes(state: dict) -> dict:
         return {
             'plan': result.get('plan', []),
             'estimated_scores': result.get('estimated_scores', {'seo': 0, 'geo': 0, 'overall': 0}),
+            'strategic_impacts': _normalize_strategic_impacts(
+                result.get('strategic_impacts'), competitor_names
+            ),
             'plan_error': None,
         }
     except Exception as exc:
@@ -222,6 +311,7 @@ def plan_changes(state: dict) -> dict:
         return {
             'plan': [],
             'estimated_scores': {'seo': 0, 'geo': 0, 'overall': 0},
+            'strategic_impacts': [],
             'plan_error': str(exc),
         }
 
@@ -407,6 +497,7 @@ def compile_optimization(state: dict) -> dict:
         'copy_paste_ready': copy_paste_ready,
         'score_before': score_before,
         'score_after_estimated': estimated_scores,
+        'strategic_impacts': state.get('strategic_impacts', []),
         'status': 'completed' if not errors else 'failed',
         'error': errors[0] if errors else None,
     }

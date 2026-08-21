@@ -9,6 +9,10 @@ import { useExportReport } from '@/features/analysis/hooks/useExportReport';
 interface ExportReportButtonProps {
   /** Backend analysis id. The export keys off this, not the ingested-url id. */
   analysisId: number;
+  /** `sm` lets it sit inline with the other per-analysis actions in a history card. */
+  size?: 'sm' | 'md';
+  /** Shortened to just "PDF" where the surrounding row already says "report". */
+  label?: string;
 }
 
 /**
@@ -18,20 +22,26 @@ interface ExportReportButtonProps {
  * progress (SC-004) and stops a double-click from queueing a second expensive
  * render for the same analysis.
  */
-export function ExportReportButton({ analysisId }: ExportReportButtonProps) {
+export function ExportReportButton({
+  analysisId,
+  size = 'md',
+  label = 'Export PDF Report',
+}: ExportReportButtonProps) {
   const { exportReport, isExporting, error } = useExportReport();
+  const iconClass = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4';
 
   return (
     <div className="flex flex-col items-end gap-2">
       <Button
         type="button"
         variant="outline"
+        size={size}
         onClick={() => void exportReport(analysisId)}
         disabled={isExporting}
         aria-busy={isExporting}
       >
-        {isExporting ? <Spinner /> : <Download className="h-4 w-4" aria-hidden="true" />}
-        {isExporting ? 'Preparing PDF…' : 'Export PDF'}
+        {isExporting ? <Spinner className={iconClass} /> : <Download className={iconClass} aria-hidden="true" />}
+        {isExporting ? 'Preparing PDF…' : label}
       </Button>
 
       {/* Announced to assistive tech without stealing focus (WCAG 2.2 AA). */}

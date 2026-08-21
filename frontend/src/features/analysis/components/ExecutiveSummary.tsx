@@ -11,6 +11,7 @@ import type { OptimizationData, GeoScoreData } from '../hooks/useOptimize';
 import { formatCurrency, formatRoiPercent, monthsToRecover } from '../lib/roi';
 import type { RoiProjection } from '../lib/roi';
 import { RoiProjectionPanel } from './RoiProjectionPanel';
+import { StrategicImpactList } from './StrategicImpactList';
 
 /* ─────────────── types ─────────────── */
 
@@ -442,6 +443,8 @@ export function ExecutiveSummary({
   onNavigateDetail,
 }: ExecutiveSummaryProps) {
   const hasOptimization = Boolean(optimization && optimization.score_after_estimated?.overall != null);
+  // Older optimizations predate the field, and a failed planning call persists none.
+  const strategicImpacts = optimization?.strategic_impacts ?? [];
 
   const afterOverall = hasOptimization ? optimization?.score_after_estimated?.overall ?? 0 : 0;
   const afterSeo = hasOptimization ? optimization?.score_after_estimated?.seo ?? null : null;
@@ -716,6 +719,9 @@ export function ExecutiveSummary({
         categoryIssues={categoryIssues}
         onNavigateDetail={onNavigateDetail}
       />
+
+      {/* ===== STRATEGIC IMPACT ===== */}
+      <StrategicImpactList impacts={strategicImpacts} />
 
       {/* ===== TOP RECOMMENDATIONS (best practices) ===== */}
       {topRecommendations.length > 0 && (

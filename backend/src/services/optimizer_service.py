@@ -3,8 +3,9 @@ from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from src.models import IngestedUrl, UrlAnalysis, UrlOptimization
+from src.models import IngestedUrl, Project, UrlAnalysis, UrlOptimization
 from src.services.optimizer_nodes import (
     read_analysis,
     search_web_node,
@@ -27,10 +28,14 @@ class OptimizerService:
         from langgraph.graph import StateGraph, END
         from typing import TypedDict, Optional, Any
 
+        # Every key a node reads or writes must be declared here: LangGraph uses
+        # this schema to decide what to carry, and silently drops anything else.
         class OptimizationState(TypedDict, total=False):
             html: str
             url: str
             analysis: dict
+            project: Optional[dict]
+            strategic_impacts: list
             search_context: str
             search_error: Optional[str]
             plan: list
@@ -66,7 +71,7 @@ class OptimizerService:
 
         return workflow.compile()
 
-    def _optimize_sync(self, analysis: dict, html: str, url: str) -> dict:
+    def _optimize_sync(self, analysis: dict, html: str, url: str, project: Optional[dict] = None) -> dict:
         """Run the optimizer graph synchronously."""
         compiled = self._build_graph()
 
@@ -74,6 +79,7 @@ class OptimizerService:
             'html': html,
             'url': url,
             'analysis': analysis,
+            'project': project,
         }
 
         try:
@@ -92,11 +98,40 @@ class OptimizerService:
                 'error': str(exc),
             }
 
-    async def _run_optimization_in_executor(self, analysis: dict, html: str, url: str) -> dict:
+    async def _run_optimization_in_executor(
+        self, analysis: dict, html: str, url: str, project: Optional[dict] = None
+    ) -> dict:
         """Run the (blocking) optimizer graph in a thread executor."""
         import asyncio
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(None, self._optimize_sync, analysis, html, url)
+        return await loop.run_in_executor(None, self._optimize_sync, analysis, html, url, project)
+
+    async def _build_project_dict(self, project_id: Optional[int]) -> Optional[dict]:
+        """The owning project and its competitors, so the strategic impacts can name
+        real rivals. Read here rather than in the graph because the nodes run in a
+        thread executor and must not touch the async session."""
+        if project_id is None:
+            return None
+
+        result = await self.session.execute(
+            select(Project).options(selectinload(Project.competitors)).where(Project.id == project_id)
+        )
+        project = result.scalar_one_or_none()
+        if project is None:
+            return None
+
+        return {
+            'title': project.title,
+            'url': project.url,
+            'description': project.description,
+            'category': project.category,
+            'country': project.country,
+            'region': project.region,
+            'competitors': [
+                {'name': competitor.url, 'description': competitor.description}
+                for competitor in project.competitors
+            ],
+        }
 
     def _build_analysis_dict(self, analysis: UrlAnalysis) -> dict:
         """Convert UrlAnalysis model to dict for the graph."""
@@ -148,8 +183,9 @@ class OptimizerService:
 
         # 4. Build analysis dict and run the graph
         analysis_dict = self._build_analysis_dict(analysis)
+        project_dict = await self._build_project_dict(analysis.project_id)
         result = await self._run_optimization_in_executor(
-            analysis_dict, ingested.html, ingested.url
+            analysis_dict, ingested.html, ingested.url, project_dict
         )
 
         # 5. Update the optimization record with results
@@ -160,6 +196,7 @@ class OptimizerService:
         optimization.copy_paste_ready = result.get('copy_paste_ready')
         optimization.score_before = result.get('score_before')
         optimization.score_after_estimated = result.get('score_after_estimated')
+        optimization.strategic_impacts = result.get('strategic_impacts')
         optimization.status = result.get('status', 'failed')
         optimization.error = result.get('error')
 

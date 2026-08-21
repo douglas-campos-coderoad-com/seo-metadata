@@ -9,6 +9,7 @@ import type {
   ProjectAnalysis,
   ProjectAnalysisOptimization,
   ProjectCategory,
+  StrategicImpact,
 } from '@/shared/types';
 import type { AnalysisService, AuditCompetitorDto, AuditResponseDto, CompetitorSuggestion, ProjectInput } from './AnalysisService';
 import type { RunStatusEvent } from './events';
@@ -118,6 +119,7 @@ interface OptimizationDto {
   copy_paste_ready: Record<string, unknown> | null;
   score_before: Record<string, unknown> | null;
   score_after_estimated: Record<string, unknown> | null;
+  strategic_impacts: StrategicImpact[] | null;
   roi_projection: Record<string, unknown> | null;
   status: string;
   created_at: string;
@@ -155,6 +157,7 @@ function mapOptimization(dto: OptimizationDto): ProjectAnalysisOptimization {
     copyPasteReady: dto.copy_paste_ready,
     scoreBefore: dto.score_before,
     scoreAfterEstimated: dto.score_after_estimated,
+    strategicImpacts: dto.strategic_impacts,
     roiProjection: dto.roi_projection,
     status: dto.status,
     createdAt: dto.created_at,

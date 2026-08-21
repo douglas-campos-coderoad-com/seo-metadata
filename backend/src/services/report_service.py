@@ -33,6 +33,7 @@ from src.schemas.report import (
     ReportFinding,
     ReportRecommendation,
     ScoreDimension,
+    StrategicImpact,
 )
 from src.services.report_mappings import (
     CATEGORY_ORDER,
@@ -360,8 +361,9 @@ def _build_optimizer_section(optimization: Any) -> OptimizerSection | None:
 
     score_before = getattr(optimization, 'score_before', None)
     score_after = getattr(optimization, 'score_after_estimated', None)
+    impacts = _build_strategic_impacts(getattr(optimization, 'strategic_impacts', None))
 
-    if not any([html_text, json_ld_text, score_before, score_after]):
+    if not any([html_text, json_ld_text, score_before, score_after, impacts]):
         return None
 
     return OptimizerSection(
@@ -371,7 +373,51 @@ def _build_optimizer_section(optimization: Any) -> OptimizerSection | None:
         optimized_json_ld_truncated_chars=json_ld_dropped,
         score_before=score_before if isinstance(score_before, dict) else None,
         score_after=score_after if isinstance(score_after, dict) else None,
+        strategic_impacts=impacts,
     )
+
+
+_COMPETITOR_SCHEME = re.compile(r'^https?://(?:www\.)?', re.IGNORECASE)
+
+
+def _competitor_label(name: str) -> str:
+    """Competitors are stored by URL; the report reads them as brand names,
+    matching how the app displays them on screen."""
+    return _COMPETITOR_SCHEME.sub('', name).rstrip('/')
+
+
+def _build_strategic_impacts(raw: Any) -> list[StrategicImpact]:
+    """Map the persisted impacts into the template's model.
+
+    Defensive about the stored shape: the column holds whatever the optimizer
+    wrote, including rows written before the field existed (``None``) and, for
+    older data, possibly bare strings.
+    """
+    if not isinstance(raw, list):
+        return []
+
+    impacts: list[StrategicImpact] = []
+    for entry in raw:
+        if isinstance(entry, str):
+            text, detail, competitors = entry.strip(), None, []
+        elif isinstance(entry, dict):
+            text = _text(entry.get('impact')).strip()
+            detail = _text(entry.get('detail')).strip() or None
+            raw_competitors = entry.get('competitors')
+            competitors = [
+                _competitor_label(_text(c).strip())
+                for c in (raw_competitors if isinstance(raw_competitors, list) else [])
+                if _text(c).strip()
+            ]
+        else:
+            continue
+
+        if text:
+            impacts.append(
+                StrategicImpact(impact=text, detail=detail, competitors=competitors)
+            )
+
+    return impacts
 
 
 # ---------------------------------------------------------------------------

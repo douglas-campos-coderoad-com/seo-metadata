@@ -100,6 +100,18 @@ class FindingGroup(BaseModel):
     findings: list[ReportFinding] = Field(default_factory=list)
 
 
+class StrategicImpact(BaseModel):
+    """One business-level outcome of applying the optimization.
+
+    ``competitors`` holds the project rivals the entry is about, already filtered
+    to the project's real competitor list upstream.
+    """
+
+    impact: str
+    detail: str | None = None
+    competitors: list[str] = []
+
+
 class OptimizerSection(BaseModel):
     """The optional optimizer output (FR-010).
 
@@ -113,6 +125,7 @@ class OptimizerSection(BaseModel):
     optimized_json_ld_truncated_chars: int = 0
     score_before: dict[str, object] | None = None
     score_after: dict[str, object] | None = None
+    strategic_impacts: list[StrategicImpact] = []
 
     @property
     def has_scores(self) -> bool:

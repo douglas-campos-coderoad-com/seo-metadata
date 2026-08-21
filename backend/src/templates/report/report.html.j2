@@ -159,6 +159,28 @@
 <section>
   <h2>Optimized version</h2>
 
+  {# Business framing before the technical detail — omitted entirely when the
+     optimizer produced none (older exports, or a failed planning call). #}
+  {% if doc.optimizer.strategic_impacts %}
+    <h3>Strategic impact</h3>
+    <p class="narrative">If done well, this optimization could:</p>
+    <ul class="impact-list">
+      {% for item in doc.optimizer.strategic_impacts %}
+        <li>
+          <span class="impact-headline">{{ item.impact }}</span>
+          {% if item.detail %}
+            <span class="impact-detail">{{ item.detail }}</span>
+          {% endif %}
+          {% if item.competitors %}
+            <span class="impact-competitors">
+              vs {{ item.competitors | join(', ') }}
+            </span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
   {% if doc.optimizer.has_scores %}
     <h3>Score comparison</h3>
     <table class="scores-compare">

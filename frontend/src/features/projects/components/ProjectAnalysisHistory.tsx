@@ -6,6 +6,8 @@ import { CheckCircle2, Sparkles } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Spinner } from '@/shared/components/Spinner';
 import { BeforeAfterScoreChart } from '@/features/analysis/components/BeforeAfterScoreChart';
+import { ExportReportButton } from '@/features/analysis/components/ExportReportButton';
+import { StrategicImpactList } from '@/features/analysis/components/StrategicImpactList';
 import { useOptimize } from '@/features/analysis/hooks/useOptimize';
 import { analysisApiService } from '@/shared/realtime/AnalysisApiService';
 import { useProjects } from '../hooks/useProjects';
@@ -94,6 +96,7 @@ export function ProjectAnalysisHistory({ analyses, projectId, onAnalysisRemoved 
         {analyses.map((analysis) => {
           const after = analysis.optimization?.scoreAfterEstimated;
           const afterScore = scoreFromJson(after, 'overall');
+          const strategicImpacts = analysis.optimization?.strategicImpacts ?? [];
           const isBusy = busyAnalysisId === analysis.id;
           // Only surface the Optimize action when there's no persisted score yet.
           const showOptimize = afterScore === null;
@@ -135,6 +138,12 @@ export function ProjectAnalysisHistory({ analyses, projectId, onAnalysisRemoved 
                   }}
                 />
 
+                {strategicImpacts.length > 0 && (
+                  <div className="mt-3 border-t border-border pt-3">
+                    <StrategicImpactList impacts={strategicImpacts} variant="compact" />
+                  </div>
+                )}
+
                 {showOptimize && (
                   <Button
                     type="button"
@@ -164,6 +173,8 @@ export function ProjectAnalysisHistory({ analyses, projectId, onAnalysisRemoved 
                     View
                   </Button>
                 </Link>
+
+                <ExportReportButton analysisId={analysis.id} size="sm" label="Export PDF Report" />
 
                 <Button
                   type="button"

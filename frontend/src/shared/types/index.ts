@@ -89,6 +89,15 @@ export interface Project {
 }
 
 /** The "after" (optimized) half of a project analysis history entry, when it exists. */
+/** One business-level outcome of applying an optimization (migration 009).
+ * `competitors` names the project rivals the entry bears on — already filtered
+ * to the project's real competitors server-side. */
+export interface StrategicImpact {
+  impact: string;
+  detail: string | null;
+  competitors: string[];
+}
+
 export interface ProjectAnalysisOptimization {
   id: number;
   analysisId: number;
@@ -99,6 +108,7 @@ export interface ProjectAnalysisOptimization {
   copyPasteReady: Record<string, unknown> | null;
   scoreBefore: Record<string, unknown> | null;
   scoreAfterEstimated: Record<string, unknown> | null;
+  strategicImpacts: StrategicImpact[] | null;
   roiProjection: Record<string, unknown> | null;
   status: string;
   createdAt: string; // ISO datetime

@@ -31,6 +31,13 @@ export interface OptimizationData {
   copy_paste_ready: CopyPasteReady | null;
   score_before: { seo?: number; geo?: number; overall?: number } | null;
   score_after_estimated: { seo?: number; geo?: number; overall?: number } | null;
+  /** 3–5 business outcomes of applying this optimization; `competitors` names the
+   * project rivals the entry bears on, already filtered to real ones server-side. */
+  strategic_impacts: Array<{
+    impact: string;
+    detail: string | null;
+    competitors: string[];
+  }> | null;
   roi_projection: RoiProjection | null;
   status: string;
   error: string | null;

@@ -25,6 +25,7 @@ function optimization(
     copy_paste_ready: null,
     score_before: { seo: 45, geo: 30, overall: 37 },
     score_after_estimated: { seo: 92, geo: 85, overall: 89 },
+    strategic_impacts: null,
     roi_projection: {
       metrics_used: DEFAULT_METRICS,
       incremental_traffic_monthly: {

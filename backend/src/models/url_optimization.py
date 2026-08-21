@@ -25,6 +25,9 @@ class UrlOptimization(Base, TimestampMixin):
     copy_paste_ready = Column(JSONType, nullable=True)
     score_before = Column(JSONType, nullable=True)
     score_after_estimated = Column(JSONType, nullable=True)
+    # 3–5 business-level outcomes of applying this optimization, each optionally
+    # naming the project competitors it bears on.
+    strategic_impacts = Column(JSONType, nullable=True)
     status = Column(String(50), nullable=False, default='pending')
     error = Column(Text, nullable=True)
 

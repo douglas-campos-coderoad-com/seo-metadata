@@ -6,6 +6,7 @@ import { analysisApiService } from '@/shared/realtime/AnalysisApiService';
 import { useOptimize } from '@/features/analysis/hooks/useOptimize';
 import { buildFindings, type RawAnalysisData } from '@/shared/lib/findingMappers';
 import { BeforeAfterViewer } from '@/features/analysis/components/BeforeAfterViewer';
+import { ExportReportButton } from '@/features/analysis/components/ExportReportButton';
 import { UrlSubmitForm } from '@/features/analysis/components/UrlSubmitForm';
 import { LiveStatusTracker } from '@/features/analysis/components/LiveStatusTracker';
 import { ProjectLabelLink } from '@/features/projects/components/ProjectLabelLink';
@@ -94,12 +95,15 @@ export default function HistoricalAnalysisPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <p className="text-xs text-muted-foreground">
-          Project: <ProjectLabelLink projectId={project.id} title={project.title} />
-        </p>
-        <h1 className="text-2xl font-bold">Historical Analysis</h1>
-        <p className="text-sm text-muted-foreground">URL: {analysis.url}</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs text-muted-foreground">
+            Project: <ProjectLabelLink projectId={project.id} title={project.title} />
+          </p>
+          <h1 className="text-2xl font-bold">Historical Analysis</h1>
+          <p className="text-sm text-muted-foreground">URL: {analysis.url}</p>
+        </div>
+        <ExportReportButton analysisId={analysis.id} />
       </div>
 
       <BeforeAfterViewer

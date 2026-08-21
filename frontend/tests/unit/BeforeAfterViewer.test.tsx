@@ -23,6 +23,7 @@ const OPTIMIZATION = {
   copy_paste_ready: null,
   score_before: null,
   score_after_estimated: { overall: 90, seo: 88, geo: 92 },
+  strategic_impacts: null,
   roi_projection: null,
   status: 'completed',
   error: null,

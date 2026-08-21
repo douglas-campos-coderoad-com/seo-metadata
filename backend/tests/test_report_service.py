@@ -476,3 +476,75 @@ def test_optimizer_html_is_truncated_like_any_other_markup() -> None:
 
     assert doc.optimizer is not None
     assert doc.optimizer.optimized_html_truncated_chars == 42
+
+
+# ---------------------------------------------------------------------------
+# Strategic impacts in the optimizer section
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_strategic_impacts_reach_the_optimizer_section() -> None:
+    optimization = _optimization()
+    optimization.strategic_impacts = [
+        {
+            'impact': 'Strengthen positioning',
+            'detail': 'Richer entity markup than rivals.',
+            'competitors': ['https://www.toptal.com'],
+        },
+        {'impact': 'Reduce reliance on paid ads', 'detail': None, 'competitors': []},
+    ]
+
+    doc = build_report_document(_analysis(FULL_ANALYSIS), _url(), optimization)
+
+    assert doc.optimizer is not None
+    assert [i.impact for i in doc.optimizer.strategic_impacts] == [
+        'Strengthen positioning',
+        'Reduce reliance on paid ads',
+    ]
+    # Stored as URLs, exported as brand names — matching the on-screen rendering.
+    assert doc.optimizer.strategic_impacts[0].competitors == ['toptal.com']
+    assert doc.optimizer.strategic_impacts[1].detail is None
+
+
+@pytest.mark.unit
+def test_optimizations_predating_the_field_export_with_no_impacts() -> None:
+    optimization = _optimization()
+    optimization.strategic_impacts = None
+
+    doc = build_report_document(_analysis(FULL_ANALYSIS), _url(), optimization)
+
+    assert doc.optimizer is not None
+    assert doc.optimizer.strategic_impacts == []
+
+
+@pytest.mark.unit
+def test_impacts_stored_as_bare_strings_still_export() -> None:
+    """Older rows may hold a plain list of sentences rather than objects."""
+    optimization = _optimization()
+    optimization.strategic_impacts = ['Increase organic traffic', '  ', 7]
+
+    doc = build_report_document(_analysis(FULL_ANALYSIS), _url(), optimization)
+
+    assert doc.optimizer is not None
+    assert [i.impact for i in doc.optimizer.strategic_impacts] == ['Increase organic traffic']
+
+
+@pytest.mark.unit
+def test_impacts_alone_are_enough_to_produce_a_section() -> None:
+    """A run that yielded only the business framing still exports it."""
+    optimization = _Row(
+        id=1,
+        analysis_id=1,
+        optimized_html=None,
+        optimized_json_ld=None,
+        score_before=None,
+        score_after_estimated=None,
+        strategic_impacts=[{'impact': 'Reduce paid spend', 'competitors': []}],
+        status='completed',
+    )
+
+    doc = build_report_document(_analysis(FULL_ANALYSIS), _url(), optimization)
+
+    assert doc.optimizer is not None
+    assert len(doc.optimizer.strategic_impacts) == 1

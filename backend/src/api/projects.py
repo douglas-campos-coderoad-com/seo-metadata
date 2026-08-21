@@ -51,6 +51,7 @@ def _to_project_analysis_response(analysis: UrlAnalysis) -> ProjectAnalysisRespo
             copy_paste_ready=optimization.copy_paste_ready,
             score_before=optimization.score_before,
             score_after_estimated=optimization.score_after_estimated,
+            strategic_impacts=optimization.strategic_impacts,
             roi_projection=None,  # computed on demand by GET /optimize/{id}, not recomputed here
             status=optimization.status,
             error=optimization.error,

@@ -272,6 +272,39 @@ section {
   color: var(--muted);
 }
 
+/* ---------- Strategic impact (optimizer section) ---------- */
+
+.impact-list {
+  margin: 6px 0 0;
+  padding-left: 16px;
+}
+
+.impact-list li {
+  margin-bottom: 7px;
+  /* Keep an impact and its detail on one page rather than splitting mid-entry. */
+  break-inside: avoid;
+}
+
+.impact-headline {
+  display: block;
+  font-weight: 600;
+}
+
+.impact-detail {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+.impact-competitors {
+  display: block;
+  margin-top: 2px;
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
 /* ---------- Recommendations (FR-007, FR-008) ---------- */
 
 .recommendation {
