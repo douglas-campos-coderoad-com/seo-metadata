@@ -39,9 +39,7 @@ function CompetitorCard({ competitor }: { competitor: { id: number; url: string;
           <span className="text-xs text-muted-foreground">GEO:</span>
           <ScoreBadge value={competitor.geoScore ?? null} />
         </div>
-        {competitor.status === 'unreachable' && competitor.seoScore != null && (
-          <span className="text-[10px] italic text-muted-foreground">· est. desde descripción</span>
-        )}
+
       </div>
     </li>
   );
