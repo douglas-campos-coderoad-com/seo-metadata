@@ -73,6 +73,8 @@ services:
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/tests:/app/tests
+      # Mounted so newly added static assets are served without an image rebuild.
+      - ./frontend/public:/app/public
       - /app/node_modules
       - /app/.next
     command: npm run dev
