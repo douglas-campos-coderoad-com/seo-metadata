@@ -1,11 +1,16 @@
 import { ScoreRadial } from '@/shared/components/ScoreRadial';
+import { ScoreInfo } from '@/shared/components/ScoreInfo';
 import { scoreToSeverity, severityLabel } from '@/shared/lib/severity';
+import type { ScoreKey } from '@/shared/lib/scoreDefinitions';
 
-function SubScore({ label, score }: { label: string; score: number }) {
+function SubScore({ label, score, definition }: { label: string; score: number; definition: ScoreKey }) {
   return (
     <div className="flex flex-col items-center gap-1">
       <ScoreRadial score={score} size="sm" />
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+        {label}
+        <ScoreInfo score={definition} />
+      </p>
     </div>
   );
 }
@@ -27,13 +32,16 @@ export function ScoreSummary({ scores }: { scores: ScoreSummaryScores }) {
         <ScoreRadial score={overall} size="lg" />
         <div>
           <p className="text-lg font-semibold">{severityLabel(severity)}</p>
-          <p className="text-sm text-muted-foreground">Overall Score</p>
+          <p className="flex items-center gap-1 text-sm text-muted-foreground">
+            Overall Score
+            <ScoreInfo score="overall" />
+          </p>
         </div>
       </div>
       {hasBreakdown && (
         <div className="flex gap-4">
-          <SubScore label="SEO" score={seo} />
-          <SubScore label="GEO" score={geo} />
+          <SubScore label="SEO" score={seo} definition="seo" />
+          <SubScore label="GEO" score={geo} definition="geo" />
         </div>
       )}
     </div>

@@ -14,6 +14,8 @@
  * legible — the value is never carried by colour alone.
  */
 
+import { scoreTooltip, type ScoreKey } from '@/shared/lib/scoreDefinitions';
+
 const METER_TONES = {
   good: { fill: '#358d6d', track: '#b5e3d2' },
   fair: { fill: '#d6931f', track: '#f2d6a6' },
@@ -64,6 +66,10 @@ function RadialMeter({ value, label }: { value: number | null; label: string }) 
       aria-label={value === null ? `${label} score not available` : `${label} score ${value} out of 100`}
       className="text-foreground"
     >
+      {/* Hover definition. The aria-label above still wins as the accessible name,
+          so this adds the explanation without restating the value. */}
+      <title>{scoreTooltip('overall')}</title>
+
       {/* Unfilled remainder — a lighter step of the fill's own hue, neutral when
           there is no score to tone it by. */}
       <circle
@@ -110,12 +116,25 @@ function RadialMeter({ value, label }: { value: number | null; label: string }) 
 /** SEO and GEO as linear meters — the same severity fill and same-hue track as the
  * ring above, so the two sub-scores carry magnitude at a glance instead of being
  * read digit by digit. The number stays beside the bar, so nothing is colour-only. */
-function MetricRow({ label, value, delta }: { label: string; value: number | null; delta: number | null }) {
+function MetricRow({
+  label,
+  value,
+  delta,
+  definition,
+}: {
+  label: string;
+  value: number | null;
+  delta: number | null;
+  definition: ScoreKey;
+}) {
   const tone = value === null ? null : meterTone(value);
 
   return (
     <div className="flex items-center gap-2">
-      <span className="w-7 shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <span
+        title={scoreTooltip(definition)}
+        className="w-7 shrink-0 cursor-help text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+      >
         {label}
       </span>
 
@@ -177,8 +196,8 @@ function ScoreColumn({
       <RadialMeter value={scores.overall} label={`${title} overall`} />
 
       <div className="flex w-full max-w-[13rem] flex-col gap-1.5">
-        <MetricRow label="SEO" value={scores.seo} delta={delta('seo')} />
-        <MetricRow label="GEO" value={scores.geo} delta={delta('geo')} />
+        <MetricRow label="SEO" value={scores.seo} delta={delta('seo')} definition="seo" />
+        <MetricRow label="GEO" value={scores.geo} delta={delta('geo')} definition="geo" />
       </div>
     </div>
   );

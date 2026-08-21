@@ -3,7 +3,10 @@
 import { useMemo } from 'react';
 import { AlertCircle, AlertTriangle, BarChart3, Check, ClipboardCheck, Clock, DollarSign, Info, type LucideIcon } from 'lucide-react';
 import { ScoreRadial } from '@/shared/components/ScoreRadial';
-import { scoreToSeverity, severityLabel, SEVERITY_RANK } from '@/shared/lib/severity';
+import { ScoreDescription, ScoreInfo } from '@/shared/components/ScoreInfo';
+import { SeverityBadge } from '@/shared/components/SeverityBadge';
+import { scoreToSeverity, SEVERITY_RANK } from '@/shared/lib/severity';
+import type { ScoreKey } from '@/shared/lib/scoreDefinitions';
 import { CATEGORY_ICONS } from '@/shared/lib/categoryIcons';
 import { Badge } from '@/shared/components/ui/badge';
 import type { Finding, FindingCategory, FindingSeverity } from '@/shared/types';
@@ -80,67 +83,81 @@ const CATEGORY_LABELS: Record<FindingCategory, string> = {
 
 /* ─────────────── sub-components ─────────────── */
 
-/** Single score card showing before → after with delta arrow */
+const clampScore = (value: number) => Math.min(Math.max(value, 0), 100);
+
+/**
+ * Both scores on one 0–100 track: the muted stretch is where the page already
+ * stood, and the coloured stretch on top of it is what the optimization moved —
+ * so the gain is a length rather than a number the reader has to subtract.
+ * A regression paints that same stretch in the destructive tone instead.
+ */
+function ProgressionTrack({ before, after }: { before: number; after: number }) {
+  const start = clampScore(Math.min(before, after));
+  const end = clampScore(Math.max(before, after));
+  const improved = after >= before;
+
+  return (
+    <div
+      className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted"
+      role="img"
+      aria-label={`Before ${before} out of 100, after ${after} out of 100`}
+    >
+      <div className="h-full bg-muted-foreground/30" style={{ width: `${start}%` }} />
+      <div className={`h-full ${improved ? 'bg-success' : 'bg-destructive'}`} style={{ width: `${end - start}%` }} />
+    </div>
+  );
+}
+
+/** One score: what it measures, where it landed, and how far it moved. */
 function ScoreCard({
   title,
+  definition,
   before,
   after,
   delta: d,
   size = 'md',
 }: {
   title: string;
+  /** Which score this card is, so it can print what the number measures. */
+  definition: ScoreKey;
   before: number;
   after: number;
   delta: number;
   size?: 'lg' | 'md';
 }) {
   const severity = scoreToSeverity(after);
-  const label = severityLabel(severity);
   const isPositive = d > 0;
-  const isNeutral = d === 0;
   const isNegative = d < 0;
 
-  const trendColor = isPositive ? 'text-emerald-600 dark:text-emerald-400' : isNeutral ? 'text-muted-foreground' : 'text-red-600 dark:text-red-400';
-  const barBg = isPositive ? 'bg-emerald-500' : isNeutral ? 'bg-muted-foreground' : 'bg-red-500';
-
-  const cardSize = size === 'lg' ? 'sm:col-span-2' : '';
+  const trendColor = isPositive ? 'text-success' : isNegative ? 'text-destructive' : 'text-muted-foreground';
+  const trendLabel = isPositive ? `+${d} pts` : isNegative ? `${d} pts` : 'No change';
 
   return (
-    <div className={`rounded-2xl border border-border bg-card p-5 ${cardSize}`}>
-      <div className="mb-3 flex items-center justify-between">
+    <div className={`flex flex-col rounded-2xl border border-border bg-card p-5 ${size === 'lg' ? 'sm:col-span-2' : ''}`}>
+      <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
-        {isPositive && (
-          <span className={`text-xs font-medium ${trendColor}`}>+{d} pts</span>
-        )}
-        {isNeutral && <span className="text-xs font-medium text-muted-foreground">No change</span>}
-        {isNegative && <span className={`text-xs font-medium ${trendColor}`}>{d} pts</span>}
-      </div>
-
-      <div className="flex items-end justify-between">
-        <div className="flex items-center gap-2">
-          <ScoreRadial score={after} size={size === 'lg' ? 'lg' : 'sm'} />
-          <div>
-            <p className="text-2xl font-bold">{after}</p>
-            <p className="text-xs text-muted-foreground">{label}</p>
-          </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className={`text-xs font-semibold tabular-nums ${trendColor}`}>{trendLabel}</span>
+          <SeverityBadge severity={severity} />
         </div>
       </div>
 
-      {/* mini progress bars before / after */}
-      <div className="mt-4 space-y-2">
-        <div className="flex items-center gap-2 text-xs">
-          <span className="w-16 shrink-0 text-right text-muted-foreground">Before:</span>
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-muted-foreground/30" style={{ width: `${before}%` }} />
+      <ScoreDescription score={definition} className="mt-1 max-w-prose" />
+
+      {/* The ring carries the score itself — no second copy of the number beside it. */}
+      <div className="mt-4 flex items-center gap-4">
+        <ScoreRadial score={after} size={size === 'lg' ? 'lg' : 'sm'} />
+
+        <div className="min-w-0 flex-1">
+          <ProgressionTrack before={before} after={after} />
+          <div className="mt-2 flex items-baseline justify-between text-xs text-muted-foreground">
+            <span>
+              Before <span className="font-semibold tabular-nums text-foreground">{before}</span>
+            </span>
+            <span>
+              After <span className="font-semibold tabular-nums text-foreground">{after}</span>
+            </span>
           </div>
-          <span className="w-8 shrink-0 text-muted-foreground">{before}</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs">
-          <span className="w-16 shrink-0 text-right text-muted-foreground">After:</span>
-          <div className={`h-2 flex-1 overflow-hidden rounded-full ${barBg}`}>
-            <div className="h-full rounded-full bg-white/80" style={{ width: `${Math.min(after, 100)}%` }} />
-          </div>
-          <span className="w-8 shrink-0 font-medium">{after}</span>
         </div>
       </div>
     </div>
@@ -595,7 +612,10 @@ export function ExecutiveSummary({
         {/* current state snapshot */}
         <div className="grid gap-4 md:grid-cols-3">
           <div className="rounded-xl border border-border bg-card p-4 text-center">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Current Score</p>
+            <p className="flex items-center justify-center gap-1 text-xs uppercase tracking-wide text-muted-foreground">
+              Current Score
+              <ScoreInfo score="overall" />
+            </p>
             <div className="mt-2 flex justify-center">
               <ScoreRadial score={initialScore} size="lg" />
             </div>
@@ -683,6 +703,7 @@ export function ExecutiveSummary({
         {/* Overall */}
         <ScoreCard
           title="Overall"
+          definition="overall"
           before={initialScore}
           after={afterOverall}
           delta={overallDelta}
@@ -692,6 +713,7 @@ export function ExecutiveSummary({
         {initialSeoScore != null && afterSeo != null && (
           <ScoreCard
             title="SEO"
+            definition="seo"
             before={initialSeoScore}
             after={afterSeo}
             delta={seoDelta ?? 0}
@@ -702,6 +724,7 @@ export function ExecutiveSummary({
         {initialGeoScore != null && afterGeo != null && (
           <ScoreCard
             title="GEO/AEO"
+            definition="geo"
             before={initialGeoScore}
             after={afterGeo}
             delta={geoDelta ?? 0}
