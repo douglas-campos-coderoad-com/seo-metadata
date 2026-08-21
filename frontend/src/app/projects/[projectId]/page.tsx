@@ -184,25 +184,6 @@ export default function ProjectDetailPage() {
       {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
 
       <section>
-        <h2 className="mb-2 text-lg font-semibold">Analyze a URL for this project</h2>
-        <UrlSubmitForm
-          onStarted={handleStarted}
-          projectId={numericProjectId}
-          initialUrl={project.url ?? undefined}
-          showDemos={false}
-        />
-        {activeRunIds.length > 0 && (
-          <div className="mt-4 flex flex-col gap-2">
-            {activeRunIds.map((runId) => (
-              <div key={runId} className="rounded-xl border border-border bg-card p-4">
-                <LiveStatusTracker runId={runId} onComplete={handleRunComplete} />
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section>
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Competitors</h2>
           <Button
@@ -223,6 +204,25 @@ export default function ProjectDetailPage() {
               <CompetitorCard key={competitor.id} competitor={competitor} />
             ))}
           </ul>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-2 text-lg font-semibold">Analyze a URL for this project</h2>
+        <UrlSubmitForm
+          onStarted={handleStarted}
+          projectId={numericProjectId}
+          initialUrl={project.url ?? undefined}
+          showDemos={false}
+        />
+        {activeRunIds.length > 0 && (
+          <div className="mt-4 flex flex-col gap-2">
+            {activeRunIds.map((runId) => (
+              <div key={runId} className="rounded-xl border border-border bg-card p-4">
+                <LiveStatusTracker runId={runId} onComplete={handleRunComplete} />
+              </div>
+            ))}
+          </div>
         )}
       </section>
 
