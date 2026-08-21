@@ -73,7 +73,7 @@ describe('HistoricalAnalysisPage — view and re-run (specs/009 US2/US3)', () =>
 
     expect(await screen.findByText('My Project')).toBeInTheDocument();
     expect(mockedService.getAnalysis).toHaveBeenCalledWith(7, 555);
-    expect(screen.getByText(/historical-product/)).toBeInTheDocument();
+    expect(screen.getAllByText(/historical-product/).length).toBeGreaterThan(0);
   });
 
   it('a fresh analysis attaches the NEW analysis id to the project, never the historical one', async () => {

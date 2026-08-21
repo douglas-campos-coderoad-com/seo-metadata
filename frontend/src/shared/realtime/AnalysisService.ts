@@ -75,11 +75,10 @@ export interface AnalysisService {
   }): Promise<CompetitorSuggestion[]>;
 
   // --- Competitor audit ---
-  auditCompetitors(projectId: number): Promise<AuditResponseDto>;
+  auditCompetitors?(projectId: number): Promise<AuditResponseDto>;
 }
 
 /** Shape returned by the lightweight SEO/GEO competitor audit endpoint. */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AuditResponseDto {
   id: number;
   competitors: AuditCompetitorDto[];

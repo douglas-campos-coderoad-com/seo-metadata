@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { BeforeAfterViewer } from '@/features/analysis/components/BeforeAfterViewer';
 import { apiClient } from '@/lib/api-client';
 
@@ -34,7 +35,8 @@ describe('BeforeAfterViewer', () => {
     vi.clearAllMocks();
   });
 
-  it('renders preloaded after-data immediately with no POST or GET triggered', () => {
+  it('renders preloaded after-data immediately with no POST or GET triggered', async () => {
+    const user = userEvent.setup();
     render(
       <BeforeAfterViewer
         analysisId={42}
@@ -48,6 +50,8 @@ describe('BeforeAfterViewer', () => {
       />,
     );
 
+    await user.click(screen.getByRole('tab', { name: /before \/ after/i }));
+
     expect(screen.getByText('Optimized')).toBeInTheDocument();
     expect(screen.getByText('New title')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /run geo\/aeo optimizer/i })).not.toBeInTheDocument();
@@ -55,7 +59,8 @@ describe('BeforeAfterViewer', () => {
     expect(mockedClient.get).not.toHaveBeenCalled();
   });
 
-  it('without preloaded props, the existing live-run pending state is unchanged', () => {
+  it('without preloaded props, the existing live-run pending state is unchanged', async () => {
+    const user = userEvent.setup();
     render(
       <BeforeAfterViewer
         analysisId={42}
@@ -66,6 +71,8 @@ describe('BeforeAfterViewer', () => {
         findings={[]}
       />,
     );
+
+    await user.click(screen.getByRole('tab', { name: /before \/ after/i }));
 
     expect(screen.getByText('Pending')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /run geo\/aeo optimizer/i })).toBeInTheDocument();

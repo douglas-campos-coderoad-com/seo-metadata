@@ -116,7 +116,7 @@ function ScoreCard({
 
       <div className="flex items-end justify-between">
         <div className="flex items-center gap-2">
-          <ScoreRadial score={after} size={size === 'lg' ? 'lg' : 'md'} />
+          <ScoreRadial score={after} size={size === 'lg' ? 'lg' : 'sm'} />
           <div>
             <p className="text-2xl font-bold">{after}</p>
             <p className="text-xs text-muted-foreground">{label}</p>
@@ -443,9 +443,9 @@ export function ExecutiveSummary({
 }: ExecutiveSummaryProps) {
   const hasOptimization = Boolean(optimization && optimization.score_after_estimated?.overall != null);
 
-  const afterOverall = hasOptimization ? optimization.score_after_estimated.overall ?? 0 : 0;
-  const afterSeo = hasOptimization ? optimization.score_after_estimated.seo ?? null : null;
-  const afterGeo = hasOptimization ? optimization.score_after_estimated.geo ?? null : null;
+  const afterOverall = hasOptimization ? optimization?.score_after_estimated?.overall ?? 0 : 0;
+  const afterSeo = hasOptimization ? optimization?.score_after_estimated?.seo ?? null : null;
+  const afterGeo = hasOptimization ? optimization?.score_after_estimated?.geo ?? null : null;
 
   const overallDelta = hasOptimization ? delta(initialScore, afterOverall) : 0;
   const seoDelta = afterSeo != null && initialSeoScore != null ? delta(initialSeoScore, afterSeo) : null;
@@ -472,7 +472,7 @@ export function ExecutiveSummary({
   }, [findings]);
 
   /* ROI helpers */
-  const roi: RoiProjection | null = hasOptimization ? optimization.roi_projection ?? null : null;
+  const roi: RoiProjection | null = hasOptimization ? optimization?.roi_projection ?? null : null;
 
   const monthlyRecovery = useMemo(() => {
     if (!roi) return null;

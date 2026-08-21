@@ -2,7 +2,7 @@ import { useAppStore } from '@/shared/store/useAppStore';
 import { isValidUrl } from '@/shared/lib/url';
 import { buildRunOutcome } from '@/features/analysis/mocks/scenarios';
 import type { AnalysisRun, Finding, Project, ProjectAnalysis, ProjectCategory } from '@/shared/types';
-import type { AnalysisService, CompetitorSuggestion, ProjectInput } from './AnalysisService';
+import type { AnalysisService, Competitor, CompetitorSuggestion, ProjectInput } from './AnalysisService';
 import type { RunStatusEvent } from './events';
 
 // EventTarget-based simulated push channel (research.md §2): startAnalysis schedules
@@ -79,7 +79,7 @@ export class MockAnalysisService implements AnalysisService {
       description: c.description,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    }));
+    })) as Competitor[];
     this.projects.set(project.id, project);
     return project;
   }
@@ -113,7 +113,7 @@ export class MockAnalysisService implements AnalysisService {
         description: c.description,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      }));
+      })) as Competitor[];
     }
     this.projects.set(projectId, updated);
     return updated;

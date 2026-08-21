@@ -46,10 +46,24 @@ function optimization(
 }
 
 describe('RoiProjectionPanel', () => {
-  it('renders nothing when the optimization has no roi_projection', () => {
-    const { container } = render(
+  it('falls back to a computed projection when the optimization has no server roi_projection', () => {
+    render(
       <RoiProjectionPanel
         optimization={optimization({ roi_projection: null })}
+      />,
+    );
+
+    expect(screen.getByText('ROI Projection')).toBeInTheDocument();
+  });
+
+  it('renders nothing when the optimization has no scores at all', () => {
+    const { container } = render(
+      <RoiProjectionPanel
+        optimization={optimization({
+          roi_projection: null,
+          score_before: null,
+          score_after_estimated: null,
+        })}
       />,
     );
     expect(container).toBeEmptyDOMElement();
