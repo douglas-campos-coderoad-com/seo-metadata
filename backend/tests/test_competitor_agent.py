@@ -76,3 +76,41 @@ def test_generate_handles_llm_failure(mock_call_llm, competitor_agent):
 
     assert result['suggestions'] == []
     assert 'LLM provider unavailable' in result['error']
+
+
+# ── Competitor Audit Agent: description fallback scoring ──────────────────
+
+from src.agents.competitor_audit_agent import _description_fallback_score
+
+
+def test_description_fallback_returns_bounded_scores():
+    # A rich descriptive sentence must yield mid-range, non-zero estimates —
+    # not the previous misleading 0 that happened when a site blocked scraping.
+    result = _description_fallback_score(
+        'eBay competes by offering a massive marketplace for buying and '
+        'selling various new and used general merchandise.'
+    )
+    assert result['seo_score'] >= 40
+    assert result['geo_score'] >= 35
+    assert result['seo_score'] <= 100
+    assert result['geo_score'] <= 100
+
+
+def test_description_fallback_scales_with_richness():
+    rich = _description_fallback_score(
+        'Top online marketplace for new and used goods — compare prices, '
+        'features and reviews across thousands of sellers, services and '
+        'products with fast shipping and buyer protection.'
+    )
+    thin = _description_fallback_score('A small online shop.')
+    # A long, descriptive, hint-rich text should outscore a thin one.
+    assert rich['seo_score'] >= thin['seo_score']
+    assert rich['geo_score'] >= thin['geo_score']
+
+
+def test_description_fallback_handles_empty_description():
+    # Empty/None descriptions should still return safe bounded scores, never raise.
+    for empty in ('', None):
+        result = _description_fallback_score(empty)
+        assert 0 <= result['seo_score'] <= 100
+        assert 0 <= result['geo_score'] <= 100

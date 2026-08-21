@@ -8,7 +8,6 @@ import { FindingsList } from './FindingsList';
 import { EntityGraphBlock } from './EntityGraphBlock';
 import { CopyPasteReadyPanel } from './CopyPasteReadyPanel';
 import { AeoLiveTest } from './AeoLiveTest';
-import { RoiProjectionPanel } from './RoiProjectionPanel';
 import { ExecutiveSummary } from './ExecutiveSummary';
 import { useOptimize, type OptimizationData, type GeoScoreData } from '../hooks/useOptimize';
 import type { Finding, FindingCategory } from '@/shared/types';
@@ -96,8 +95,6 @@ function AfterBlock({ optimization }: { optimization: OptimizationData | null })
             }}
           />
       )}
-
-      <RoiProjectionPanel optimization={optimization} />
 
       <div className="rounded-xl border border-border bg-card p-4">
         <h4 className="mb-2 text-sm font-semibold uppercase text-muted-foreground">Optimized Content</h4>
@@ -313,14 +310,6 @@ export function BeforeAfterViewer({
 
           {/* Copy-paste ready tags */}
           <CopyPasteReadyPanel copyPasteReady={optimization?.copy_paste_ready ?? null} />
-
-          {/* Optimized content deep-dive */}
-          {optimization?.optimized_content && (
-            <section className="rounded-2xl border border-border bg-card p-6">
-              <h2 className="mb-4 text-lg font-bold">Optimized Content</h2>
-              <AfterBlock optimization={optimization} />
-            </section>
-          )}
 
           {/* AEO Live Test */}
           <section className="rounded-2xl border border-border bg-card p-6">

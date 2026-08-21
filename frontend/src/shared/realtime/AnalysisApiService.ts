@@ -10,7 +10,7 @@ import type {
   ProjectAnalysisOptimization,
   ProjectCategory,
 } from '@/shared/types';
-import type { AnalysisService, CompetitorSuggestion, ProjectInput } from './AnalysisService';
+import type { AnalysisService, AuditCompetitorDto, AuditResponseDto, CompetitorSuggestion, ProjectInput } from './AnalysisService';
 import type { RunStatusEvent } from './events';
 
 // Real backend-backed implementation of AnalysisService.
@@ -48,6 +48,10 @@ interface CompetitorDto {
   project_id: number;
   url: string;
   description: string;
+  seo_score: number | null;
+  geo_score: number | null;
+  status: string | null;
+  analyzed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -75,6 +79,10 @@ function mapCompetitor(dto: CompetitorDto): Competitor {
     projectId: dto.project_id,
     url: dto.url,
     description: dto.description,
+    seoScore: dto.seo_score,
+    geoScore: dto.geo_score,
+    status: dto.status,
+    analyzedAt: dto.analyzed_at,
     createdAt: dto.created_at,
     updatedAt: dto.updated_at,
   };
@@ -310,8 +318,12 @@ export class AnalysisApiService implements AnalysisService {
     return dto.suggestions;
   }
 
-  // ── Backend pipeline ───────────────────────────────────────────────────
+  async auditCompetitors(projectId: number): Promise<AuditResponseDto> {
+    const dto = await apiClient.post<AuditResponseDto>(`/projects/${projectId}/competitors/audit`, {});
+    return dto;
+  }
 
+  // ── Backend pipeline ───────────────────────────────────────────────────
   private async runPipeline(runId: string, url: string): Promise<void> {
     const at = new Date().toISOString();
 

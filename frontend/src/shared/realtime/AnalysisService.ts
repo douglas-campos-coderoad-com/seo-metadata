@@ -73,6 +73,26 @@ export interface AnalysisService {
     country: string;
     region?: string | null;
   }): Promise<CompetitorSuggestion[]>;
+
+  // --- Competitor audit ---
+  auditCompetitors(projectId: number): Promise<AuditResponseDto>;
+}
+
+/** Shape returned by the lightweight SEO/GEO competitor audit endpoint. */
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface AuditResponseDto {
+  id: number;
+  competitors: AuditCompetitorDto[];
+}
+
+export interface AuditCompetitorDto {
+  id: number;
+  url: string;
+  description: string;
+  seo_score: number;
+  geo_score: number;
+  status: string;
+  analyzed_at: string | null;
 }
 
 // Re-exported for convenience so callers don't need a second import for the entity shape.

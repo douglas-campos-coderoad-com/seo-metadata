@@ -674,7 +674,7 @@ export function ExecutiveSummary({
       </div>
 
       {/* ===== SCORE CARDS (before → after) ===== */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         {/* Overall */}
         <ScoreCard
           title="Overall"

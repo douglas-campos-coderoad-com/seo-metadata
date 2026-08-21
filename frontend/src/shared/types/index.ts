@@ -64,6 +64,10 @@ export interface Competitor {
   projectId: number;
   url: string;
   description: string;
+  seoScore: number | null;
+  geoScore: number | null;
+  status: string | null;
+  analyzedAt: string | null;
   createdAt: string; // ISO datetime
   updatedAt: string; // ISO datetime
 }
