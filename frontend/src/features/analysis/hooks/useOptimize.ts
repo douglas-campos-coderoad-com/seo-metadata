@@ -41,6 +41,12 @@ export interface OptimizationData {
   roi_projection: RoiProjection | null;
   status: string;
   error: string | null;
+  /** ISO datetimes. The row is inserted as `running` and updated when the graph
+   * finishes, so the gap between them is the optimizer's wall-clock run duration
+   * (the "after Visora" side of the Optimization Time KPI). Optional because
+   * fixtures and older callers build this shape without them. */
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface GeoScoreData {

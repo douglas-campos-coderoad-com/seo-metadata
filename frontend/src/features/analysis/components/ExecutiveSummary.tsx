@@ -12,6 +12,7 @@ import { formatCurrency, formatRoiPercent, monthsToRecover } from '../lib/roi';
 import type { RoiProjection } from '../lib/roi';
 import { RoiProjectionPanel } from './RoiProjectionPanel';
 import { StrategicImpactList } from './StrategicImpactList';
+import { OptimizationKpiPanel } from './OptimizationKpiPanel';
 
 /* ─────────────── types ─────────────── */
 
@@ -709,6 +710,18 @@ export function ExecutiveSummary({
         )}
       </div>
 
+
+      {/* ===== STRATEGIC IMPACT ===== */}
+      <StrategicImpactList impacts={strategicImpacts} />
+
+      {/* ===== KEY PERFORMANCE INDICATORS ===== */}
+      <OptimizationKpiPanel
+        findings={findings}
+        optimization={optimization}
+        geoScoreBefore={initialGeoScore}
+        geoScoreAfter={afterGeo ?? geoScore?.total_score ?? null}
+      />
+
       {/* ===== IMPACT OVERVIEW ===== */}
       <ImpactOverview
         changesApplied={changesApplied}
@@ -719,9 +732,6 @@ export function ExecutiveSummary({
         categoryIssues={categoryIssues}
         onNavigateDetail={onNavigateDetail}
       />
-
-      {/* ===== STRATEGIC IMPACT ===== */}
-      <StrategicImpactList impacts={strategicImpacts} />
 
       {/* ===== TOP RECOMMENDATIONS (best practices) ===== */}
       {topRecommendations.length > 0 && (

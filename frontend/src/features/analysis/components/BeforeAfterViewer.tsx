@@ -10,6 +10,7 @@ import { EntityGraphBlock } from './EntityGraphBlock';
 import { CopyPasteReadyPanel } from './CopyPasteReadyPanel';
 import { AeoLiveTest } from './AeoLiveTest';
 import { ExecutiveSummary } from './ExecutiveSummary';
+import { OptimizationKpiPanel } from './OptimizationKpiPanel';
 import { useOptimize, type OptimizationData, type GeoScoreData } from '../hooks/useOptimize';
 import type { Finding, FindingCategory } from '@/shared/types';
 
@@ -256,6 +257,13 @@ export function BeforeAfterViewer({
             ) : (
               <div className="space-y-4">
                 <AfterBlock optimization={optimization} />
+                <OptimizationKpiPanel
+                  findings={findings}
+                  optimization={optimization}
+                  geoScoreBefore={initialGeoScore}
+                  geoScoreAfter={optimization?.score_after_estimated?.geo ?? geoScore?.total_score ?? null}
+                  variant="compact"
+                />
                 {optimization?.changes && optimization.changes.length > 0 && (
                   <div className="rounded-xl border border-border bg-card p-4">
                     <h4 className="mb-2 text-sm font-semibold uppercase text-muted-foreground">Changes Applied ({optimization.changes.length})</h4>
