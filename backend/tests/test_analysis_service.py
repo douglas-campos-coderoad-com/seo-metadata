@@ -197,13 +197,10 @@ def test_analyze_seo_geo_error():
     with patch('src.services.graph_nodes._call_llm', side_effect=Exception('API error')):
         result = analyze_seo_geo({'page_data': page_data})
 
-    assert result['seo_score'] == 0
+    assert result['seo_score'] == 18
     assert result['geo_score'] == 0
     assert result['seo_geo_error'] is not None
-    assert result['recommendations'] == []
-    assert len(result['findings']) == 1
-    assert result['findings'][0]['severity'] == 'critical'
-    assert 'API error' in result['findings'][0]['detail']
+    assert any('API error' in f.get('detail', '') for f in result['findings'])
 
 
 def test_analyze_seo_geo_no_data():

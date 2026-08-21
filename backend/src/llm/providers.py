@@ -56,6 +56,7 @@ class AnthropicRepository(LangChainChatRepository):
             api_key=SecretStr(self.api_key),
             temperature=self.temperature,
             max_retries=self.max_retries,
+            default_headers={'anthropic-beta': 'prompt-caching-2024-07-31'},
             timeout=None,
             stop=None,
         )

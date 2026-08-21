@@ -158,3 +158,40 @@ async def test_get_analysis_not_found(client, db_session_factory):
     assert response.status_code == 404
     data = response.json()
     assert 'detail' in data
+
+
+@pytest.mark.asyncio
+async def test_stream_analysis_progress_success(client, db_session_factory):
+    """Test GET /api/v1/analyze/{id}/stream returns text/event-stream content."""
+    async with db_session_factory() as session:
+        ingested = IngestedUrl(
+            url='https://example.com/stream-analysis',
+            html='<html><body><h1>Test Stream</h1></body></html>',
+            status='success',
+            http_status=200,
+            content_type='text/html',
+            error=None,
+        )
+        session.add(ingested)
+        await session.commit()
+        await session.refresh(ingested)
+        ingested_id = ingested.id
+
+    mock_result = {
+        'seo_score': 70,
+        'geo_score': 50,
+        'overall_score': 60,
+        'analysis': {'findings': [], 'recommendations': [], 'geo_visibility': '', 'seo_breakdown': {}, 'geo_breakdown': {}, 'errors': []},
+        'json_ld': None,
+        'status': 'completed',
+        'error': None,
+    }
+
+    from src.services.analysis_service import AnalysisService
+    with patch.object(AnalysisService, '_run_analysis_in_executor', new=AsyncMock(return_value=mock_result)):
+        response = await client.get(f'/api/v1/analyze/{ingested_id}/stream')
+
+    assert response.status_code == 200
+    assert 'text/event-stream' in response.headers.get('content-type', '')
+    assert 'event: progress' in response.text
+    assert 'event: completed' in response.text
