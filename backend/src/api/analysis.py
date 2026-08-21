@@ -85,9 +85,12 @@ async def stream_analysis_progress(
 
     async def event_generator():
         async for event in service.stream_analysis_progress(ingested_url_id):
-            evt_type = event.get('event', 'message')
-            evt_data = event.get('data', '{}')
-            yield f'event: {evt_type}\ndata: {evt_data}\n\n'
+            if 'comment' in event:
+                yield f": {event['comment']}\n\n"
+            else:
+                evt_type = event.get('event', 'message')
+                evt_data = event.get('data', '{}')
+                yield f'event: {evt_type}\ndata: {evt_data}\n\n'
 
     return StreamingResponse(
         event_generator(),

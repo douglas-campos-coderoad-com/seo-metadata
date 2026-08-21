@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from langgraph.graph import StateGraph, END
 from sqlalchemy import select
@@ -15,6 +15,17 @@ from src.services.graph_nodes import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+_RUNNING_ANALYSIS_TASKS: dict[int, Any] = {}
+
+
+async def _run_analysis_standalone(ingested_url_id: int) -> UrlAnalysis:
+    """Run analysis using an independent AsyncSessionLocal instance (safe for background tasks)."""
+    from src.db.session import AsyncSessionLocal
+    async with AsyncSessionLocal() as session:
+        service = AnalysisService(session)
+        return await service.analyze_url(ingested_url_id)
 
 
 class AnalysisService:
@@ -166,80 +177,115 @@ class AnalysisService:
         return result.scalar_one_or_none()
 
     async def stream_analysis_progress(self, ingested_url_id: int):
-        """Yield SSE event dictionaries reporting real-time analysis progress."""
+        """Yield SSE event dictionaries reporting real-time analysis progress with non-blocking task polling and keep-alive pings."""
         import json, asyncio
 
-        ingested = await self.session.get(IngestedUrl, ingested_url_id)
-        if ingested is None:
-            yield {'event': 'error', 'data': json.dumps({'error': f'Ingested URL {ingested_url_id} not found'})}
-            return
-        if not ingested.html:
-            yield {'event': 'error', 'data': json.dumps({'error': f'Ingested URL {ingested_url_id} has no HTML content'})}
-            return
+        try:
+            ingested = await self.session.get(IngestedUrl, ingested_url_id)
+            if ingested is None:
+                yield {'event': 'error', 'data': json.dumps({'error': f'Ingested URL {ingested_url_id} not found'})}
+                return
+            if not ingested.html:
+                yield {'event': 'error', 'data': json.dumps({'error': f'Ingested URL {ingested_url_id} has no HTML content'})}
+                return
 
-        # 1. Ingestion & DOM Cleanup
-        yield {
-            'event': 'progress',
-            'data': json.dumps({
-                'step': 'ingestion',
-                'progress': 15,
-                'message': 'Fetching page and cleaning DOM structure',
-                'detail': f'HTML extracted ({len(ingested.html):,} chars). Stripping non-semantic markup and inline styles.',
-            })
-        }
-        await asyncio.sleep(0.05)
+            # 1. Check if analysis is already completed
+            existing = await self.get_latest_analysis(ingested_url_id)
+            if existing and existing.status == 'completed':
+                yield {
+                    'event': 'completed',
+                    'data': json.dumps({
+                        'step': 'completed',
+                        'progress': 100,
+                        'message': 'Analysis complete',
+                        'detail': 'Compiled scores, recommendations, findings, and copy-paste ready markup.',
+                        'analysis_id': existing.id,
+                        'seo_score': existing.seo_score,
+                        'geo_score': existing.geo_score,
+                        'overall_score': existing.overall_score,
+                    }),
+                }
+                return
 
-        # 2. Deterministic SEO Audit
-        yield {
-            'event': 'progress',
-            'data': json.dumps({
-                'step': 'seo_audit',
-                'progress': 35,
-                'message': 'Auditing technical SEO rules',
-                'detail': 'Evaluating title, meta description, H1 hierarchy, OpenGraph tags, canonical link, and image alt text in Python.',
-            })
-        }
-        await asyncio.sleep(0.05)
+            # 2. Emit initial progress events for ingestion & SEO audit
+            yield {
+                'event': 'progress',
+                'data': json.dumps({
+                    'step': 'ingestion',
+                    'progress': 15,
+                    'message': 'Fetching page and cleaning DOM structure',
+                    'detail': f'HTML extracted ({len(ingested.html):,} chars). Stripping non-semantic markup and inline styles.',
+                }),
+            }
 
-        # 3. Parallel GEO AI Evaluation & Analysis
-        yield {
-            'event': 'progress',
-            'data': json.dumps({
-                'step': 'geo_evaluation',
-                'progress': 65,
-                'message': 'Evaluating GEO & AEO AI citability',
-                'detail': 'Analyzing fact density, conversational tone, and question-answering structure for generative AI engines.',
-            })
-        }
-        await asyncio.sleep(0.05)
+            yield {
+                'event': 'progress',
+                'data': json.dumps({
+                    'step': 'seo_audit',
+                    'progress': 35,
+                    'message': 'Auditing technical SEO rules',
+                    'detail': 'Evaluating title, meta description, H1 hierarchy, OpenGraph tags, canonical link, and image alt text in Python.',
+                }),
+            }
 
-        analysis = await self.get_latest_analysis(ingested_url_id)
-        if analysis is None or analysis.status == 'running':
-            analysis = await self.analyze_url(ingested_url_id)
+            yield {
+                'event': 'progress',
+                'data': json.dumps({
+                    'step': 'geo_evaluation',
+                    'progress': 65,
+                    'message': 'Evaluating GEO & AEO AI citability',
+                    'detail': 'Analyzing fact density, conversational tone, and question-answering structure for generative AI engines.',
+                }),
+            }
 
-        # 4. JSON-LD Knowledge Graph Generation
-        yield {
-            'event': 'progress',
-            'data': json.dumps({
-                'step': 'json_ld',
-                'progress': 85,
-                'message': 'Generating Schema.org JSON-LD Knowledge Graph',
-                'detail': 'Synthesizing rich schema graph representation for search engines and generative AI.',
-            })
-        }
-        await asyncio.sleep(0.05)
+            # 3. Re-entry protection: Reuse active task or spawn a background task with independent session
+            task = _RUNNING_ANALYSIS_TASKS.get(ingested_url_id)
+            if task is None or task.done():
+                task = asyncio.create_task(_run_analysis_standalone(ingested_url_id))
+                _RUNNING_ANALYSIS_TASKS[ingested_url_id] = task
 
-        # 5. Final Report Compilation
-        yield {
-            'event': 'completed',
-            'data': json.dumps({
-                'step': 'completed',
-                'progress': 100,
-                'message': 'Analysis complete',
-                'detail': 'Compiled scores, recommendations, findings, and copy-paste ready markup.',
-                'analysis_id': analysis.id,
-                'seo_score': analysis.seo_score,
-                'geo_score': analysis.geo_score,
-                'overall_score': analysis.overall_score,
-            })
-        }
+            # 4. Non-blocking polling loop with keep-alive pings
+            poll_count = 0
+            while not task.done():
+                await asyncio.sleep(0.5)
+                poll_count += 1
+                if poll_count % 2 == 0:
+                    yield {'comment': 'ping'}
+
+            # 5. Handle task completion or exception
+            if task.exception():
+                exc = task.exception()
+                logger.error(f'Background analysis task failed for ingested_url_id={ingested_url_id}: {exc}')
+                yield {'event': 'error', 'data': json.dumps({'error': 'Analysis pipeline encountered an error'})}
+                return
+
+            analysis = task.result()
+
+            yield {
+                'event': 'progress',
+                'data': json.dumps({
+                    'step': 'json_ld',
+                    'progress': 85,
+                    'message': 'Generating Schema.org JSON-LD Knowledge Graph',
+                    'detail': 'Synthesizing rich schema graph representation for search engines and generative AI.',
+                }),
+            }
+
+            yield {
+                'event': 'completed',
+                'data': json.dumps({
+                    'step': 'completed',
+                    'progress': 100,
+                    'message': 'Analysis complete',
+                    'detail': 'Compiled scores, recommendations, findings, and copy-paste ready markup.',
+                    'analysis_id': analysis.id if analysis else None,
+                    'seo_score': analysis.seo_score if analysis else 0,
+                    'geo_score': analysis.geo_score if analysis else 0,
+                    'overall_score': analysis.overall_score if analysis else 0,
+                }),
+            }
+        except Exception as exc:
+            logger.exception(f'Error in stream_analysis_progress for ingested_url_id={ingested_url_id}: {exc}')
+            yield {'event': 'error', 'data': json.dumps({'error': 'An unexpected error occurred during analysis streaming'})}
+        finally:
+            _RUNNING_ANALYSIS_TASKS.pop(ingested_url_id, None)
