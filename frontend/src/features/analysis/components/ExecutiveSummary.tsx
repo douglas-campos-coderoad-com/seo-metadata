@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { AlertCircle, AlertTriangle, BarChart3, Check, ClipboardCheck, Clock, DollarSign, Info, type LucideIcon } from 'lucide-react';
+import { AlertCircle, AlertTriangle, ArrowRight, BarChart3, Check, ClipboardCheck, Clock, DollarSign, Info, Rocket, type LucideIcon } from 'lucide-react';
 import { ScoreRadial } from '@/shared/components/ScoreRadial';
 import { ScoreDescription, ScoreInfo } from '@/shared/components/ScoreInfo';
 import { SeverityBadge } from '@/shared/components/SeverityBadge';
@@ -9,6 +9,7 @@ import { scoreToSeverity, SEVERITY_RANK } from '@/shared/lib/severity';
 import type { ScoreKey } from '@/shared/lib/scoreDefinitions';
 import { CATEGORY_ICONS } from '@/shared/lib/categoryIcons';
 import { Badge } from '@/shared/components/ui/badge';
+import { Button } from '@/shared/components/ui/button';
 import type { Finding, FindingCategory, FindingSeverity } from '@/shared/types';
 import type { OptimizationData, GeoScoreData } from '../hooks/useOptimize';
 import { formatCurrency, formatRoiPercent, monthsToRecover } from '../lib/roi';
@@ -482,6 +483,41 @@ function ImplementationChecklist({
   );
 }
 
+/** Footer: the single next action, styled to stand out from the summary cards */
+function NextStepCallout({
+  pendingCount,
+  onNavigateDetail,
+}: {
+  pendingCount: number;
+  onNavigateDetail?: (category: FindingCategory | null) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-4 rounded-2xl border border-primary/30 border-l-4 border-l-primary bg-primary/5 p-5 shadow-sm sm:flex-row sm:items-center">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+        <Rocket className="h-5 w-5" />
+      </span>
+
+      <div className="flex-1">
+        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Recommended next step</p>
+        <p className="mt-1 text-base font-semibold leading-snug">
+          {pendingCount > 0
+            ? `Implement the ${pendingCount} pending ${pendingCount === 1 ? 'change' : 'changes'}, then monitor organic traffic for 30 days.`
+            : 'Publish the applied changes, then monitor organic traffic for 30 days.'}
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Shipping first locks in the projected score gain; the 30-day window is what makes the traffic impact measurable.
+        </p>
+      </div>
+
+      {pendingCount > 0 && onNavigateDetail && (
+        <Button onClick={() => onNavigateDetail(null)} className="shrink-0">
+          Review pending changes <ArrowRight className="h-4 w-4" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
 /* ─────────────── main component ─────────────── */
 
 export function ExecutiveSummary({
@@ -609,6 +645,8 @@ export function ExecutiveSummary({
 
     return items;
   }, [categoryIssues, changesApplied, optimization?.changes]);
+
+  const pendingChanges = implementationChecklist.filter((c) => !c.done).length;
 
   /* percentage bar helper */
   function pctBar(current: number, max: number, colorClass: string, showValue = true): React.ReactNode {
@@ -814,11 +852,10 @@ export function ExecutiveSummary({
       )}
 
       {/* ===== FOOTER: next action ===== */}
-      <div className="rounded-xl border border-border bg-card p-4 text-center">
-        <p className="text-sm font-medium">
-          Recommendation: Prioritize implementing pending changes and monitor organic traffic impact over 30 days.
-        </p>
-      </div>
+      <NextStepCallout
+        pendingCount={pendingChanges}
+        onNavigateDetail={onNavigateDetail}
+      />
     </section>
   );
 }
