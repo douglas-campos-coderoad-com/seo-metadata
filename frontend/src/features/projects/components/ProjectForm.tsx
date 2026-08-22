@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { Input } from '@/shared/components/ui/input';
+import { Textarea } from '@/shared/components/ui/textarea';
 import { Button } from '@/shared/components/ui/button';
 import { CompetitorListEditor } from './CompetitorListEditor';
 import { PROJECT_CATEGORIES, type ProjectCategory, type Project } from '@/shared/types';
@@ -109,8 +110,8 @@ export function ProjectForm({ onCreated, editingProject, onSaved }: ProjectFormP
 
       <label className="flex flex-col gap-1">
         <span className="text-xs font-medium text-muted-foreground">Site description</span>
-        <Input
-          type="text"
+        <Textarea
+          rows={5}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="What does this site sell or offer?"

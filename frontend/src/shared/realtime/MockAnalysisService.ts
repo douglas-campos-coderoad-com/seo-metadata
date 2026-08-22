@@ -1,6 +1,7 @@
 import { useAppStore } from '@/shared/store/useAppStore';
 import { isValidUrl } from '@/shared/lib/url';
 import { buildRunOutcome } from '@/features/analysis/mocks/scenarios';
+import { randomUUID } from '@/shared/lib/uuid';
 import type { AnalysisRun, Finding, Project, ProjectAnalysis, ProjectCategory } from '@/shared/types';
 import type { AnalysisService, Competitor, CompetitorSuggestion, ProjectInput } from './AnalysisService';
 import type { RunStatusEvent } from './events';
@@ -190,7 +191,7 @@ export class MockAnalysisService implements AnalysisService {
 
   private createAndScheduleRun(targetId: string, url: string): AnalysisRun {
     const run: AnalysisRun = {
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       targetId,
       status: 'queued',
       startedAt: new Date().toISOString(),
@@ -261,7 +262,7 @@ export class MockAnalysisService implements AnalysisService {
 
     const findings: Finding[] = outcome.findingTemplates.map((template) => ({
       ...template,
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       runId,
     }));
 
