@@ -699,7 +699,7 @@ export function ExecutiveSummary({
             <div className="mt-2 flex justify-center gap-2 text-xs">
               {criticalCount > 0 && <Badge variant="destructive">{criticalCount} critical</Badge>}
               {warningCount > 0 && <Badge className="bg-orange-100 text-orange-700">{warningCount} high</Badge>}
-              {mediumCount > 0 && <Badge className="bg-amber-100">{mediumCount} medium</Badge>}
+              {mediumCount > 0 && <Badge className="bg-amber-100 text-foreground">{mediumCount} medium</Badge>}
             </div>
           </div>
           <div className="rounded-xl border border-border bg-card p-4 text-center">

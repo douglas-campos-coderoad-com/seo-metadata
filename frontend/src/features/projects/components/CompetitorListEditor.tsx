@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Sparkles } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
 import { Button } from '@/shared/components/ui/button';
 import { analysisApiService } from '@/shared/realtime/AnalysisApiService';
@@ -71,6 +72,7 @@ export function CompetitorListEditor({ competitors, onChange, smartSearchContext
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium text-muted-foreground">Competitors (optional)</span>
         <Button type="button" size="sm" variant="outline" onClick={handleSmartSearch} disabled={isSearching}>
+          <Sparkles className="h-3.5 w-3.5" />
           {isSearching ? 'Searching…' : 'Smart Search'}
         </Button>
       </div>

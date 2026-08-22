@@ -2,6 +2,7 @@ import { apiClient } from '@/lib/api-client';
 import { useAppStore } from '@/shared/store/useAppStore';
 import { isValidUrl } from '@/shared/lib/url';
 import { buildFindings, type RawAnalysisData } from '@/shared/lib/findingMappers';
+import { randomUUID } from '@/shared/lib/uuid';
 import type {
   AnalysisRun,
   Competitor,
@@ -204,7 +205,7 @@ export class AnalysisApiService implements AnalysisService {
     // attachAnalysisToProject exists and this run has a backendAnalysisId to attach.
 
     const run: AnalysisRun = {
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       targetId: target.id,
       status: 'queued',
       startedAt: new Date().toISOString(),

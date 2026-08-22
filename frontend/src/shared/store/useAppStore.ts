@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { normalizeUrl } from '@/shared/lib/url';
+import { randomUUID } from '@/shared/lib/uuid';
 import type {
   AnalysisRun,
   AnalysisTarget,
@@ -38,7 +39,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     const target: AnalysisTarget = {
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       url: normalized,
       displayUrl: url.trim(),
       createdAt: new Date().toISOString(),

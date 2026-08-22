@@ -1,4 +1,5 @@
 import type { Finding, FindingRecommendation } from '@/shared/types';
+import { randomUUID } from '@/shared/lib/uuid';
 
 // Mirrors report_mappings.py's CATEGORY_LABELS keys.
 const KNOWN_CATEGORIES: ReadonlySet<Finding['category']> = new Set([
@@ -102,7 +103,7 @@ function toFindingRecommendation(rec: BackendRecommendation): FindingRecommendat
   const location = rec.html_change?.location;
   const action = [rec.action, location && `Where: ${location}`].filter(Boolean).join(' ');
   return {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     action,
     rationale: rec.rationale || '',
     codeSnippet: rec.html_change?.suggested_html || null,
@@ -144,7 +145,7 @@ export function buildFindings(ownerId: string, analysisData: RawAnalysisData | n
     if (finding.id) recsByFindingId.delete(finding.id);
 
     findings.push({
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       runId: ownerId,
       category: mapFindingCategory(finding.category),
       severity: mapFindingSeverity(finding.severity),
@@ -163,7 +164,7 @@ export function buildFindings(ownerId: string, analysisData: RawAnalysisData | n
     const action = rec.action || rec.rationale || '';
     if (!action) continue;
     findings.push({
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       runId: ownerId,
       category: mapFindingCategory(rec.category),
       severity: mapFindingPriority(rec.priority),
@@ -178,7 +179,7 @@ export function buildFindings(ownerId: string, analysisData: RawAnalysisData | n
   // If no findings, add a default "good" one
   if (findings.length === 0) {
     findings.push({
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       runId: ownerId,
       category: 'content',
       severity: 'good',

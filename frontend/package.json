@@ -25,6 +25,7 @@
     "react-dom": "^18.2.0",
     "react-force-graph-2d": "^1.29.1",
     "tailwind-merge": "^2.2.0",
+    "uuid": "^14.0.2",
     "zustand": "^4.5.0"
   },
   "devDependencies": {
@@ -35,6 +36,7 @@
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
+    "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.2.0",
     "@vitest/coverage-v8": "^1.0.0",
     "@vitest/ui": "^1.0.0",
